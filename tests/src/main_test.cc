@@ -1,41 +1,44 @@
 #include <ecs/ecs.hpp>
 #include <cstdint>
-#include <iostream>
+#include <gtest/gtest.h>
 
-int main() {
+TEST(BasicTest, AddAndRemove) {
     mytho::container::basic_sparse_set<uint32_t, 1024> s;
 
     s.add(100000);
-
-    ASSURE(s.contain(100000), "There should be 10 in sparse set");
+    EXPECT_EQ(s.contain(100000), true);
+    EXPECT_EQ(s.size(), 1);
 
     s.add(923424);
-
-    ASSURE(s.contain(923424), "There should be 10 in sparse set");
+    EXPECT_EQ(s.contain(923424), true);
+    EXPECT_EQ(s.size(), 2);
 
     s.add(8456);
-
-    ASSURE(s.contain(8456), "There should be 10 in sparse set");
-
+    EXPECT_EQ(s.contain(8456), true);
+    EXPECT_EQ(s.size(), 3);
+    
     s.add(73);
-
-    ASSURE(s.contain(73), "There should be 10 in sparse set");
+    EXPECT_EQ(s.contain(73), true);
+    EXPECT_EQ(s.size(), 4);
 
     s.remove(100000);
-
-    ASSURE(!s.contain(100000), "There should not be 10 in sparse set");
-
+    EXPECT_EQ(s.contain(100000), false);
+    EXPECT_EQ(s.size(), 3);
+    
     s.remove(923424);
-
-    ASSURE(!s.contain(923424), "There should not be 10 in sparse set");
-
-    s.remove(73);
-
-    ASSURE(!s.contain(73), "There should not be 10 in sparse set");
-
+    EXPECT_EQ(s.contain(923424), false);
+    EXPECT_EQ(s.size(), 2);
+    
     s.remove(8456);
+    EXPECT_EQ(s.contain(8456), false);
+    EXPECT_EQ(s.size(), 1);
+    
+    s.remove(73);
+    EXPECT_EQ(s.contain(73), false);
+    EXPECT_EQ(s.size(), 0);
+}
 
-    ASSURE(!s.contain(8456), "There should not be 10 in sparse set");
-
-    return 0;
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
