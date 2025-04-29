@@ -6,12 +6,10 @@
 #include <limits>
 
 #include "utils/assert.hpp"
+#include "utils/concept.hpp"
 
 namespace mytho::container {
-    template<typename T>
-    concept IntegralType = std::is_integral_v<T>;
-
-    template<IntegralType T, size_t PageSize = 1024>
+    template<mytho::utils::UnsignedIntegralType T, size_t PageSize = 1024>
     class basic_sparse_set {
     public:
         using data_type = T;
@@ -32,10 +30,6 @@ namespace mytho::container {
         }
 
         void remove(data_type data) noexcept {
-            if (!contain(data)) {
-                return;
-            }
-
             if (data != _density.back()) {
                 page_data_type pos = sparse_ref(data);
                 _density[pos] = _density.back();
@@ -49,6 +43,8 @@ namespace mytho::container {
         bool contain(data_type data) const noexcept {
             return page(data) < _sparsity.size() && _sparsity[page(data)][offset(data)] != page_data_null;
         }
+
+        size_type index(data_type data) const noexcept { return _sparsity[page(data)][offset(data)]; }
 
         void clear() noexcept {
             _density.clear();
@@ -80,4 +76,4 @@ namespace mytho::container {
 
         page_data_type& sparse_ref(data_type data) noexcept { return _sparsity[page(data)][offset(data)]; }
     };
-};
+}
