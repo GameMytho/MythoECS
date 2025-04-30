@@ -2,7 +2,7 @@
 #include <ecs/entity.hpp>
 
 TEST(EntityTest, BasicTest) {
-    using entity = mytho::ecs::entity<uint32_t, uint8_t>;
+    using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
     entity e0(0);
     
     EXPECT_EQ(e0.id(), 0);

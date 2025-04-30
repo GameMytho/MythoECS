@@ -2,8 +2,8 @@
 #include <container/entity_set.hpp>
 
 TEST(EntitySetTest, BasicTest) {
-    using entity = mytho::ecs::entity<uint32_t, uint8_t>;
-    mytho::container::entity_set<entity> s;
+    using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
+    mytho::container::basic_entity_set<entity> s;
 
     s.add(100000);
     EXPECT_EQ(s.contain(100000), true);

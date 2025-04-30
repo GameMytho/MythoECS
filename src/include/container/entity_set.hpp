@@ -8,7 +8,7 @@
 namespace mytho::container {
 
     template<mytho::utils::EntityType EntityT, size_t PageSize = 1024>
-    class entity_set : public basic_sparse_set<typename EntityT::id_type, PageSize> {
+    class basic_entity_set : public basic_sparse_set<typename EntityT::id_type, PageSize> {
     public:
         using entity_type = EntityT;
         using entity_version_type = typename entity_type::version_type;
@@ -17,19 +17,15 @@ namespace mytho::container {
         using base_type = basic_sparse_set<typename entity_type::id_type, PageSize>;
 
     public:
-        void add(entity_type e) noexcept {
-            if (contain(e)) {
-                return;
-            }
+        void add(const entity_type& e) noexcept {
+            ASSURE(!contain(e), "invalid entity value(entity exit).");
 
             base_type::add(e.id());
             _versions.push_back(e.version());
         }
 
-        void remove(entity_type e) noexcept {
-            if (!contain(e)) {
-                return;
-            }
+        void remove(const entity_type& e) noexcept {
+            ASSURE(contain(e), "invalid entity value(entity not exit).");
 
             if (base_type::index(e.id()) != _versions.size() - 1) {
                 _versions[base_type::index(e.id())] = _versions.back();
@@ -39,8 +35,14 @@ namespace mytho::container {
             base_type::remove(e.id());
         }
 
-        bool contain(entity_type e) const noexcept {
+        bool contain(const entity_type& e) const noexcept {
             return base_type::contain(e.id()) && base_type::index(e.id()) < _versions.size() && _versions[base_type::index(e.id())] == e.version();
+        }
+
+        size_type index(const entity_type& e) const noexcept {
+            ASSURE(contain(e), "invalid entity value(entity not exit).");
+
+            return base_type::index(e.id());
         }
 
         void clear() noexcept {
@@ -49,6 +51,12 @@ namespace mytho::container {
         }
 
         size_type size() const noexcept { return _versions.size(); }
+
+        entity_type entity(size_type idx) const noexcept {
+            ASSURE(idx < _versions.size(), "entity index out of entity set!");
+
+            return static_cast<entity_type>(base_type::data(idx), version(idx));
+        }
 
     private:
         entity_version_container_type _versions;

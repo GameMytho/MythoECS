@@ -19,32 +19,38 @@ namespace mytho::container {
         using page_type = std::array<page_data_type, PageSize>;
         using sparsity_type = std::vector<page_type>;
 
-        static constexpr page_data_type page_data_null = std::numeric_limits<page_data_type>::max();
+        static constexpr data_type data_null = std::numeric_limits<data_type>::max();
 
     public:
         void add(data_type data) noexcept {
-            ASSURE(data != page_data_null, "invalid integral value(reach max).");
+            ASSURE(data != data_null && !contain(data), "invalid integral value(value reach max or exit).");
 
             _density.push_back(data);
             expand(page(data))[offset(data)] = _density.size() - 1;
         }
 
         void remove(data_type data) noexcept {
+            ASSURE(contain(data), "invalid integral value(value not exit).");
+
             if (data != _density.back()) {
                 page_data_type pos = sparse_ref(data);
                 _density[pos] = _density.back();
                 sparse_ref(_density[pos]) = pos;
             }
 
-            sparse_ref(data) = page_data_null;
+            sparse_ref(data) = data_null;
             _density.pop_back();
         }
 
         bool contain(data_type data) const noexcept {
-            return page(data) < _sparsity.size() && _sparsity[page(data)][offset(data)] != page_data_null;
+            return page(data) < _sparsity.size() && _sparsity[page(data)][offset(data)] != data_null;
         }
 
-        size_type index(data_type data) const noexcept { return _sparsity[page(data)][offset(data)]; }
+        size_type index(data_type data) const noexcept {
+            ASSURE(contain(data), "invalid integral value(value not exit).");
+
+            return _sparsity[page(data)][offset(data)];
+        }
 
         void clear() noexcept {
             _density.clear();
@@ -52,6 +58,12 @@ namespace mytho::container {
         }
 
         size_type size() const noexcept { return _density.size(); }
+
+        T data(size_type idx) const noexcept {
+            ASSURE(idx < _density.size(), "index out of sparse set!");
+
+            return _density[idx];
+        }
 
     private:
         density_type _density;
@@ -67,7 +79,7 @@ namespace mytho::container {
                 size_t old_size = _sparsity.size();
                 _sparsity.resize(idx + 1);
                 for (size_t i = old_size; i < _sparsity.size(); i++) {
-                    std::fill(_sparsity[i].begin(), _sparsity[i].end(), page_data_null);
+                    std::fill(_sparsity[i].begin(), _sparsity[i].end(), data_null);
                 }
             }
 
