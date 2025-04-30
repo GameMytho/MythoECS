@@ -22,10 +22,6 @@ namespace mytho::ecs {
     private:
         id_type _id;
         version_type _ver;
-
-    private:
-        self_type version_next () noexcept { _ver++; return *this; }
-
     };
 }
 

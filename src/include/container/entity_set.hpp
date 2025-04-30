@@ -17,11 +17,13 @@ namespace mytho::container {
         using base_type = basic_sparse_set<typename entity_type::id_type, PageSize>;
 
     public:
-        void add(const entity_type& e) noexcept {
+        entity_type add(const entity_type& e) noexcept {
             ASSURE(!contain(e), "invalid entity value(entity exit).");
 
             base_type::add(e.id());
             _versions.push_back(e.version());
+
+            return e;
         }
 
         void remove(const entity_type& e) noexcept {
@@ -33,6 +35,15 @@ namespace mytho::container {
             _versions.pop_back();
 
             base_type::remove(e.id());
+        }
+
+        void swap(const entity_type& src, const entity_type& dst) noexcept {
+            ASSURE(contain(src) && contain(dst), "invalid entity value(entities not exit).");
+
+            if (src.id() != dst.id()) {
+                base_type::swap(src.id(), dst.id());
+                std::swap(_versions[base_type::index(src.id())], _versions[base_type::index(dst.id())]);
+            }
         }
 
         bool contain(const entity_type& e) const noexcept {
@@ -55,7 +66,14 @@ namespace mytho::container {
         entity_type entity(size_type idx) const noexcept {
             ASSURE(idx < _versions.size(), "entity index out of entity set!");
 
-            return static_cast<entity_type>(base_type::data(idx), version(idx));
+            return entity_type(base_type::data(idx), _versions[idx]);
+        }
+
+    protected:
+        void version_next(const entity_type& e) noexcept {
+            ASSURE(contain(e), "invalid entity value(entity not exit).");
+
+            _versions[base_type::index(e.id())]++;
         }
 
     private:

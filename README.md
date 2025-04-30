@@ -47,12 +47,12 @@ Use cmake tools to build project files:
 
 Compile the project:
 
-`cmake --build build --config <Debug/Release>`
+`cmake --build build`
 
 Run tests:
 
-`ctest --test-dir build -C <Debug/Release>`
+`ctest --test-dir build`
 
 If wanna tests output, try
 
-`ctest --test-dir build -C <Debug/Release> --verbose`
+`ctest --test-dir build --verbose`

@@ -42,6 +42,15 @@ namespace mytho::container {
             _density.pop_back();
         }
 
+        void swap(data_type src, data_type dst) {
+            ASSURE(contain(src) && contain(dst), "invalid integral value(value not exit).");
+
+            if (src != dst) {
+                std::swap(sparse_ref(src), sparse_ref(dst));
+                std::swap(_density[sparse_ref(src)], _density[sparse_ref(dst)]);
+            }
+        }
+
         bool contain(data_type data) const noexcept {
             return page(data) < _sparsity.size() && _sparsity[page(data)][offset(data)] != data_null;
         }
