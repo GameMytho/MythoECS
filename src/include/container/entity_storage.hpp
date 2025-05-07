@@ -38,6 +38,18 @@ namespace mytho::container {
             }
         }
 
+        void pop(const entity_type& e) noexcept {
+            if (base_type::index(e) != (_length - 1)) {
+                _map[base_type::index(e)]->clear();
+                std::swap(_map[base_type::index(e)], _map[_length - 1]);
+                base_type::swap(e, base_type::entity(_length - 1));
+            }
+
+            base_type::version_next(e);
+
+            _length--;
+        }
+
         template<typename... Ts>
         requires (sizeof...(Ts) > 0)
         void add(const entity_type& e) noexcept {
@@ -49,16 +61,13 @@ namespace mytho::container {
         }
 
         template<typename... Ts>
+        requires (sizeof...(Ts) > 0)
         void remove(const entity_type& e) noexcept {
             if (!base_type::contain(e)) {
                 return;
             }
 
-            if constexpr (sizeof...(Ts) > 0) {
-                remove_components<Ts...>(_map[base_type::index(e)]);
-            } else {
-                remove_entity(e);
-            }
+            remove_components<Ts...>(_map[base_type::index(e)]);
         }
 
         template<typename... Ts>
@@ -82,29 +91,23 @@ namespace mytho::container {
         template<typename T, typename... Rs>
         void insert_components(const component_id_set_ptr_type& s) {
             auto id = component_id_generator::template gen<T>();
-            s->add(id);
+
+            if (!s->contain(id)) {
+                s->add(id);
+            }
 
             if constexpr (sizeof...(Rs) > 0) {
                 insert_components<Rs...>(s);
             }
         }
 
-        void remove_entity(const entity_type& e) noexcept {
-            if (base_type::index(e) != (_length - 1)) {
-                _map[base_type::index(e)]->clear();
-                std::swap(_map[base_type::index(e)], _map[_length - 1]);
-            }
-
-            base_type::swap(e, base_type::entity(_length - 1));
-            base_type::version_next(e);
-
-            _length--;
-        }
-
         template<typename T, typename... Rs>
         void remove_components(const component_id_set_ptr_type& s) noexcept {
             auto id = component_id_generator::template gen<T>();
-            s->remove(id);
+
+            if (s->contain(id)) {
+                s->remove(id);
+            }
 
             if constexpr (sizeof...(Rs) > 0) {
                 remove_components<Rs...>(s);
