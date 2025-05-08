@@ -18,7 +18,7 @@ namespace mytho::container {
 
     public:
         entity_type add(const entity_type& e) noexcept {
-            ASSURE(!contain(e), "invalid entity value(entity exit).");
+            ASSURE(!contain(e), "invalid entity value(entity exist).");
 
             base_type::add(e.id());
             _versions.push_back(e.version());
@@ -27,7 +27,7 @@ namespace mytho::container {
         }
 
         void remove(const entity_type& e) noexcept {
-            ASSURE(contain(e), "invalid entity value(entity not exit).");
+            ASSURE(contain(e), "invalid entity value(entity not exist).");
 
             if (base_type::index(e.id()) != _versions.size() - 1) {
                 _versions[base_type::index(e.id())] = _versions.back();
@@ -38,7 +38,7 @@ namespace mytho::container {
         }
 
         void swap(const entity_type& src, const entity_type& dst) noexcept {
-            ASSURE(contain(src) && contain(dst), "invalid entity value(entities not exit).");
+            ASSURE(contain(src) && contain(dst), "invalid entity value(entities not exist).");
 
             if (src.id() != dst.id()) {
                 base_type::swap(src.id(), dst.id());
@@ -51,7 +51,7 @@ namespace mytho::container {
         }
 
         size_type index(const entity_type& e) const noexcept {
-            ASSURE(contain(e), "invalid entity value(entity not exit).");
+            ASSURE(contain(e), "invalid entity value(entity not exist).");
 
             return base_type::index(e.id());
         }
@@ -71,7 +71,7 @@ namespace mytho::container {
 
     protected:
         void version_next(const entity_type& e) noexcept {
-            ASSURE(contain(e), "invalid entity value(entity not exit).");
+            ASSURE(contain(e), "invalid entity value(entity not exist).");
 
             _versions[base_type::index(e.id())]++;
         }

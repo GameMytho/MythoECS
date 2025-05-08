@@ -23,14 +23,14 @@ namespace mytho::container {
 
     public:
         void add(data_type data) noexcept {
-            ASSURE(data != data_null && !contain(data), "invalid integral value(value reach max or exit).");
+            ASSURE(!contain(data), "invalid integral value(value exist).");
 
             _density.push_back(data);
             expand(page(data))[offset(data)] = _density.size() - 1;
         }
 
         void remove(data_type data) noexcept {
-            ASSURE(contain(data), "invalid integral value(value not exit).");
+            ASSURE(contain(data), "invalid integral value(value not exist).");
 
             if (data != _density.back()) {
                 page_data_type pos = sparse_ref(data);
@@ -43,7 +43,7 @@ namespace mytho::container {
         }
 
         void swap(data_type src, data_type dst) {
-            ASSURE(contain(src) && contain(dst), "invalid integral value(value not exit).");
+            ASSURE(contain(src) && contain(dst), "invalid integral value(value not exist).");
 
             if (src != dst) {
                 std::swap(sparse_ref(src), sparse_ref(dst));
@@ -52,11 +52,13 @@ namespace mytho::container {
         }
 
         bool contain(data_type data) const noexcept {
+            ASSURE(data != data_null, "invalid integral value(value reach max).");
+
             return page(data) < _sparsity.size() && _sparsity[page(data)][offset(data)] != data_null;
         }
 
         size_type index(data_type data) const noexcept {
-            ASSURE(contain(data), "invalid integral value(value not exit).");
+            ASSURE(contain(data), "invalid integral value(value not exist).");
 
             return _sparsity[page(data)][offset(data)];
         }
