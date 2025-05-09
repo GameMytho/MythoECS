@@ -6,7 +6,6 @@
 #include "container/sparse_set.hpp"
 
 namespace mytho::container {
-
     template<mytho::utils::EntityType EntityT, size_t PageSize = 1024>
     class basic_entity_set : public basic_sparse_set<typename EntityT::id_type, PageSize> {
     public:
@@ -17,6 +16,8 @@ namespace mytho::container {
         using base_type = basic_sparse_set<typename entity_type::id_type, PageSize>;
 
     public:
+        virtual ~basic_entity_set() = default;
+
         entity_type add(const entity_type& e) noexcept {
             ASSURE(!contain(e), "invalid entity value(entity exist).");
 

@@ -21,7 +21,7 @@ To build MythoECS, we need to check the following tools.
 
 We use cmake to build project, and add some unit tests to check it.
 
-**Notise**: if you do not wanna the unit tests, just change `-DBUILD_TESTS=ON` to `-DBUILD_TESTS=OFF`.
+**Notice**: if you do not wanna the unit tests, just change `-DBUILD_TESTS=ON` to `-DBUILD_TESTS=OFF`.
 
 ### Build On Windows
 
@@ -56,3 +56,21 @@ Run tests:
 If wanna tests output, try
 
 `ctest --test-dir build --verbose`
+
+## Memory Leak Check
+
+MythoECS is a head-only ecs framework, so we need to use MythoECSTest to conduct the memory leak check.
+
+### MLC With Visual Studio
+
+**Notice**: This way only works on Windows.
+
+After successfully compiling by Visual Studio, we can use breakpoints and memory snapshots to check for memory leaks.
+
+### MLC With Valgrind
+
+**Notice**: Valgrind only works on Linux/MacOS.
+
+After installing valgrind on linux/macos, we can use the following command to check memory leaks:
+
+`valgrind build/bin/MythoECSTest`

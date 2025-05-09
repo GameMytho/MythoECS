@@ -5,8 +5,8 @@ project(MythoECS VERSION 0.1.0 LANGUAGES CXX)
 
 # test option
 # This option is used to enable or disable the building of tests
-# for the MythoECS library. By default, it is set to OFF, meaning that tests will not be built.
-option(BUILD_TESTS "Build tests for MythoECS" OFF)
+# for the MythoECS library. By default, it is set to ON, meaning that tests will be built.
+option(BUILD_TESTS "Build tests for MythoECS" ON)
 
 # c++ standard 20
 set(CMAKE_CXX_STANDARD 20)
