@@ -23,11 +23,13 @@ namespace mytho::container {
         }
 
         template<typename... Ts>
-        requires (sizeof...(Ts) > 0)
         void remove(const entity_type& e) noexcept {
-            ASSURE(_contain<Ts...>(e), "the entity is missing some components.");
-
-            _remove<Ts...>(e);
+            if constexpr (sizeof...(Ts) > 0) {
+                ASSURE(_contain<Ts...>(e), "the entity is missing some components.");
+                _remove_components<Ts...>(e);
+            } else {
+                _remove_entity(e);
+            }
         }
 
         template<typename... Ts>
@@ -72,7 +74,7 @@ namespace mytho::container {
         }
 
         template<typename T, typename... Rs>
-        void _remove(const entity_type& e) noexcept {
+        void _remove_components(const entity_type& e) noexcept {
             using component_set_type = basic_component_set<entity_type, T, std::allocator<T>, PageSize>;
 
             auto id = component_id_generator::template gen<T>();
@@ -80,7 +82,13 @@ namespace mytho::container {
             static_cast<component_set_type&>(*_pool[id]).remove(e);
 
             if constexpr (sizeof...(Rs) > 0) {
-                _remove<Rs...>(e);
+                _remove_components<Rs...>(e);
+            }
+        }
+
+        void _remove_entity(const entity_type& e) noexcept {
+            for (auto& s : _pool) {
+                if (s->contain(e)) s->remove(e);
             }
         }
 

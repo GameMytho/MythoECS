@@ -40,7 +40,7 @@ namespace mytho::container {
             base_type::remove(e);
         }
 
-        component_type get(const entity_type& e) const noexcept {
+        const component_type& get(const entity_type& e) const noexcept {
             ASSURE(base_type::contain(e), "entity not exist.");
 
             auto idx = base_type::index(e);

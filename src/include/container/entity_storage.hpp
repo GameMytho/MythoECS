@@ -53,20 +53,12 @@ namespace mytho::container {
         template<typename... Ts>
         requires (sizeof...(Ts) > 0)
         void add(const entity_type& e) noexcept {
-            if (!base_type::contain(e)) {
-                return;
-            }
-
             insert_components<Ts...>(_map[base_type::index(e)]);
         }
 
         template<typename... Ts>
         requires (sizeof...(Ts) > 0)
         void remove(const entity_type& e) noexcept {
-            if (!base_type::contain(e)) {
-                return;
-            }
-
             remove_components<Ts...>(_map[base_type::index(e)]);
         }
 

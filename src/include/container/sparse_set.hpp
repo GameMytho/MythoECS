@@ -70,7 +70,7 @@ namespace mytho::container {
 
         size_type size() const noexcept { return _density.size(); }
 
-        T data(size_type idx) const noexcept {
+        data_type data(size_type idx) const noexcept {
             ASSURE(idx < _density.size(), "index out of sparse set!");
 
             return _density[idx];
