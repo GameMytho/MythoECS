@@ -6,7 +6,7 @@
 
 namespace mytho::ecs {
     template<mytho::utils::UnsignedIntegralType EntityIdentityT, mytho::utils::UnsignedIntegralType EntityVersionT>
-    class basic_entity {
+    class basic_entity final {
     public:
         using id_type = EntityIdentityT;
         using version_type = EntityVersionT;

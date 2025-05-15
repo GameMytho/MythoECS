@@ -1,10 +1,12 @@
 #pragma once
+#include <tuple>
+
 #include "container/component_set.hpp"
 #include "utils/idgen.hpp"
 
 namespace mytho::container {
     template<mytho::utils::EntityType EntityT, mytho::utils::UnsignedIntegralType ComponentIdT = size_t, size_t PageSize = 1024>
-    class basic_component_storage {
+    class basic_component_storage final {
     public:
         using entity_type = EntityT;
         using component_id_type = ComponentIdT;

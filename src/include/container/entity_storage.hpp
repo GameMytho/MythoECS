@@ -6,7 +6,7 @@
 
 namespace mytho::container {
     template<mytho::utils::EntityType EntityT, mytho::utils::UnsignedIntegralType ComponentIdT = size_t, size_t PageSize = 1024>
-    class basic_entity_storage : protected basic_entity_set<EntityT, PageSize> {
+    class basic_entity_storage final : protected basic_entity_set<EntityT, PageSize> {
     public:
         using entity_type = EntityT;
         using base_type = basic_entity_set<entity_type, PageSize>;

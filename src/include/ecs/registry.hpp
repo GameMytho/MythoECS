@@ -4,11 +4,11 @@
 #include "container/component_storage.hpp"
 
 namespace mytho::ecs {
-    template<mytho::utils::EntityType EntityT, mytho::utils::UnsignedIntegralType ComponentIdI, size_t PageSize = 1024>
-    class basic_registry {
+    template<mytho::utils::EntityType EntityT, mytho::utils::UnsignedIntegralType ComponentIdT = size_t, size_t PageSize = 1024>
+    class basic_registry final {
     public:
         using entity_type = EntityT;
-        using component_id_type = ComponentIdI;
+        using component_id_type = ComponentIdT;
         using entity_storage_type = mytho::container::basic_entity_storage<entity_type, component_id_type, PageSize>;
         using component_storage_type = mytho::container::basic_component_storage<entity_type, component_id_type, PageSize>;
 
