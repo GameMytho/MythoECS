@@ -28,6 +28,7 @@ TEST(RegistryTest, BasicTest) {
     EXPECT_EQ(reg.contain<Position>(e), true);
     {
         auto [pos] = reg.get<Position>(e);
+
         EXPECT_EQ(pos.x, 0.1f);
         EXPECT_EQ(pos.y, 1.1f);
     }
@@ -36,6 +37,14 @@ TEST(RegistryTest, BasicTest) {
     EXPECT_EQ((reg.contain<Position, Vectory, Direction>(e)), true);
     {
         auto [pos, vec, dir] = reg.get<Position, Vectory, Direction>(e);
+
+        using pos_type = decltype(pos);
+        using vec_type = decltype(vec);
+        using dir_type = decltype(dir);
+        EXPECT_EQ((std::is_same_v<pos_type, const Position&>), true);
+        EXPECT_EQ((std::is_same_v<vec_type, const Vectory&>), true);
+        EXPECT_EQ((std::is_same_v<dir_type, const Direction&>), true);
+
         EXPECT_EQ(pos.x, 0.1f);
         EXPECT_EQ(pos.y, 1.1f);
         EXPECT_EQ(vec.x, 1.0f);
@@ -49,6 +58,7 @@ TEST(RegistryTest, BasicTest) {
     EXPECT_EQ((reg.contain<Position, Direction>(e)), true);
     {
         auto [pos, dir] = reg.get<Position, Direction>(e);
+
         EXPECT_EQ(pos.x, 0.1f);
         EXPECT_EQ(pos.y, 1.1f);
         EXPECT_EQ(dir.x, 3.0f);
@@ -59,6 +69,7 @@ TEST(RegistryTest, BasicTest) {
     EXPECT_EQ((reg.contain<Position, Direction>(e)), true);
     {
         auto [pos, dir] = reg.get<Position, Direction>(e);
+
         EXPECT_EQ(pos.x, 0.2f);
         EXPECT_EQ(pos.y, 1.2f);
         EXPECT_EQ(dir.x, 3.1f);

@@ -36,7 +36,7 @@ namespace mytho::container {
 
         template<typename... Ts>
         requires (sizeof...(Ts) > 0)
-        std::tuple<Ts...> get(const entity_type& e) const noexcept {
+        auto get(const entity_type& e) const noexcept {
             ASSURE(_contain<Ts...>(e), "the entity is missing some components.");
 
             return _get<Ts...>(e);
@@ -101,9 +101,9 @@ namespace mytho::container {
             auto id = component_id_generator::template gen<T>();
 
             if constexpr (sizeof...(Rs) > 0) {
-                return std::tuple_cat(std::make_tuple(static_cast<component_set_type&>(*_pool[id]).get(e)), _get<Rs...>(e));
+                return std::tuple_cat(std::tie(static_cast<component_set_type&>(*_pool[id]).get(e)), _get<Rs...>(e));
             } else {
-                return std::make_tuple(static_cast<component_set_type&>(*_pool[id]).get(e));
+                return std::tie(static_cast<component_set_type&>(*_pool[id]).get(e));
             }
         }
 
