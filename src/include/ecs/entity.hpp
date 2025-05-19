@@ -28,12 +28,15 @@ namespace mytho::ecs {
 namespace mytho::utils {
     namespace interal {
         template<typename T>
-        struct is_entity_v : std::false_type {};
+        struct is_entity_t : std::false_type {};
 
         template<typename T, typename U>
-        struct is_entity_v<mytho::ecs::basic_entity<T, U>> : std::true_type {};
+        struct is_entity_t<mytho::ecs::basic_entity<T, U>> : std::true_type {};
+
+        template<typename T>
+        inline constexpr bool is_entity_v = is_entity_t<T>::value;
     }
 
     template<typename T>
-    concept EntityType = interal::is_entity_v<T>::value;
+    concept EntityType = interal::is_entity_v<T>;
 }

@@ -29,26 +29,29 @@ TEST(RegistryTest, BasicTest) {
     {
         auto [pos] = reg.get<Position>(e);
 
+        using pos_type = decltype(pos);
+        EXPECT_EQ((std::is_same_v<pos_type, const Position&>), true);
         EXPECT_EQ(pos.x, 0.1f);
         EXPECT_EQ(pos.y, 1.1f);
     }
-    
+
     reg.insert(e, Vectory{1.0f, 2.1f}, Direction{3.0f, 0.3f});
     EXPECT_EQ((reg.contain<Position, Vectory, Direction>(e)), true);
     {
         auto [pos, vec, dir] = reg.get<Position, Vectory, Direction>(e);
 
         using pos_type = decltype(pos);
-        using vec_type = decltype(vec);
-        using dir_type = decltype(dir);
         EXPECT_EQ((std::is_same_v<pos_type, const Position&>), true);
-        EXPECT_EQ((std::is_same_v<vec_type, const Vectory&>), true);
-        EXPECT_EQ((std::is_same_v<dir_type, const Direction&>), true);
-
         EXPECT_EQ(pos.x, 0.1f);
         EXPECT_EQ(pos.y, 1.1f);
+
+        using vec_type = decltype(vec);
+        EXPECT_EQ((std::is_same_v<vec_type, const Vectory&>), true);
         EXPECT_EQ(vec.x, 1.0f);
         EXPECT_EQ(vec.y, 2.1f);
+
+        using dir_type = decltype(dir);
+        EXPECT_EQ((std::is_same_v<dir_type, const Direction&>), true);
         EXPECT_EQ(dir.x, 3.0f);
         EXPECT_EQ(dir.y, 0.3f);
     }
@@ -59,8 +62,13 @@ TEST(RegistryTest, BasicTest) {
     {
         auto [pos, dir] = reg.get<Position, Direction>(e);
 
+        using pos_type = decltype(pos);
+        EXPECT_EQ((std::is_same_v<pos_type, const Position&>), true);
         EXPECT_EQ(pos.x, 0.1f);
         EXPECT_EQ(pos.y, 1.1f);
+
+        using dir_type = decltype(dir);
+        EXPECT_EQ((std::is_same_v<dir_type, const Direction&>), true);
         EXPECT_EQ(dir.x, 3.0f);
         EXPECT_EQ(dir.y, 0.3f);
     }
@@ -70,11 +78,61 @@ TEST(RegistryTest, BasicTest) {
     {
         auto [pos, dir] = reg.get<Position, Direction>(e);
 
+        using pos_type = decltype(pos);
+        EXPECT_EQ((std::is_same_v<pos_type, const Position&>), true);
         EXPECT_EQ(pos.x, 0.2f);
         EXPECT_EQ(pos.y, 1.2f);
+
+        using dir_type = decltype(dir);
+        EXPECT_EQ((std::is_same_v<dir_type, const Direction&>), true);
         EXPECT_EQ(dir.x, 3.1f);
         EXPECT_EQ(dir.y, 0.4f);
     }
 
     reg.despawn(e);
+}
+
+template<typename T>
+using mut = mytho::ecs::mut<T>;
+
+TEST(RegistryTest, QueryTest) {
+    using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
+    mytho::ecs::basic_registry<entity, uint8_t, 1024> reg;
+
+    for (int i = 0; i < 3; i++) {
+        auto e = reg.spawn(Position{i * 0.1f, i * 0.1f}, Vectory{i * 0.2f, i * 0.2f}, Direction{i * 0.3f, i * 0.3f});
+        EXPECT_EQ((reg.contain<Position, Vectory, Direction>(e)), true);
+    }
+
+    int i = 0;
+    for (auto& [pos, vec, dir] : reg.query<Position, mut<Vectory>, Direction>()) {
+        using pos_type = decltype(pos);
+        EXPECT_EQ((std::is_same_v<pos_type, const Position&>), true);
+        EXPECT_EQ(pos.x, i * 0.1f);
+        EXPECT_EQ(pos.y, i * 0.1f);
+
+        using vec_type = decltype(vec);
+        EXPECT_EQ((std::is_same_v<vec_type, Vectory&>), true);
+        EXPECT_EQ(vec.x, i * 0.2f);
+        EXPECT_EQ(vec.y, i * 0.2f);
+        vec.x *= 2;
+        vec.y *= 2;
+
+        using dir_type = decltype(dir);
+        EXPECT_EQ((std::is_same_v<dir_type, const Direction&>), true);
+        EXPECT_EQ(dir.x, i * 0.3f);
+        EXPECT_EQ(dir.y, i * 0.3f);
+
+        i++;
+    }
+
+    i = 0;
+    for (auto& [vec] : reg.query<Vectory>()) {
+        using vec_type = decltype(vec);
+        EXPECT_EQ((std::is_same_v<vec_type, const Vectory&>), true);
+        EXPECT_EQ(vec.x, i * 0.4f);
+        EXPECT_EQ(vec.y, i * 0.4f);
+
+        i++;
+    }
 }

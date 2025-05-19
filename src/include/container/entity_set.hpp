@@ -1,7 +1,4 @@
 #pragma once
-
-#include <vector>
-
 #include "ecs/entity.hpp"
 #include "container/sparse_set.hpp"
 
@@ -69,6 +66,42 @@ namespace mytho::container {
 
             return entity_type(base_type::data(idx), _versions[idx]);
         }
+
+    public:
+        class iterator {
+        public:
+            using iterator_category = std::forward_iterator_tag;
+            using difference_type = std::ptrdiff_t;
+            using value_type = entity_type;
+            using pointer = value_type*;
+            using reference = value_type&;
+
+            iterator(typename base_type::iterator id_it, typename entity_version_container_type::iterator version_it)
+                : _id_it(id_it), _version_it(version_it) {}
+
+            entity_type operator*() const {
+                return { *_id_it, *_version_it };
+            }
+
+            iterator operator++() {
+                ++_id_it;
+                ++_version_it;
+                return *this;
+            }
+
+            bool operator!=(const iterator& other) const {
+                return _id_it != other._id_it || _version_it != other._version_it;
+            }
+
+        private:
+            typename base_type::iterator _id_it;
+            typename entity_version_container_type::iterator _version_it;
+        };
+
+    public:
+        iterator begin() noexcept { return { base_type::begin(), _versions.begin()}; }
+
+        iterator end() noexcept { return { base_type::end(), _versions.end()}; }
 
     protected:
         void version_next(const entity_type& e) noexcept {

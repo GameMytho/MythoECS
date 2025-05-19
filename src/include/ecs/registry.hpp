@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "container/entity_storage.hpp"
 #include "container/component_storage.hpp"
 
@@ -9,8 +11,14 @@ namespace mytho::ecs {
     public:
         using entity_type = EntityT;
         using component_id_type = ComponentIdT;
+        using self_type = mytho::ecs::basic_registry<entity_type, component_id_type, PageSize>;
         using entity_storage_type = mytho::container::basic_entity_storage<entity_type, component_id_type, PageSize>;
+        using size_type = typename entity_storage_type::size_type;
         using component_storage_type = mytho::container::basic_component_storage<entity_type, component_id_type, PageSize>;
+        using component_id_generator = mytho::utils::basic_id_generator<component_id_type>;
+
+        template<typename... Ts>
+        using querier_type = mytho::ecs::basic_querier<self_type, Ts...>;
 
     public:
         template<mytho::utils::PureValueType... Ts>
@@ -18,6 +26,7 @@ namespace mytho::ecs {
             auto e = _entities.emplace();
 
             if constexpr (sizeof...(Ts) > 0) {
+                _entities.template add<Ts...>(e);
                 _components.add(e, std::forward<Ts>(ts)...);
             }
 
@@ -46,7 +55,7 @@ namespace mytho::ecs {
 
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
-        auto get(const entity_type& e) const noexcept {
+        std::tuple<const Ts&...> get(const entity_type& e) const noexcept {
             return _components.template get<Ts...>(e);
         }
 
@@ -62,8 +71,62 @@ namespace mytho::ecs {
             return _entities.contain(e) && _entities.template has<Ts...>(e) && _components.template contain<Ts...>(e);
         }
 
+        template<mytho::utils::QueryValueType... Ts>
+        requires (sizeof...(Ts) > 0)
+        querier_type<Ts...> query() noexcept {
+            using component_bundle_container_type = typename querier_type<Ts...>::component_bundle_container_type;
+
+            component_bundle_container_type component_bundles;
+
+            auto id = get_cid_with_minimun_entities<mytho::utils::convert_to_prototype<Ts>...>();
+
+            if (id) {
+                for (auto it : *_components[id.value()]) {
+                    if(contain<mytho::utils::convert_to_prototype<Ts>...>(it)) {
+                        component_bundles.emplace_back(_query<Ts...>(it));
+                    }
+                }
+            }
+
+            return component_bundles;
+        }
+
     private:
         entity_storage_type _entities;
         component_storage_type _components;
+
+    private:
+        template<typename T, typename... Rs>
+        std::optional<component_id_type> get_cid_with_minimun_entities() {
+            auto id = component_id_generator::template gen<T>();
+            if (id >= _components.size() || !_components[id]) {
+                return std::nullopt;
+            }
+
+            if constexpr (sizeof...(Rs) > 0) {
+                auto id_rs = get_cid_with_minimun_entities<Rs...>();
+                if (!id_rs) {
+                    return std::nullopt;
+                } else {
+                    return _components[id]->size() < _components[id_rs.value()]->size() ? id : id_rs;
+                }
+            }
+
+            return id;
+        }
+
+        template<typename T, typename... Rs>
+        auto _query(const entity_type& e) noexcept {
+            using prototype = mytho::utils::convert_to_prototype<T>;
+            using component_set_type = mytho::container::basic_component_set<entity_type, prototype, std::allocator<prototype>, PageSize>;
+
+            auto id = component_id_generator::template gen<prototype>();
+
+            if constexpr (sizeof...(Rs) > 0) {
+                return std::tuple_cat(std::tie(static_cast<component_set_type&>(*_components[id]).get(e)), _query<Rs...>(e));
+            } else {
+                return std::tie(static_cast<component_set_type&>(*_components[id]).get(e));
+            }
+        }
     };
 }

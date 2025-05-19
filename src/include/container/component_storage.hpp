@@ -36,7 +36,7 @@ namespace mytho::container {
 
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
-        auto get(const entity_type& e) const noexcept {
+        std::tuple<const Ts&...> get(const entity_type& e) const noexcept {
             ASSURE(_contain<Ts...>(e), "the entity is missing some components.");
 
             return _get<Ts...>(e);
@@ -61,6 +61,11 @@ namespace mytho::container {
         }
 
         size_type size() const noexcept { return _pool.size(); }
+
+    public:
+        component_set_base_type* operator[](size_type index) noexcept {
+            return _pool[index].get();
+        }
 
     private:
         component_pool_type _pool;
@@ -95,7 +100,7 @@ namespace mytho::container {
         }
 
         template<typename T, typename... Rs>
-        auto _get(const entity_type& e) const noexcept {
+        std::tuple<const T&, const Rs&...> _get(const entity_type& e) const noexcept {
             using component_set_type = basic_component_set<entity_type, T, std::allocator<T>, PageSize>;
 
             auto id = component_id_generator::template gen<T>();

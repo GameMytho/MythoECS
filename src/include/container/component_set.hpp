@@ -47,6 +47,13 @@ namespace mytho::container {
             return *_cdata[idx];
         }
 
+        component_type& get(const entity_type& e) noexcept {
+            ASSURE(base_type::contain(e), "entity not exist.");
+
+            auto idx = base_type::index(e);
+            return *_cdata[idx];
+        }
+
         template<typename... Ts>
         requires (sizeof...(Ts) > 0)
         void replace(const entity_type& e, Ts&&... ts) noexcept {

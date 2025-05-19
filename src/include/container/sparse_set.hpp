@@ -18,6 +18,7 @@ namespace mytho::container {
         using page_data_type = typename density_type::size_type;
         using page_type = std::array<page_data_type, PageSize>;
         using sparsity_type = std::vector<page_type>;
+        using iterator = typename density_type::iterator;
 
         static constexpr data_type data_null = std::numeric_limits<data_type>::max();
 
@@ -75,6 +76,11 @@ namespace mytho::container {
 
             return _density[idx];
         }
+
+    public:
+        iterator begin() noexcept { return _density.begin(); }
+
+        iterator end() noexcept { return _density.end(); }
 
     private:
         density_type _density;
