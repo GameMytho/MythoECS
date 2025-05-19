@@ -18,7 +18,7 @@ namespace mytho::container {
         using component_id_generator = mytho::utils::basic_id_generator<component_id_type>;
 
     public:
-        template<typename... Ts>
+        template<mytho::utils::PureValueType... Ts>
         entity_type emplace() noexcept {
             _length++;
 
@@ -50,19 +50,19 @@ namespace mytho::container {
             _length--;
         }
 
-        template<typename... Ts>
+        template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         void add(const entity_type& e) noexcept {
             insert_components<Ts...>(_map[base_type::index(e)]);
         }
 
-        template<typename... Ts>
+        template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         void remove(const entity_type& e) noexcept {
             remove_components<Ts...>(_map[base_type::index(e)]);
         }
 
-        template<typename... Ts>
+        template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         bool has(const entity_type& e) const noexcept {
             return contain(e) && _has<Ts...>(e);

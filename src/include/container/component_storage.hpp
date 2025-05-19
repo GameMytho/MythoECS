@@ -16,7 +16,7 @@ namespace mytho::container {
         using component_id_generator = mytho::utils::basic_id_generator<component_id_type>;
 
     public:
-        template<typename... Ts>
+        template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         void add(const entity_type& e, Ts&&... ts) noexcept {
             ASSURE(_not_contain<Ts...>(e), "the entity already has some components.");
@@ -24,7 +24,7 @@ namespace mytho::container {
             _add(e, std::forward<Ts>(ts)...);
         }
 
-        template<typename... Ts>
+        template<mytho::utils::PureValueType... Ts>
         void remove(const entity_type& e) noexcept {
             if constexpr (sizeof...(Ts) > 0) {
                 ASSURE(_contain<Ts...>(e), "the entity is missing some components.");
@@ -34,7 +34,7 @@ namespace mytho::container {
             }
         }
 
-        template<typename... Ts>
+        template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         auto get(const entity_type& e) const noexcept {
             ASSURE(_contain<Ts...>(e), "the entity is missing some components.");
@@ -42,7 +42,7 @@ namespace mytho::container {
             return _get<Ts...>(e);
         }
 
-        template<typename... Ts>
+        template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         void replace(const entity_type& e, Ts&&... ts) noexcept {
             ASSURE(_contain<Ts...>(e), "the entity is missing some components.");
@@ -50,7 +50,7 @@ namespace mytho::container {
             _replace(e, std::forward<Ts>(ts)...);
         }
 
-        template<typename... Ts>
+        template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         bool contain(const entity_type& e) const noexcept {
             return _contain<Ts...>(e);
