@@ -4,6 +4,7 @@
 
 #include "container/entity_storage.hpp"
 #include "container/component_storage.hpp"
+#include "ecs/querier.hpp"
 
 namespace mytho::ecs {
     template<mytho::utils::EntityType EntityT, mytho::utils::UnsignedIntegralType ComponentIdT = size_t, size_t PageSize = 1024>
@@ -21,7 +22,7 @@ namespace mytho::ecs {
         using querier_type = mytho::ecs::basic_querier<self_type, Ts...>;
 
     public:
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::utils::PureComponentType... Ts>
         entity_type spawn(Ts&&... ts) noexcept {
             auto e = _entities.emplace();
 
@@ -39,33 +40,33 @@ namespace mytho::ecs {
         }
 
     public:
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void insert(const entity_type& e, Ts&&... ts) noexcept {
             _entities.template add<Ts...>(e);
             _components.add(e, std::forward<Ts>(ts)...);
         }
 
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void remove(const entity_type& e) noexcept {
             _entities.template remove<Ts...>(e);
             _components.template remove<Ts...>(e);
         }
 
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         std::tuple<const Ts&...> get(const entity_type& e) const noexcept {
             return _components.template get<Ts...>(e);
         }
 
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void replace(const entity_type& e, Ts&&... ts) noexcept {
             _components.replace(e, std::forward<Ts>(ts)...);
         }
 
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         bool contain(const entity_type& e) const noexcept {
             return _entities.contain(e) && _entities.template has<Ts...>(e) && _components.template contain<Ts...>(e);

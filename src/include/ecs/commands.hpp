@@ -1,4 +1,5 @@
 #pragma once
+#include "ecs/querier.hpp"
 
 namespace mytho::ecs {
     template<typename RegistryT>
@@ -11,7 +12,7 @@ namespace mytho::ecs {
         basic_commands(registry_type& reg) : _reg(reg) {}
 
     public:
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::utils::PureComponentType... Ts>
         entity_type spawn(Ts&&... ts) noexcept {
             return _reg.spawn(std::forward<Ts>(ts)...);
         }
@@ -21,25 +22,25 @@ namespace mytho::ecs {
         }
 
     public:
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void insert(const entity_type& e, Ts&&... ts) noexcept {
             _reg.insert(e, std::forward<Ts>(ts)...);
         }
 
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void remove(const entity_type& e) noexcept {
             _reg.template remove<Ts...>(e);
         }
 
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void replace(const entity_type& e, Ts&&... ts) noexcept {
             _reg.replace(e, std::forward<Ts>(ts)...);
         }
 
     private:
-        registry_type& _reg;        
+        registry_type& _reg;
     };
 }

@@ -1,9 +1,11 @@
 #pragma once
 #include <tuple>
 #include <vector>
+#include "utils/assert.hpp"
+#include "utils/concept.hpp"
 
 namespace mytho::ecs {
-    template<typename T>
+    template<mytho::utils::PureValueType T>
     struct mut {};
 }
 
@@ -36,6 +38,12 @@ namespace mytho::utils {
 
     template<typename T>
     using convert_to_prototype = std::conditional_t<interal::is_mut_v<T>, typename interal::rm_mut<T>::prototype, T>;
+
+    template<typename T>
+    concept PureComponentType = PureValueType<T> && !interal::is_mut_v<T>;
+
+    template<typename T>
+    concept QueryValueType = PureValueType<T>;
 }
 
 namespace mytho::ecs {
