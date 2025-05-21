@@ -92,8 +92,8 @@ TEST(RegistryTest, BasicTest) {
     reg.despawn(e);
 }
 
-template<typename T>
-using mut = mytho::ecs::mut<T>;
+template<typename... Ts>
+using mut = mytho::ecs::mut<Ts...>;
 
 TEST(RegistryTest, QueryTest) {
     using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
@@ -132,6 +132,21 @@ TEST(RegistryTest, QueryTest) {
         EXPECT_EQ((std::is_same_v<vec_type, const Vectory&>), true);
         EXPECT_EQ(vec.x, i * 0.4f);
         EXPECT_EQ(vec.y, i * 0.4f);
+
+        i++;
+    }
+
+    i = 0;
+    for (auto& [vec, dir] : reg.query<mut<Vectory, Direction>>()) {
+        using vec_type = decltype(vec);
+        EXPECT_EQ((std::is_same_v<vec_type, Vectory&>), true);
+        EXPECT_EQ(vec.x, i * 0.4f);
+        EXPECT_EQ(vec.y, i * 0.4f);
+
+        using dir_type = decltype(dir);
+        EXPECT_EQ((std::is_same_v<dir_type, Direction&>), true);
+        EXPECT_EQ(dir.x, i * 0.3f);
+        EXPECT_EQ(dir.y, i * 0.3f);
 
         i++;
     }

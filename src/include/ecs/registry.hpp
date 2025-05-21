@@ -79,12 +79,12 @@ namespace mytho::ecs {
 
             component_bundle_container_type component_bundles;
 
-            auto id = get_cid_with_minimun_entities<mytho::utils::convert_to_prototype<Ts>...>();
+            auto id = get_cid_with_minimun_entities(mytho::utils::convert_to_prototype_list<Ts...>{});
 
             if (id) {
                 for (auto it : *_components[id.value()]) {
-                    if(contain<mytho::utils::convert_to_prototype<Ts>...>(it)) {
-                        component_bundles.emplace_back(_query<Ts...>(it));
+                    if(contain<mytho::utils::convert_to_prototype_list<Ts...>>(it)) {
+                        component_bundles.emplace_back(_query(it, mytho::utils::convert_to_datatype_list<Ts...>{}));
                     }
                 }
             }
@@ -98,14 +98,14 @@ namespace mytho::ecs {
 
     private:
         template<typename T, typename... Rs>
-        std::optional<component_id_type> get_cid_with_minimun_entities() {
+        std::optional<component_id_type> get_cid_with_minimun_entities(mytho::utils::type_list<T, Rs...>) {
             auto id = component_id_generator::template gen<T>();
             if (id >= _components.size() || !_components[id]) {
                 return std::nullopt;
             }
 
             if constexpr (sizeof...(Rs) > 0) {
-                auto id_rs = get_cid_with_minimun_entities<Rs...>();
+                auto id_rs = get_cid_with_minimun_entities(mytho::utils::type_list<Rs...>{});
                 if (!id_rs) {
                     return std::nullopt;
                 } else {
@@ -116,15 +116,21 @@ namespace mytho::ecs {
             return id;
         }
 
+        template<mytho::utils::PureComponentType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool contain(const entity_type& e, mytho::utils::type_list<Ts...>) const noexcept {
+            return _entities.contain(e) && _entities.template has<Ts...>(e) && _components.template contain<Ts...>(e);
+        }
+
         template<typename T, typename... Rs>
-        auto _query(const entity_type& e) noexcept {
-            using prototype = mytho::utils::convert_to_prototype<T>;
+        auto _query(const entity_type& e, mytho::utils::type_list<T, Rs...>) noexcept {
+            using prototype = std::decay_t<T>;
             using component_set_type = mytho::container::basic_component_set<entity_type, prototype, std::allocator<prototype>, PageSize>;
 
             auto id = component_id_generator::template gen<prototype>();
 
             if constexpr (sizeof...(Rs) > 0) {
-                return std::tuple_cat(std::tie(static_cast<component_set_type&>(*_components[id]).get(e)), _query<Rs...>(e));
+                return std::tuple_cat(std::tie(static_cast<component_set_type&>(*_components[id]).get(e)), _query(e, mytho::utils::type_list<Rs...>{}));
             } else {
                 return std::tie(static_cast<component_set_type&>(*_components[id]).get(e));
             }
