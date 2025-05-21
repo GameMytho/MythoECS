@@ -76,15 +76,17 @@ namespace mytho::ecs {
         requires (sizeof...(Ts) > 0)
         querier_type<Ts...> query() noexcept {
             using component_bundle_container_type = typename querier_type<Ts...>::component_bundle_container_type;
+            using component_prototype_list = typename querier_type<Ts...>::component_prototype_list;
+            using component_datatype_list = typename querier_type<Ts...>::component_datatype_list;
 
             component_bundle_container_type component_bundles;
 
-            auto id = get_cid_with_minimun_entities(mytho::utils::convert_to_prototype_list<Ts...>{});
+            auto id = get_cid_with_minimun_entities(component_prototype_list{});
 
             if (id) {
                 for (auto it : *_components[id.value()]) {
-                    if(contain<mytho::utils::convert_to_prototype_list<Ts...>>(it)) {
-                        component_bundles.emplace_back(_query(it, mytho::utils::convert_to_datatype_list<Ts...>{}));
+                    if(contain<component_prototype_list>(it)) {
+                        component_bundles.emplace_back(_query(it, component_datatype_list{}));
                     }
                 }
             }

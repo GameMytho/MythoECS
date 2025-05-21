@@ -51,6 +51,7 @@ namespace mytho::ecs {
     public:
         using registry_type = RegistryT;
         using entity_type = typename registry_type::entity_type;
+        using component_prototype_list = mytho::utils::convert_to_prototype_list<Ts...>;
         using component_datatype_list = mytho::utils::convert_to_datatype_list<Ts...>;
         using component_bundle_type = typename mytho::utils::list_to_tuple<component_datatype_list>::tuple;
         using component_bundle_container_type = std::vector<component_bundle_type>;
