@@ -39,6 +39,8 @@ namespace mytho::container {
         }
 
         void pop(const entity_type& e) noexcept {
+            ASSURE(contain(e), "invalid entity value(entity not exist).");
+
             if (base_type::index(e) != (_length - 1)) {
                 _map[base_type::index(e)]->clear();
                 std::swap(_map[base_type::index(e)], _map[_length - 1]);
@@ -53,19 +55,33 @@ namespace mytho::container {
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         void add(const entity_type& e) noexcept {
+            ASSURE(contain(e), "invalid entity value(entity not exist).");
+
             insert_components<Ts...>(_map[base_type::index(e)]);
         }
 
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         void remove(const entity_type& e) noexcept {
+            ASSURE(contain(e), "invalid entity value(entity not exist).");
+
             remove_components<Ts...>(_map[base_type::index(e)]);
         }
 
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         bool has(const entity_type& e) const noexcept {
-            return contain(e) && _has<Ts...>(e);
+            ASSURE(contain(e), "invalid entity value(entity not exist).");
+
+            return _has<Ts...>(e);
+        }
+
+        template<mytho::utils::PureValueType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool not_has(const entity_type& e) const noexcept {
+            ASSURE(contain(e), "invalid entity value(entity not exist).");
+
+            return _not_has<Ts...>(e);
         }
 
         bool contain(const entity_type& e) const noexcept {
@@ -114,6 +130,17 @@ namespace mytho::container {
                 return _map[base_type::index(e)]->contain(id) && _has<Rs...>(e);
             } else {
                 return _map[base_type::index(e)]->contain(id);
+            }
+        }
+
+        template<typename T, typename... Rs>
+        bool _not_has(const entity_type& e) const noexcept {
+            auto id = component_id_generator::template gen<T>();
+
+            if constexpr (sizeof...(Rs) > 0) {
+                return !_map[base_type::index(e)]->contain(id) && _not_has<Rs...>(e);
+            } else {
+                return !_map[base_type::index(e)]->contain(id);
             }
         }
 

@@ -75,17 +75,19 @@ namespace mytho::ecs {
         template<mytho::utils::QueryValueType... Ts>
         requires (sizeof...(Ts) > 0)
         querier_type<Ts...> query() noexcept {
-            using component_bundle_container_type = typename querier_type<Ts...>::component_bundle_container_type;
-            using component_prototype_list = typename querier_type<Ts...>::component_prototype_list;
-            using component_datatype_list = typename querier_type<Ts...>::component_datatype_list;
+            using querier = querier_type<Ts...>;
+            using component_bundle_container_type = typename querier::component_bundle_container_type;
+            using component_datatype_list = typename querier::component_datatype_list;
+            using component_contain_list = typename querier::component_contain_list;
+            using component_not_contain_list = typename querier::component_not_contain_list;
 
             component_bundle_container_type component_bundles;
 
-            auto id = get_cid_with_minimun_entities(component_prototype_list{});
+            auto id = get_cid_with_minimun_entities(component_contain_list{});
 
             if (id) {
                 for (auto it : *_components[id.value()]) {
-                    if(contain<component_prototype_list>(it)) {
+                    if(contain(it, component_contain_list{}) && not_contain(it, component_not_contain_list{})) {
                         component_bundles.emplace_back(_query(it, component_datatype_list{}));
                     }
                 }
@@ -100,14 +102,14 @@ namespace mytho::ecs {
 
     private:
         template<typename T, typename... Rs>
-        std::optional<component_id_type> get_cid_with_minimun_entities(mytho::utils::type_list<T, Rs...>) {
+        std::optional<component_id_type> get_cid_with_minimun_entities(internal::type_list<T, Rs...>) {
             auto id = component_id_generator::template gen<T>();
             if (id >= _components.size() || !_components[id]) {
                 return std::nullopt;
             }
 
             if constexpr (sizeof...(Rs) > 0) {
-                auto id_rs = get_cid_with_minimun_entities(mytho::utils::type_list<Rs...>{});
+                auto id_rs = get_cid_with_minimun_entities(internal::type_list<Rs...>{});
                 if (!id_rs) {
                     return std::nullopt;
                 } else {
@@ -120,19 +122,28 @@ namespace mytho::ecs {
 
         template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
-        bool contain(const entity_type& e, mytho::utils::type_list<Ts...>) const noexcept {
-            return _entities.contain(e) && _entities.template has<Ts...>(e) && _components.template contain<Ts...>(e);
+        bool contain(const entity_type& e, internal::type_list<Ts...>) const noexcept {
+            return _entities.template has<Ts...>(e) && _components.template contain<Ts...>(e);
+        }
+
+        template<mytho::utils::PureComponentType... Ts>
+        bool not_contain(const entity_type& e, internal::type_list<Ts...>) const noexcept {
+            if constexpr (sizeof...(Ts) > 0) {
+                return _entities.template not_has<Ts...>(e) && _components.template not_contain<Ts...>(e);
+            } else {
+                return true;
+            }
         }
 
         template<typename T, typename... Rs>
-        auto _query(const entity_type& e, mytho::utils::type_list<T, Rs...>) noexcept {
+        auto _query(const entity_type& e, internal::type_list<T, Rs...>) noexcept {
             using prototype = std::decay_t<T>;
             using component_set_type = mytho::container::basic_component_set<entity_type, prototype, std::allocator<prototype>, PageSize>;
 
             auto id = component_id_generator::template gen<prototype>();
 
             if constexpr (sizeof...(Rs) > 0) {
-                return std::tuple_cat(std::tie(static_cast<component_set_type&>(*_components[id]).get(e)), _query(e, mytho::utils::type_list<Rs...>{}));
+                return std::tuple_cat(std::tie(static_cast<component_set_type&>(*_components[id]).get(e)), _query(e, internal::type_list<Rs...>{}));
             } else {
                 return std::tie(static_cast<component_set_type&>(*_components[id]).get(e));
             }

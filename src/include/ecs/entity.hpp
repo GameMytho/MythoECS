@@ -26,7 +26,7 @@ namespace mytho::ecs {
 }
 
 namespace mytho::utils {
-    namespace interal {
+    namespace internal {
         template<typename T>
         struct is_entity_t : std::false_type {};
 
@@ -38,5 +38,5 @@ namespace mytho::utils {
     }
 
     template<typename T>
-    concept EntityType = interal::is_entity_v<T>;
+    concept EntityType = internal::is_entity_v<T>;
 }

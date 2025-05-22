@@ -6,61 +6,142 @@
 namespace mytho::ecs {
     template<mytho::utils::PureValueType... Ts>
     struct mut {};
+
+    template<mytho::utils::PureValueType... Ts>
+    struct with {};
+
+    template<mytho::utils::PureValueType... Ts>
+    struct without {};
 }
 
 namespace mytho::utils {
-    namespace interal {
-        template<typename T>
-        struct is_mut_t : std::false_type {};
+    template<typename T>
+    inline constexpr bool is_mut_v = internal::is_template_v<T, mytho::ecs::mut>;
 
-        template<typename... Ts>
-        struct is_mut_t<mytho::ecs::mut<Ts...>> : std::true_type {};
+    template<typename T>
+    inline constexpr bool is_with_v = internal::is_template_v<T, mytho::ecs::with>;
 
-        template<typename T>
-        inline constexpr bool is_mut_v = is_mut_t<T>::value;
+    template<typename T>
+    inline constexpr bool is_without_v = internal::is_template_v<T, mytho::ecs::without>;
 
+    namespace internal {
         template<typename T>
         struct rm_mut {
-            using prototype_list = type_list<T>;
-            using datatype_list = type_list<const T&>;
+            using type = type_list<const T&>;
         };
 
         template<typename... Ts>
         struct rm_mut<mytho::ecs::mut<Ts...>> {
-            using prototype_list = type_list<Ts...>;
-            using datatype_list = type_list<Ts&...>;
+            using type = type_list<Ts&...>;
         };
     }
 
-    template<typename... Ts>
-    using convert_to_datatype_list = typename type_list_cat<typename interal::rm_mut<Ts>::datatype_list...>::list;
-
-    template<typename... Ts>
-    using convert_to_prototype_list = typename type_list_cat<typename interal::rm_mut<Ts>::prototype_list...>::list;
+    template<typename T>
+    using rm_mut_t = typename internal::rm_mut<T>::type;
 
     template<typename T>
-    concept PureComponentType = PureValueType<T> && !interal::is_mut_v<T>;
+    using rm_with_t = internal::rm_template_t<T, mytho::ecs::with>;
+
+    template<typename T>
+    using rm_without_t = internal::rm_template_t<T, mytho::ecs::without>;
+
+    namespace internal {
+        template<typename... Ts>
+        struct datatype_list_convert;
+
+        template<typename... Ts>
+        struct datatype_list_convert<type_list<Ts...>> {
+            using type = type_list_cat_t<rm_mut_t<Ts>...>;
+        };
+    }
+
+    template<typename L>
+    using datatype_list_convert_t = typename internal::datatype_list_convert<L>::type;
+
+    namespace internal {
+        template<typename L, template<typename...> typename R>
+        struct prototype_list_convert;
+
+        template<template<typename...> typename R>
+        struct prototype_list_convert<type_list<>, R> {
+            using type = type_list<>;
+        };
+
+        template<template<typename...> typename R, typename... Ts>
+        struct prototype_list_convert<type_list<Ts...>, R> {
+            using type = type_list_cat_t<internal::rm_template_t<Ts, R>...>;
+        };
+    }
+
+    template<typename L, template<typename...> typename R>
+    using prototype_list_convert_t = typename internal::prototype_list_convert<L, R>::type;
 
     template<typename T>
     concept QueryValueType = PureValueType<T>;
+
+    template<typename T>
+    concept PureComponentType = PureValueType<T> && !is_mut_v<T> && !is_with_v<T> && !is_without_v<T>;
 }
 
 namespace mytho::ecs {
-    template<typename RegistryT, typename... Ts>
+    namespace internal {
+        template<typename... Ts>
+        using type_list = mytho::utils::type_list<Ts...>;
+
+        template<typename... Ls>
+        using type_list_cat_t = typename mytho::utils::type_list_cat_t<Ls...>;
+
+        template<typename L, template<typename...> typename... Fs>
+        using type_list_filter_t = typename mytho::utils::type_list_filter_t<L, Fs...>;
+
+        template<typename L, template<typename...> typename E>
+        using type_list_extract_t = typename mytho::utils::type_list_extract_t<L, E>;
+
+        template<typename L>
+        using list_to_tuple_t = typename mytho::utils::list_to_tuple_t<L>;
+
+        template<typename L>
+        using datatype_list_convert_t = typename mytho::utils::datatype_list_convert_t<L>;
+
+        template<typename L, template<typename...> typename R>
+        using prototype_list_convert_t = mytho::utils::prototype_list_convert_t<L, R>;
+
+        template<mytho::utils::QueryValueType... Qs>
+        struct query_types {
+            using query_list = internal::type_list<Qs...>;
+            using require_list = internal::type_list_filter_t<query_list, with, without>;
+            using require_prototype_list = internal::prototype_list_convert_t<require_list, mut>;
+            using require_datatype_list = internal::datatype_list_convert_t<require_list>;
+            using with_list = internal::type_list_extract_t<query_list, with>;
+            using with_prototype_list = internal::prototype_list_convert_t<with_list, with>;
+            using without_list = internal::type_list_extract_t<query_list, without>;
+            using without_prototype_list = internal::prototype_list_convert_t<without_list, without>;
+        };
+    }
+
+    template<typename RegistryT, mytho::utils::QueryValueType... Ts>
     class basic_querier final {
     public:
         using registry_type = RegistryT;
         using entity_type = typename registry_type::entity_type;
-        using component_prototype_list = mytho::utils::convert_to_prototype_list<Ts...>;
-        using component_datatype_list = mytho::utils::convert_to_datatype_list<Ts...>;
-        using component_bundle_type = typename mytho::utils::list_to_tuple<component_datatype_list>::tuple;
+        using query_types = internal::query_types<Ts...>;
+        using component_prototype_list = typename query_types::require_prototype_list;
+        using component_datatype_list = typename query_types::require_datatype_list;
+        using component_contain_list = internal::type_list_cat_t<component_prototype_list, typename query_types::with_prototype_list>;
+        using component_not_contain_list = typename query_types::without_prototype_list;
+        using component_bundle_type = typename internal::list_to_tuple_t<component_datatype_list>;
         using component_bundle_container_type = std::vector<component_bundle_type>;
+        using size_type = typename component_bundle_container_type::size_type;
         using iterator = typename component_bundle_container_type::iterator;
 
     public:
         basic_querier(const component_bundle_container_type& component_bundles) : _component_bundles(component_bundles) {}
 
     public:
+        size_type size() const noexcept { return _component_bundles.size(); }
+
+        bool empty() const noexcept { return size() == 0; }
+
         iterator begin() noexcept { return _component_bundles.begin(); }
 
         iterator end() noexcept { return _component_bundles.end(); }

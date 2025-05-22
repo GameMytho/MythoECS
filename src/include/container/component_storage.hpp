@@ -56,6 +56,12 @@ namespace mytho::container {
             return _contain<Ts...>(e);
         }
 
+        template<mytho::utils::PureValueType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool not_contain(const entity_type& e) const noexcept {
+            return _not_contain<Ts...>(e);
+        }
+
         void clear() noexcept {
             _pool.clear();
         }

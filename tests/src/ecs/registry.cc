@@ -95,7 +95,7 @@ TEST(RegistryTest, BasicTest) {
 template<typename... Ts>
 using mut = mytho::ecs::mut<Ts...>;
 
-TEST(RegistryTest, QueryTest) {
+TEST(RegistryTest, QueryMutTest) {
     using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
     mytho::ecs::basic_registry<entity, uint8_t, 1024> reg;
 
@@ -149,5 +149,52 @@ TEST(RegistryTest, QueryTest) {
         EXPECT_EQ(dir.y, i * 0.3f);
 
         i++;
+    }
+}
+
+template<typename... Ts>
+using with = mytho::ecs::with<Ts...>;
+
+template<typename... Ts>
+using without = mytho::ecs::without<Ts...>;
+
+struct Name {
+    std::string value;
+};
+
+struct Health {
+    uint32_t value;
+};
+
+TEST(RegistryTest, QueryWithTest) {
+    using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
+    mytho::ecs::basic_registry<entity, uint8_t, 1024> reg;
+
+    auto e1 = reg.spawn(Position{0.1f, 0.1f});
+    EXPECT_EQ((reg.contain<Position>(e1)), true);
+
+    auto e2 = reg.spawn(Position{0.2f, 0.2f}, Vectory{0.2f, 0.2f});
+    EXPECT_EQ((reg.contain<Position, Vectory>(e2)), true);
+
+    auto e3 = reg.spawn(Position{0.3f, 0.3f}, Vectory{0.3f, 0.3f}, Direction{0.3f, 0.3f});
+    EXPECT_EQ((reg.contain<Position, Vectory, Direction>(e3)), true);
+
+    for (auto& [pos] : reg.query<Position, with<Vectory>, without<Direction>>()) {
+        using pos_type = decltype(pos);
+        EXPECT_EQ((std::is_same_v<pos_type, const Position&>), true);
+        EXPECT_EQ(pos.x, 0.2f);
+        EXPECT_EQ(pos.y, 0.2f);
+    }
+
+    for (auto& [pos, vec] : reg.query<mut<Position, Vectory>, with<Direction>, without<Name, Health>>()) {
+        using pos_type = decltype(pos);
+        EXPECT_EQ((std::is_same_v<pos_type, Position&>), true);
+        EXPECT_EQ(pos.x, 0.3f);
+        EXPECT_EQ(pos.y, 0.3f);
+
+        using vec_type = decltype(vec);
+        EXPECT_EQ((std::is_same_v<vec_type, Vectory&>), true);
+        EXPECT_EQ(vec.x, 0.3f);
+        EXPECT_EQ(vec.y, 0.3f);
     }
 }
