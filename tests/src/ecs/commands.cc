@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 #include "ecs/registry.hpp"
-#include "ecs/commands.hpp"
 
 struct Position {
     float x;

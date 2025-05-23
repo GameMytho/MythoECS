@@ -44,3 +44,8 @@ namespace mytho::ecs {
         registry_type& _reg;
     };
 }
+
+namespace mytho::utils {
+    template<typename T>
+    inline constexpr bool is_commands_v = internal::is_template_v<T, mytho::ecs::basic_commands>;
+}

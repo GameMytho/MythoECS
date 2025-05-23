@@ -4,7 +4,7 @@
 
 #include "container/entity_storage.hpp"
 #include "container/component_storage.hpp"
-#include "ecs/querier.hpp"
+#include "ecs/system.hpp"
 
 namespace mytho::ecs {
     template<mytho::utils::EntityType EntityT, mytho::utils::UnsignedIntegralType ComponentIdT = size_t, size_t PageSize = 1024>
@@ -17,6 +17,7 @@ namespace mytho::ecs {
         using size_type = typename entity_storage_type::size_type;
         using component_storage_type = mytho::container::basic_component_storage<entity_type, component_id_type, PageSize>;
         using component_id_generator = mytho::utils::basic_id_generator<component_id_type>;
+        using system_storage_type = internal::basic_system_storage<self_type>;
 
         template<typename... Ts>
         using querier_type = mytho::ecs::basic_querier<self_type, Ts...>;
@@ -96,9 +97,53 @@ namespace mytho::ecs {
             return component_bundles;
         }
 
+    public:
+        template<auto Func>
+        self_type& add_startup_system() noexcept {
+            _startup_systems.template add<Func>();
+
+            return *this;
+        }
+
+        template<auto Func>
+        self_type& add_update_system() noexcept {
+            _update_systems.template add<Func>();
+
+            return *this;
+        }
+
+        template<auto Func>
+        self_type& add_shutdown_system() noexcept {
+            _shutdown_systems.template add<Func>();
+
+            return *this;
+        }
+
+    public:
+        void startup() noexcept {
+            for (auto& sys : _startup_systems) {
+                sys(*this);
+            }
+        }
+
+        void update() noexcept {
+            for (auto& sys : _update_systems) {
+                sys(*this);
+            }
+        }
+
+        void shutdown() noexcept {
+            for (auto& sys : _shutdown_systems) {
+                sys(*this);
+            }
+        }
+
     private:
         entity_storage_type _entities;
         component_storage_type _components;
+        system_storage_type _startup_systems;
+        system_storage_type _update_systems;
+        system_storage_type _shutdown_systems;
 
     private:
         template<typename T, typename... Rs>

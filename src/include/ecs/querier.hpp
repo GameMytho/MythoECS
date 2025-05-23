@@ -150,3 +150,8 @@ namespace mytho::ecs {
         component_bundle_container_type _component_bundles;
     };
 }
+
+namespace mytho::utils {
+    template<typename T>
+    inline constexpr bool is_querier_v = internal::is_template_v<T, mytho::ecs::basic_querier>;
+}

@@ -1,0 +1,89 @@
+#include <gtest/gtest.h>
+#include "ecs/registry.hpp"
+
+struct Position {
+    float x;
+    float y;
+};
+
+struct Vectory {
+    float x;
+    float y;
+};
+
+struct Direction {
+    float x;
+    float y;
+};
+
+struct Name {
+    std::string value;
+};
+
+struct Health {
+    uint32_t value;
+};
+
+template<typename... Ts>
+using mut = mytho::ecs::mut<Ts...>;
+
+template<typename... Ts>
+using with = mytho::ecs::with<Ts...>;
+
+template<typename... Ts>
+using without = mytho::ecs::without<Ts...>;
+
+using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
+using registry = mytho::ecs::basic_registry<entity, uint8_t, 1024>;
+using commands = mytho::ecs::basic_commands<registry>;
+
+template<typename... Ts>
+using querier = mytho::ecs::basic_querier<registry, Ts...>;
+
+void startup(commands cmds) {
+    cmds.spawn(Position{0.1f, 0.1f});
+    cmds.spawn(Position{0.2f, 0.2f}, Vectory{0.2f, 0.2f});
+    cmds.spawn(Position{0.3f, 0.3f}, Vectory{0.3f, 0.3f}, Direction{0.3f, 0.3f});
+}
+
+void update1(querier<Position, with<Vectory>, without<Direction>> q) {
+    for (auto& [pos] : q) {
+        using pos_type = decltype(pos);
+        EXPECT_EQ((std::is_same_v<pos_type, const Position&>), true);
+        EXPECT_EQ(pos.x, 0.2f);
+        EXPECT_EQ(pos.y, 0.2f);
+    }
+}
+
+void shutdown() {
+
+}
+
+void update2(querier<mut<Position, Vectory>, with<Direction>, without<Name, Health>> q) {
+    for (auto& [pos, vec] : q) {
+        using pos_type = decltype(pos);
+        EXPECT_EQ((std::is_same_v<pos_type, Position&>), true);
+        EXPECT_EQ(pos.x, 0.3f);
+        EXPECT_EQ(pos.y, 0.3f);
+
+        using vec_type = decltype(vec);
+        EXPECT_EQ((std::is_same_v<vec_type, Vectory&>), true);
+        EXPECT_EQ(vec.x, 0.3f);
+        EXPECT_EQ(vec.y, 0.3f);
+    }
+}
+
+TEST(SystemTest, BasicTest) {
+    registry reg;
+
+    reg.add_startup_system<startup>()
+       .add_update_system<update1>()
+       .add_update_system<update2>()
+       .add_shutdown_system<shutdown>();
+
+    reg.startup();
+
+    reg.update();
+
+    reg.shutdown();
+}

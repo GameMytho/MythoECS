@@ -32,11 +32,11 @@ namespace mytho::utils {
 
         template<typename T, typename U>
         struct is_entity_t<mytho::ecs::basic_entity<T, U>> : std::true_type {};
-
-        template<typename T>
-        inline constexpr bool is_entity_v = is_entity_t<T>::value;
     }
 
     template<typename T>
-    concept EntityType = internal::is_entity_v<T>;
+    inline constexpr bool is_entity_v = internal::is_entity_t<T>::value;
+
+    template<typename T>
+    concept EntityType = is_entity_v<T>;
 }
