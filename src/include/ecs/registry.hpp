@@ -106,6 +106,13 @@ namespace mytho::ecs {
         }
 
         template<auto Func>
+        self_type& remove_startup_system() noexcept {
+            _startup_systems.template remove<Func>();
+
+            return *this;
+        }
+
+        template<auto Func>
         self_type& add_update_system() noexcept {
             _update_systems.template add<Func>();
 
@@ -113,8 +120,22 @@ namespace mytho::ecs {
         }
 
         template<auto Func>
+        self_type& remove_update_system() noexcept {
+            _update_systems.template remove<Func>();
+
+            return *this;
+        }
+
+        template<auto Func>
         self_type& add_shutdown_system() noexcept {
             _shutdown_systems.template add<Func>();
+
+            return *this;
+        }
+
+        template<auto Func>
+        self_type& remove_shutdown_system() noexcept {
+            _shutdown_systems.template remove<Func>();
 
             return *this;
         }

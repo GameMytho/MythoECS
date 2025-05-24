@@ -71,19 +71,16 @@ namespace mytho::ecs {
         }
 
         template<typename RegistryT>
-        class basic_system_type {
-        public:
+        struct basic_system_type {
             using registry_type = RegistryT;
             using function_type = void(*)(registry_type&);
 
-        public:
             basic_system_type(function_type func) : _func(func) {}
 
             void operator()(registry_type& reg) const noexcept {
                 _func(reg);
             }
 
-        private:
             function_type _func{};
         };
 
@@ -97,11 +94,15 @@ namespace mytho::ecs {
         public:
             template<auto Func>
             void add() noexcept {
-                _systems.emplace_back([](registry_type& reg){
-                    using types = mytho::utils::system_traits_t<mytho::utils::function_traits_t<std::decay_t<decltype(Func)>>>;
+                _systems.emplace_back(function_construct<Func>());
+            }
 
-                    system_invoke<Func>(reg, types{});
-                });
+            template<auto Func>
+            void remove() noexcept {
+                auto func = function_construct<Func>();
+                _systems.erase(std::remove_if(_systems.begin(), _systems.end(), [=](auto& sys) {
+                    return sys._func == func;
+                }), _systems.end());
             }
 
         public:
@@ -113,8 +114,17 @@ namespace mytho::ecs {
             systems_type _systems;
 
         private:
+            template<auto Func>
+            auto function_construct() {
+                return [](registry_type& reg){
+                    using types = mytho::utils::system_traits_t<mytho::utils::function_traits_t<std::decay_t<decltype(Func)>>>;
+
+                    function_invoke<Func>(reg, types{});
+                };
+            }
+
             template<auto Func, typename... Ts>
-            static void system_invoke(registry_type& reg, mytho::utils::type_list<Ts...>) noexcept {
+            static void function_invoke(registry_type& reg, mytho::utils::type_list<Ts...>) noexcept {
                 std::invoke(Func, construct<RegistryT, Ts>(reg)...);
             }
         };

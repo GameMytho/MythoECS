@@ -55,22 +55,34 @@ void update1(querier<Position, with<Vectory>, without<Direction>> q) {
     }
 }
 
-void shutdown() {
-
-}
-
-void update2(querier<mut<Position, Vectory>, with<Direction>, without<Name, Health>> q) {
+void update2(querier<mut<Position>, Vectory, with<Direction>, without<Name, Health>> q) {
     for (auto& [pos, vec] : q) {
         using pos_type = decltype(pos);
         EXPECT_EQ((std::is_same_v<pos_type, Position&>), true);
         EXPECT_EQ(pos.x, 0.3f);
         EXPECT_EQ(pos.y, 0.3f);
 
+        pos.x = 0.4;
+        pos.y = 0.4;
+
         using vec_type = decltype(vec);
-        EXPECT_EQ((std::is_same_v<vec_type, Vectory&>), true);
+        EXPECT_EQ((std::is_same_v<vec_type, const Vectory&>), true);
         EXPECT_EQ(vec.x, 0.3f);
         EXPECT_EQ(vec.y, 0.3f);
     }
+}
+
+void update3(querier<Position, with<Vectory, Direction>, without<Name, Health>> q) {
+    for (auto& [pos] : q) {
+        using pos_type = decltype(pos);
+        EXPECT_EQ((std::is_same_v<pos_type, const Position&>), true);
+        EXPECT_EQ(pos.x, 0.4f);
+        EXPECT_EQ(pos.y, 0.4f);
+    }
+}
+
+void shutdown() {
+
 }
 
 TEST(SystemTest, BasicTest) {
@@ -82,6 +94,12 @@ TEST(SystemTest, BasicTest) {
        .add_shutdown_system<shutdown>();
 
     reg.startup();
+
+    reg.update();
+
+    reg.remove_update_system<update1>()
+       .remove_update_system<update2>()
+       .add_update_system<update3>();
 
     reg.update();
 
