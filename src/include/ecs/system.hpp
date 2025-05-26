@@ -77,11 +77,24 @@ namespace mytho::ecs {
 
             basic_system_type(function_type func) : _func(func) {}
 
+            void enable() noexcept {
+                _enabled = true;
+            }
+
+            void disable() noexcept {
+                _enabled = false;
+            }
+
+            bool enabled() const noexcept {
+                return _enabled;
+            }
+
             void operator()(registry_type& reg) const noexcept {
                 _func(reg);
             }
 
             function_type _func{};
+            bool _enabled = true;
         };
 
         template<typename RegistryT>
@@ -103,6 +116,26 @@ namespace mytho::ecs {
                 _systems.erase(std::remove_if(_systems.begin(), _systems.end(), [=](auto& sys) {
                     return sys._func == func;
                 }), _systems.end());
+            }
+
+            template<auto Func>
+            void enable() noexcept {
+                auto func = function_construct<Func>();
+                for (auto& it : _systems) {
+                    if (it._func == func) {
+                        it.enable();
+                    }
+                }
+            }
+
+            template<auto Func>
+            void disable() noexcept {
+                auto func = function_construct<Func>();
+                for (auto& it : _systems) {
+                    if (it._func == func) {
+                        it.disable();
+                    }
+                }
             }
 
         public:

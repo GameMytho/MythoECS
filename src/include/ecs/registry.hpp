@@ -113,6 +113,20 @@ namespace mytho::ecs {
         }
 
         template<auto Func>
+        self_type& enable_startup_system() noexcept {
+            _startup_systems.template enable<Func>();
+
+            return *this;
+        }
+
+        template<auto Func>
+        self_type& disable_startup_system() noexcept {
+            _startup_systems.template disable<Func>();
+
+            return *this;
+        }
+
+        template<auto Func>
         self_type& add_update_system() noexcept {
             _update_systems.template add<Func>();
 
@@ -122,6 +136,20 @@ namespace mytho::ecs {
         template<auto Func>
         self_type& remove_update_system() noexcept {
             _update_systems.template remove<Func>();
+
+            return *this;
+        }
+
+        template<auto Func>
+        self_type& enable_update_system() noexcept {
+            _update_systems.template enable<Func>();
+
+            return *this;
+        }
+
+        template<auto Func>
+        self_type& disable_update_system() noexcept {
+            _update_systems.template disable<Func>();
 
             return *this;
         }
@@ -140,22 +168,42 @@ namespace mytho::ecs {
             return *this;
         }
 
+        template<auto Func>
+        self_type& enable_shutdown_system() noexcept {
+            _shutdown_systems.template enable<Func>();
+
+            return *this;
+        }
+
+        template<auto Func>
+        self_type& disable_shutdown_system() noexcept {
+            _shutdown_systems.template disable<Func>();
+
+            return *this;
+        }
+
     public:
         void startup() noexcept {
             for (auto& sys : _startup_systems) {
-                sys(*this);
+                if (sys.enabled()) {
+                    sys(*this);
+                }
             }
         }
 
         void update() noexcept {
             for (auto& sys : _update_systems) {
-                sys(*this);
+                if (sys.enabled()) {
+                    sys(*this);
+                }
             }
         }
 
         void shutdown() noexcept {
             for (auto& sys : _shutdown_systems) {
-                sys(*this);
+                if (sys.enabled()) {
+                    sys(*this);
+                }
             }
         }
 

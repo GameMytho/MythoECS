@@ -85,7 +85,7 @@ void shutdown() {
 
 }
 
-TEST(SystemTest, BasicTest) {
+TEST(SystemTest, AddAndRemoveTest) {
     registry reg;
 
     reg.add_startup_system<startup>()
@@ -100,6 +100,32 @@ TEST(SystemTest, BasicTest) {
     reg.remove_update_system<update1>()
        .remove_update_system<update2>()
        .add_update_system<update3>();
+
+    reg.update();
+
+    reg.shutdown();
+}
+
+TEST(SystemTest, EnableAndDisableTest) {
+    registry reg;
+
+    reg.add_startup_system<startup>()
+       .add_update_system<update1>()
+       .add_update_system<update2>()
+       .add_update_system<update3>()
+       .add_shutdown_system<shutdown>();
+
+    reg.enable_update_system<update1>()
+       .enable_update_system<update2>()
+       .disable_update_system<update3>();
+
+    reg.startup();
+
+    reg.update();
+
+    reg.disable_update_system<update1>()
+       .disable_update_system<update2>()
+       .enable_update_system<update3>();
 
     reg.update();
 
