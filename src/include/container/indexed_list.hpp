@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <vector>
 #include <limits>
+#include "utils/assert.hpp"
 
 namespace mytho::container {
     template<typename DataT, typename IndexT>
@@ -18,6 +19,8 @@ namespace mytho::container {
     public:
         template<typename... Ts>
         void emplace_front(Ts&&... ts) noexcept {
+            ASSURE(size() <= index_null, "The number of systems reached max, you need to use larger index type!");
+
             index_type index = _data_list.size();
             _data_list.emplace_back(std::forward<Ts>(ts)...);
             _prev_list.emplace_back(index_null);
@@ -65,6 +68,8 @@ namespace mytho::container {
 
         template<typename... Ts>
         void emplace_back(Ts&&... ts) noexcept {
+            ASSURE(size() <= index_null, "The number of systems reached max, you need to use larger index type!");
+
             index_type index = _data_list.size();
             _data_list.emplace_back(std::forward<Ts>(ts)...);
             _prev_list.emplace_back(_tail);
@@ -112,6 +117,8 @@ namespace mytho::container {
 
         template<typename... Ts>
         void emplace(index_type index, Ts&&... ts) noexcept {
+            ASSURE(size() <= index_null, "The number of systems reached max, you need to use larger index type!");
+
             if (index == 0) {
                 emplace_front(std::forward<Ts>(ts)...);
                 return;
@@ -183,13 +190,30 @@ namespace mytho::container {
                 ordered_index++;
 
                 if (_data_list[actual_idx] == data) {
-                    break;
+                    return ordered_index;
                 }
 
                 actual_idx = _next_list[actual_idx];
             }
 
-            return ordered_index;
+            return index_null;
+        }
+
+        template<typename Predicate>
+        index_type find_if(Predicate pred) const noexcept {
+            index_type ordered_index = index_null;
+            index_type actual_idx = _head;
+            while(actual_idx != index_null) {
+                ordered_index++;
+
+                if (pred(_data_list[actual_idx])) {
+                    return ordered_index;
+                }
+
+                actual_idx = _next_list[actual_idx];
+            }
+
+            return index_null;
         }
 
         void sort() noexcept {

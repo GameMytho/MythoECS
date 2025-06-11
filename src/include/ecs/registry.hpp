@@ -7,17 +7,23 @@
 #include "ecs/system.hpp"
 
 namespace mytho::ecs {
-    template<mytho::utils::EntityType EntityT, mytho::utils::UnsignedIntegralType ComponentIdT = size_t, size_t PageSize = 1024>
+    template<
+        mytho::utils::EntityType EntityT,
+        mytho::utils::UnsignedIntegralType ComponentIdT = size_t,
+        mytho::utils::UnsignedIntegralType SystemIndexT = size_t,
+        size_t PageSize = 1024
+    >
     class basic_registry final {
     public:
         using entity_type = EntityT;
         using component_id_type = ComponentIdT;
-        using self_type = mytho::ecs::basic_registry<entity_type, component_id_type, PageSize>;
+        using system_index_type = SystemIndexT;
+        using self_type = mytho::ecs::basic_registry<entity_type, component_id_type, system_index_type, PageSize>;
         using entity_storage_type = mytho::container::basic_entity_storage<entity_type, component_id_type, PageSize>;
         using size_type = typename entity_storage_type::size_type;
         using component_storage_type = mytho::container::basic_component_storage<entity_type, component_id_type, PageSize>;
         using component_id_generator = mytho::utils::basic_id_generator<component_id_type>;
-        using system_storage_type = internal::basic_system_storage<self_type>;
+        using system_storage_type = internal::basic_system_storage<self_type, system_index_type>;
 
         template<typename... Ts>
         using querier_type = mytho::ecs::basic_querier<self_type, Ts...>;
@@ -98,9 +104,9 @@ namespace mytho::ecs {
         }
 
     public:
-        template<auto Func>
+        template<auto Func, mytho::utils::LocationType... Locs>
         self_type& add_startup_system() noexcept {
-            _startup_systems.template add<Func>();
+            _startup_systems.template add<Func, Locs...>();
 
             return *this;
         }
@@ -126,9 +132,9 @@ namespace mytho::ecs {
             return *this;
         }
 
-        template<auto Func>
+        template<auto Func, mytho::utils::LocationType... Locs>
         self_type& add_update_system() noexcept {
-            _update_systems.template add<Func>();
+            _update_systems.template add<Func, Locs...>();
 
             return *this;
         }
@@ -154,9 +160,9 @@ namespace mytho::ecs {
             return *this;
         }
 
-        template<auto Func>
+        template<auto Func, mytho::utils::LocationType... Locs>
         self_type& add_shutdown_system() noexcept {
-            _shutdown_systems.template add<Func>();
+            _shutdown_systems.template add<Func, Locs...>();
 
             return *this;
         }
@@ -183,6 +189,12 @@ namespace mytho::ecs {
         }
 
     public:
+        void ready() noexcept {
+            _startup_systems.sort();
+            _update_systems.sort();
+            _shutdown_systems.sort();
+        }
+
         void startup() noexcept {
             for (auto& sys : _startup_systems) {
                 if (sys.enabled()) {

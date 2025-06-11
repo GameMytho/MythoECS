@@ -18,7 +18,7 @@ struct Direction {
 
 TEST(CommandsTest, BasicTest) {
     using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
-    using registry = mytho::ecs::basic_registry<entity, uint8_t, 1024>;
+    using registry = mytho::ecs::basic_registry<entity, uint8_t, uint8_t, 1024>;
     using commands = mytho::ecs::basic_commands<registry>;
 
     registry reg;

@@ -34,7 +34,7 @@ template<typename... Ts>
 using without = mytho::ecs::without<Ts...>;
 
 using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
-using registry = mytho::ecs::basic_registry<entity, uint8_t, 1024>;
+using registry = mytho::ecs::basic_registry<entity, uint8_t, uint8_t, 1024>;
 using commands = mytho::ecs::basic_commands<registry>;
 
 template<typename... Ts>
@@ -72,12 +72,29 @@ void update2(querier<mut<Position>, Vectory, with<Direction>, without<Name, Heal
     }
 }
 
-void update3(querier<Position, with<Vectory, Direction>, without<Name, Health>> q) {
-    for (auto& [pos] : q) {
+void update3(querier<Position, mut<Vectory>, with<Vectory, Direction>, without<Name, Health>> q) {
+    for (auto& [pos, vec] : q) {
         using pos_type = decltype(pos);
         EXPECT_EQ((std::is_same_v<pos_type, const Position&>), true);
         EXPECT_EQ(pos.x, 0.4f);
         EXPECT_EQ(pos.y, 0.4f);
+
+        using vec_type = decltype(vec);
+        EXPECT_EQ((std::is_same_v<vec_type, Vectory&>), true);
+        EXPECT_EQ(vec.x, 0.3f);
+        EXPECT_EQ(vec.y, 0.3f);
+
+        vec.x *= 2;
+        vec.y *= 2;
+    }
+}
+
+void update4(querier<Vectory, with<Position, Direction>, without<Name, Health>> q) {
+    for (auto& [vec] : q) {
+        using vec_type = decltype(vec);
+        EXPECT_EQ((std::is_same_v<vec_type, const Vectory&>), true);
+        EXPECT_EQ(vec.x, 0.6f);
+        EXPECT_EQ(vec.y, 0.6f);
     }
 }
 
@@ -126,6 +143,47 @@ TEST(SystemTest, EnableAndDisableTest) {
     reg.disable_update_system<update1>()
        .disable_update_system<update2>()
        .enable_update_system<update3>();
+
+    reg.update();
+
+    reg.shutdown();
+}
+
+template<auto... Funcs>
+using before = mytho::ecs::before<Funcs...>;
+
+template<auto... Funcs>
+using after = mytho::ecs::after<Funcs...>;
+
+TEST(SystemTest, SystemLocationTest) {
+    registry reg;
+
+    reg.add_startup_system<startup>()
+       .add_update_system<update4>()
+       .add_update_system<update1, before<update4>>()
+       .add_update_system<update3, after<update1>, before<update4>>()
+       .add_update_system<update2, before<update3, update4>, after<update1>>()
+       .remove_update_system<update4>()
+       .add_update_system<update4, after<update1, update2, update3>>()
+       .remove_update_system<update1>()
+       .add_update_system<update1, before<update2, update3, update4>>()
+       .add_shutdown_system<shutdown>();
+
+    reg.enable_update_system<update1>()
+       .enable_update_system<update2>()
+       .disable_update_system<update3>()
+       .disable_update_system<update4>();
+
+    reg.ready();
+
+    reg.startup();
+
+    reg.update();
+
+    reg.disable_update_system<update1>()
+       .disable_update_system<update2>()
+       .enable_update_system<update3>()
+       .enable_update_system<update4>();
 
     reg.update();
 

@@ -1,10 +1,29 @@
 #pragma once
 #include <vector>
-#include "utils/assert.hpp"
+#include <optional>
+#include "utils/func_list.hpp"
 #include "ecs/commands.hpp"
 #include "ecs/querier.hpp"
+#include "container/indexed_list.hpp"
+
+namespace mytho::ecs {
+    template<auto... Funcs>
+    struct before {};
+
+    template<auto... Funcs>
+    struct after {};
+}
 
 namespace mytho::utils {
+    template<typename T>
+    inline constexpr bool is_before_v = internal::is_location_v<T, mytho::ecs::before>;
+
+    template<typename T>
+    inline constexpr bool is_after_v = internal::is_location_v<T, mytho::ecs::after>;
+
+    template<typename T>
+    concept LocationType = is_before_v<T> || is_after_v<T>;
+
     namespace internal {
         template<typename T>
         struct function_traits;
@@ -39,6 +58,15 @@ namespace mytho::utils {
 
 namespace mytho::ecs {
     namespace internal {
+        template<auto... Ts>
+        using func_list = mytho::utils::func_list<Ts...>;
+
+        template<typename... Ls>
+        using func_list_cat_t = typename mytho::utils::func_list_cat_t<Ls...>;
+
+        template<typename L, template<auto...> typename E>
+        using func_list_extract_t = typename mytho::utils::func_list_extract_t<L, E>;
+
         template<typename RegistryT>
         auto construct_commands(RegistryT& reg) {
             return basic_commands(reg);
@@ -97,25 +125,58 @@ namespace mytho::ecs {
             bool _enabled = true;
         };
 
-        template<typename RegistryT>
+        template<typename L, template<auto...> typename T>
+        struct location_traits;
+
+        template<template<auto...> typename T, mytho::utils::LocationType... Locs>
+        struct location_traits<type_list<Locs...>, T> {
+            using type = func_list_cat_t<mytho::utils::internal::rm_location_t<Locs, T>...>;
+        };
+
+        template<typename L, template<auto...> typename T>
+        using location_traits_t = typename location_traits<L, T>::type;
+
+        template<mytho::utils::LocationType... Locs>
+        struct location_types {
+            using location_list = type_list<Locs...>;
+            using before_list = location_traits_t<func_list_extract_t<location_list, before>, before>;
+            using after_list = location_traits_t<func_list_extract_t<location_list, after>, after>;
+        };
+
+        template<typename RegistryT, mytho::utils::UnsignedIntegralType SystemIndexT>
         class basic_system_storage {
         public: 
             using registry_type = RegistryT;
+            using system_index_type = SystemIndexT;
             using system_type = basic_system_type<registry_type>;
-            using systems_type = std::vector<system_type>;
+            using systems_type = mytho::container::indexed_list<system_type, system_index_type>;
+
+            inline static system_index_type system_index_null = systems_type::index_null;
 
         public:
-            template<auto Func>
+            template<auto Func, mytho::utils::LocationType... Locs>
             void add() noexcept {
-                _systems.emplace_back(function_construct<Func>());
+                if constexpr (sizeof...(Locs) > 0) {
+                    _add<Func, location_types<Locs...>>();
+                } else {
+                    _systems.emplace_back(function_construct<Func>());
+                }
             }
 
             template<auto Func>
             void remove() noexcept {
                 auto func = function_construct<Func>();
-                _systems.erase(std::remove_if(_systems.begin(), _systems.end(), [=](auto& sys) {
-                    return sys._func == func;
-                }), _systems.end());
+                while(1) {
+                    system_index_type idx = _systems.find_if([func](const system_type& sys){
+                        return sys._func == func;
+                    });
+
+                    if (idx == system_index_null) {
+                        break;
+                    }
+
+                    _systems.pop(idx);
+                }
             }
 
             template<auto Func>
@@ -138,17 +199,88 @@ namespace mytho::ecs {
                 }
             }
 
-        public:
-            auto begin() const noexcept { return _systems.begin(); }
+            void sort() noexcept {
+                _systems.sort();
+            }
 
-            auto end() const noexcept { return _systems.end(); }
+        public:
+            auto begin() noexcept { return _systems.begin(); }
+
+            auto end() noexcept { return _systems.end(); }
 
         private:
             systems_type _systems;
 
         private:
+            template<auto Func, typename LocT>
+            void _add() noexcept {
+                using before_list = typename LocT::before_list;
+                using after_list = typename LocT::after_list;
+
+                auto bf_idx = get_list_index(before_list{}, [](system_index_type l, system_index_type r){ return l < r ? l : r; });
+                if (!bf_idx) {
+                    return;
+                }
+
+                auto af_idx = get_list_index(after_list{}, [](system_index_type l, system_index_type r){ return l > r ? l : r; });
+                if (!af_idx) {
+                    return;
+                }
+
+                add_with_locations<Func>(af_idx.value() == system_index_null ? 0 : af_idx.value() + 1, bf_idx.value());
+            }
+
+            template<typename Compare, auto... Funcs>
+            std::optional<system_index_type> get_list_index(func_list<Funcs...> l, Compare c) const noexcept {
+                if constexpr (sizeof...(Funcs) == 0) {
+                    return system_index_null;
+                } else {
+                    return _get_list_index<Compare, Funcs...>(c);
+                }
+            }
+
             template<auto Func>
-            auto function_construct() {
+            void add_with_locations(system_index_type front, system_index_type back) noexcept {
+                if (front > back) {
+                    return;
+                }
+
+                _systems.emplace(back == system_index_null ? front : back, function_construct<Func>());
+            }
+
+        private:
+            template<typename Compare, auto Func, auto... Funcs>
+            std::optional<system_index_type> _get_list_index(Compare c) const noexcept {
+                auto idx = get_system_index<Func>();
+
+                if constexpr (sizeof...(Funcs) > 0) {
+                    auto i = _get_list_index<Compare, Funcs...>(c);
+                    if (i) {
+                        if (idx == system_index_null) {
+                            return i;
+                        } else {
+                            return c(i.value(), idx);
+                        }
+                    }
+                }
+
+                if (idx == system_index_null) {
+                    return std::nullopt;
+                } else {
+                    return idx;
+                }
+            }
+
+            template<auto Func>
+            system_index_type get_system_index() const noexcept {
+                auto func = function_construct<Func>();
+                return _systems.find_if([func](const system_type& sys){
+                    return sys._func == func;
+                });
+            }
+
+            template<auto Func>
+            auto function_construct() const noexcept {
                 return [](registry_type& reg){
                     using types = mytho::utils::system_traits_t<mytho::utils::function_traits_t<std::decay_t<decltype(Func)>>>;
 
