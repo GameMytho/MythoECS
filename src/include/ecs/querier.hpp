@@ -106,9 +106,9 @@ namespace mytho::ecs {
         template<typename L, template<typename...> typename R>
         using prototype_list_convert_t = mytho::utils::prototype_list_convert_t<L, R>;
 
-        template<mytho::utils::QueryValueType... Qs>
+        template<mytho::utils::QueryValueType... Ts>
         struct query_types {
-            using query_list = internal::type_list<Qs...>;
+            using query_list = internal::type_list<Ts...>;
             using require_list = internal::type_list_filter_t<query_list, with, without>;
             using require_prototype_list = internal::prototype_list_convert_t<require_list, mut>;
             using require_datatype_list = internal::datatype_list_convert_t<require_list>;
@@ -120,6 +120,7 @@ namespace mytho::ecs {
     }
 
     template<typename RegistryT, mytho::utils::QueryValueType... Ts>
+    requires (sizeof...(Ts) > 0)
     class basic_querier final {
     public:
         using registry_type = RegistryT;
