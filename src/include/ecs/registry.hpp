@@ -5,6 +5,7 @@
 #include "container/entity_storage.hpp"
 #include "container/component_storage.hpp"
 #include "ecs/system.hpp"
+#include "ecs/resources.hpp"
 
 namespace mytho::ecs {
     template<
@@ -27,6 +28,15 @@ namespace mytho::ecs {
 
         template<typename... Ts>
         using querier_type = mytho::ecs::basic_querier<self_type, Ts...>;
+
+        template<typename T>
+        using resource_cache = mytho::ecs::internal::basic_resource_cache<T>;
+
+        template<typename... Ts>
+        using resources_type = mytho::ecs::basic_resources<Ts...>;
+
+        template<typename... Ts>
+        using resources_mut_type = mytho::ecs::basic_resources_mut<Ts...>;
 
     public:
         template<mytho::utils::PureComponentType... Ts>
@@ -101,6 +111,33 @@ namespace mytho::ecs {
             }
 
             return component_bundles;
+        }
+
+    public:
+        template<typename T, typename... Rs>
+        self_type& init_resource(Rs&&... rs) noexcept {
+            resource_cache<T>::init(std::forward<Rs>(rs)...);
+
+            return *this;
+        }
+
+        template<typename T>
+        self_type& remove_resource() noexcept {
+            resource_cache<T>::destroy();
+
+            return *this;
+        }
+
+        template<typename... Ts>
+        requires (sizeof...(Ts) > 0)
+        auto resources() const noexcept {
+            return std::tuple_cat(std::tie(_resource<Ts>())...);
+        }
+
+        template<typename... Ts>
+        requires (sizeof...(Ts) > 0)
+        auto resources_mut() const noexcept {
+            return std::tuple_cat(std::tie(_resource_mut<Ts>())...);
         }
 
     public:
@@ -273,6 +310,20 @@ namespace mytho::ecs {
             } else {
                 return std::tie(static_cast<component_set_type&>(*_components[id]).get(e));
             }
+        }
+
+        template<typename T>
+        const T& _resource() const noexcept {
+            ASSURE(internal::basic_resource_cache<T>::instance(), "Resource not exist (may be destroyed or uninitialized).");
+
+            return internal::basic_resource_cache<T>::instance().value();
+        }
+
+        template<typename T>
+        T& _resource_mut() const noexcept {
+            ASSURE(internal::basic_resource_cache<T>::instance(), "Resource not exist (may be destroyed or uninitialized).");
+
+            return internal::basic_resource_cache<T>::instance().value();
         }
     };
 }

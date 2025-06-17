@@ -40,6 +40,17 @@ namespace mytho::ecs {
             _reg.replace(e, std::forward<Ts>(ts)...);
         }
 
+    public:
+        template<typename T, typename... Rs>
+        void init_resource(Rs&&... rs) noexcept {
+            _reg.template init_resource<T>(std::forward<Rs>(rs)...);
+        }
+
+        template<typename T>
+        void remove_resource() noexcept {
+            _reg.template remove_resource<T>();
+        }
+
     private:
         registry_type& _reg;
     };

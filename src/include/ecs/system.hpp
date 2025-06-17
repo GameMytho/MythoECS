@@ -4,6 +4,7 @@
 #include "utils/func_list.hpp"
 #include "ecs/commands.hpp"
 #include "ecs/querier.hpp"
+#include "ecs/resources.hpp"
 #include "container/indexed_list.hpp"
 
 namespace mytho::ecs {
@@ -87,12 +88,46 @@ namespace mytho::ecs {
             return querier_constructor<RegistryT, QuerierT>{}(reg);
         }
 
+        template<typename RegistryT, typename ResourcesT>
+        struct resources_constructor;
+
+        template<typename RegistryT, typename... Ts>
+        struct resources_constructor<RegistryT, basic_resources<Ts...>> {
+            auto operator()(RegistryT& reg) const noexcept {
+                return reg.template resources<Ts...>();
+            }
+        };
+
+        template<typename RegistryT, typename ResourcesT>
+        auto construct_resources(RegistryT& reg) {
+            return resources_constructor<RegistryT, ResourcesT>{}(reg);
+        }
+
+        template<typename RegistryT, typename ResourcesMutT>
+        struct resources_mut_constructor;
+
+        template<typename RegistryT, typename... Ts>
+        struct resources_mut_constructor<RegistryT, basic_resources_mut<Ts...>> {
+            auto operator()(RegistryT& reg) const noexcept {
+                return reg.template resources_mut<Ts...>();
+            }
+        };
+
+        template<typename RegistryT, typename ResourcesMutT>
+        auto construct_resources_mut(RegistryT& reg) {
+            return resources_mut_constructor<RegistryT, ResourcesMutT>{}(reg);
+        }
+
         template<typename RegistryT, typename T>
         auto construct(RegistryT& reg) {
             if constexpr (mytho::utils::is_commands_v<T>) {
                 return construct_commands(reg);
             } else if constexpr (mytho::utils::is_querier_v<T>) {
                 return construct_querier<RegistryT, T>(reg);
+            } else if constexpr (mytho::utils::is_resources_v<T>) {
+                return construct_resources<RegistryT, T>(reg);
+            } else if constexpr (mytho::utils::is_resources_mut_v<T>) {
+                return construct_resources_mut<RegistryT, T>(reg);
             } else {
                 ASSURE(false, "Unsupport type, please check the args of systems!");
             }
