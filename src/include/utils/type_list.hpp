@@ -39,47 +39,69 @@ namespace mytho::utils {
 
     namespace internal {
         template<typename L, template<typename...> typename... Fs>
-        struct type_list_filter;
+        struct type_list_filter_template;
 
         template<template<typename...> typename... Fs>
-        struct type_list_filter<type_list<>, Fs...> {
+        struct type_list_filter_template<type_list<>, Fs...> {
             using type = type_list<>;
         };
 
         template<typename T, typename... Rs, template<typename...> typename... Fs>
-        struct type_list_filter<type_list<T, Rs...>, Fs...> {
+        struct type_list_filter_template<type_list<T, Rs...>, Fs...> {
             using type = std::conditional_t<
                 std::disjunction_v<is_template_t<T, Fs>...>,
+                typename type_list_filter_template<type_list<Rs...>, Fs...>::type,
+                type_list_cat_t<type_list<T>, typename type_list_filter_template<type_list<Rs...>, Fs...>::type>
+            >;
+        };
+    }
+
+    template<typename L, template<typename...> typename... Fs>
+    using type_list_filter_template_t = typename internal::type_list_filter_template<L, Fs...>::type;
+
+    namespace internal {
+        template<typename L, template<typename...> typename E>
+        struct type_list_extract_template;
+
+        template<template<typename...> typename E>
+        struct type_list_extract_template<type_list<>, E> {
+            using type = type_list<>;
+        };
+
+        template<template<typename...> typename E, typename T, typename... Rs>
+        struct type_list_extract_template<type_list<T, Rs...>, E> {
+            using type = std::conditional_t<
+                is_template_v<T, E>,
+                type_list_cat_t<type_list<T>, typename type_list_extract_template<type_list<Rs...>, E>::type>,
+                typename type_list_extract_template<type_list<Rs...>, E>::type
+            >;
+        };
+    }
+
+    template<typename L, template<typename...> typename E>
+    using type_list_extract_template_t = typename internal::type_list_extract_template<L, E>::type;
+
+    namespace internal {
+        template<typename L, typename... Fs>
+        struct type_list_filter;
+
+        template<typename... Fs>
+        struct type_list_filter<type_list<>, Fs...> {
+            using type = type_list<>;
+        };
+
+        template<typename T, typename... Rs, typename... Fs>
+        struct type_list_filter<type_list<T, Rs...>, Fs...> {
+            using type = std::conditional_t<
+                std::disjunction_v<std::is_same<T, Fs>...>,
                 typename type_list_filter<type_list<Rs...>, Fs...>::type,
                 type_list_cat_t<type_list<T>, typename type_list_filter<type_list<Rs...>, Fs...>::type>
             >;
         };
     }
 
-    template<typename L, template<typename...> typename... Fs>
+    template<typename L, typename... Fs>
     using type_list_filter_t = typename internal::type_list_filter<L, Fs...>::type;
-
-    namespace internal {
-        template<typename L, template<typename...> typename E>
-        struct type_list_extract;
-
-        template<template<typename...> typename E>
-        struct type_list_extract<type_list<>, E> {
-            using type = type_list<>;
-        };
-
-        template<template<typename...> typename E, typename T, typename... Rs>
-        struct type_list_extract<type_list<T, Rs...>, E> {
-            using type = std::conditional_t<
-                is_template_v<T, E>,
-                type_list_cat_t<type_list<T>, typename type_list_extract<type_list<Rs...>, E>::type>,
-                typename type_list_extract<type_list<Rs...>, E>::type
-            >;
-        };
-    }
-
-    template<typename L, template<typename...> typename E>
-    using type_list_extract_t = typename internal::type_list_extract<L, E>::type;
 
     namespace internal {
         template<typename L>

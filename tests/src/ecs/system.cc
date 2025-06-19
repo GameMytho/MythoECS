@@ -46,8 +46,13 @@ void startup(commands cmds) {
     cmds.spawn(Position{0.3f, 0.3f}, Vectory{0.3f, 0.3f}, Direction{0.3f, 0.3f});
 }
 
-void update1(querier<Position, with<Vectory>, without<Direction>> q) {
-    for (auto& [pos] : q) {
+void update1(querier<entity, Position, with<Vectory>, without<Direction>> q) {
+    for (auto [entt, pos] : q) {
+        using entt_type = decltype(entt);
+        EXPECT_EQ((std::is_same_v<entt_type, const entity>), true);
+        EXPECT_EQ(entt.id(), 1);
+        EXPECT_EQ(entt.version(), 0);
+
         using pos_type = decltype(pos);
         EXPECT_EQ((std::is_same_v<pos_type, const Position&>), true);
         EXPECT_EQ(pos.x, 0.2f);
@@ -56,7 +61,7 @@ void update1(querier<Position, with<Vectory>, without<Direction>> q) {
 }
 
 void update2(querier<mut<Position>, Vectory, with<Direction>, without<Name, Health>> q) {
-    for (auto& [pos, vec] : q) {
+    for (auto [pos, vec] : q) {
         using pos_type = decltype(pos);
         EXPECT_EQ((std::is_same_v<pos_type, Position&>), true);
         EXPECT_EQ(pos.x, 0.3f);
@@ -73,7 +78,7 @@ void update2(querier<mut<Position>, Vectory, with<Direction>, without<Name, Heal
 }
 
 void update3(querier<Position, mut<Vectory>, with<Vectory, Direction>, without<Name, Health>> q) {
-    for (auto& [pos, vec] : q) {
+    for (auto [pos, vec] : q) {
         using pos_type = decltype(pos);
         EXPECT_EQ((std::is_same_v<pos_type, const Position&>), true);
         EXPECT_EQ(pos.x, 0.4f);
@@ -90,7 +95,7 @@ void update3(querier<Position, mut<Vectory>, with<Vectory, Direction>, without<N
 }
 
 void update4(querier<Vectory, with<Position, Direction>, without<Name, Health>> q) {
-    for (auto& [vec] : q) {
+    for (auto [vec] : q) {
         using vec_type = decltype(vec);
         EXPECT_EQ((std::is_same_v<vec_type, const Vectory&>), true);
         EXPECT_EQ(vec.x, 0.6f);

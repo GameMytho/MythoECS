@@ -2,9 +2,11 @@
 #include <vector>
 #include "utils/concept.hpp"
 #include "utils/type_list.hpp"
+#include "ecs/entity.hpp"
 
 namespace mytho::ecs {
     template<mytho::utils::PureValueType... Ts>
+    //requires (!std::disjunction_v<mytho::utils::is_entity_v<Ts>...>)
     struct mut {};
 
     template<mytho::utils::PureValueType... Ts>
@@ -28,6 +30,11 @@ namespace mytho::utils {
         template<typename T>
         struct rm_mut {
             using type = type_list<const T&>;
+        };
+
+        template<typename T, typename U>
+        struct rm_mut<mytho::ecs::basic_entity<T, U>> {
+            using type = type_list<const mytho::ecs::basic_entity<T, U>>;
         };
 
         template<typename... Ts>
@@ -89,19 +96,22 @@ namespace mytho::ecs {
         using type_list = mytho::utils::type_list<Ts...>;
 
         template<typename... Ls>
-        using type_list_cat_t = typename mytho::utils::type_list_cat_t<Ls...>;
+        using type_list_cat_t = mytho::utils::type_list_cat_t<Ls...>;
 
         template<typename L, template<typename...> typename... Fs>
-        using type_list_filter_t = typename mytho::utils::type_list_filter_t<L, Fs...>;
+        using type_list_filter_template_t = mytho::utils::type_list_filter_template_t<L, Fs...>;
 
         template<typename L, template<typename...> typename E>
-        using type_list_extract_t = typename mytho::utils::type_list_extract_t<L, E>;
+        using type_list_extract_template_t = mytho::utils::type_list_extract_template_t<L, E>;
+
+        template<typename L, typename... Fs>
+        using type_list_filter_t = mytho::utils::type_list_filter_t<L, Fs...>;
 
         template<typename L>
-        using list_to_tuple_t = typename mytho::utils::list_to_tuple_t<L>;
+        using list_to_tuple_t = mytho::utils::list_to_tuple_t<L>;
 
         template<typename L>
-        using datatype_list_convert_t = typename mytho::utils::datatype_list_convert_t<L>;
+        using datatype_list_convert_t = mytho::utils::datatype_list_convert_t<L>;
 
         template<typename L, template<typename...> typename R>
         using prototype_list_convert_t = mytho::utils::prototype_list_convert_t<L, R>;
@@ -109,12 +119,12 @@ namespace mytho::ecs {
         template<mytho::utils::QueryValueType... Ts>
         struct query_types {
             using query_list = internal::type_list<Ts...>;
-            using require_list = internal::type_list_filter_t<query_list, with, without>;
+            using require_list = internal::type_list_filter_template_t<query_list, with, without>;
             using require_prototype_list = internal::prototype_list_convert_t<require_list, mut>;
             using require_datatype_list = internal::datatype_list_convert_t<require_list>;
-            using with_list = internal::type_list_extract_t<query_list, with>;
+            using with_list = internal::type_list_extract_template_t<query_list, with>;
             using with_prototype_list = internal::prototype_list_convert_t<with_list, with>;
-            using without_list = internal::type_list_extract_t<query_list, without>;
+            using without_list = internal::type_list_extract_template_t<query_list, without>;
             using without_prototype_list = internal::prototype_list_convert_t<without_list, without>;
         };
     }
@@ -128,7 +138,7 @@ namespace mytho::ecs {
         using query_types = internal::query_types<Ts...>;
         using component_prototype_list = typename query_types::require_prototype_list;
         using component_datatype_list = typename query_types::require_datatype_list;
-        using component_contain_list = internal::type_list_cat_t<component_prototype_list, typename query_types::with_prototype_list>;
+        using component_contain_list = internal::type_list_cat_t<internal::type_list_filter_t<component_prototype_list, entity_type>, typename query_types::with_prototype_list>;
         using component_not_contain_list = typename query_types::without_prototype_list;
         using component_bundle_type = typename internal::list_to_tuple_t<component_datatype_list>;
         using component_bundle_container_type = std::vector<component_bundle_type>;

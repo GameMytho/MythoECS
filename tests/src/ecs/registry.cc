@@ -105,7 +105,7 @@ TEST(RegistryTest, QueryMutTest) {
     }
 
     int i = 0;
-    for (auto& [pos, vec, dir] : reg.query<Position, mut<Vectory>, Direction>()) {
+    for (auto [pos, vec, dir] : reg.query<Position, mut<Vectory>, Direction>()) {
         using pos_type = decltype(pos);
         EXPECT_EQ((std::is_same_v<pos_type, const Position&>), true);
         EXPECT_EQ(pos.x, i * 0.1f);
@@ -127,7 +127,7 @@ TEST(RegistryTest, QueryMutTest) {
     }
 
     i = 0;
-    for (auto& [vec] : reg.query<Vectory>()) {
+    for (auto [vec] : reg.query<Vectory>()) {
         using vec_type = decltype(vec);
         EXPECT_EQ((std::is_same_v<vec_type, const Vectory&>), true);
         EXPECT_EQ(vec.x, i * 0.4f);
@@ -137,7 +137,7 @@ TEST(RegistryTest, QueryMutTest) {
     }
 
     i = 0;
-    for (auto& [vec, dir] : reg.query<mut<Vectory, Direction>>()) {
+    for (auto [vec, dir] : reg.query<mut<Vectory, Direction>>()) {
         using vec_type = decltype(vec);
         EXPECT_EQ((std::is_same_v<vec_type, Vectory&>), true);
         EXPECT_EQ(vec.x, i * 0.4f);
@@ -179,14 +179,14 @@ TEST(RegistryTest, QueryWithTest) {
     auto e3 = reg.spawn(Position{0.3f, 0.3f}, Vectory{0.3f, 0.3f}, Direction{0.3f, 0.3f});
     EXPECT_EQ((reg.contain<Position, Vectory, Direction>(e3)), true);
 
-    for (auto& [pos] : reg.query<Position, with<Vectory>, without<Direction>>()) {
+    for (auto [pos] : reg.query<Position, with<Vectory>, without<Direction>>()) {
         using pos_type = decltype(pos);
         EXPECT_EQ((std::is_same_v<pos_type, const Position&>), true);
         EXPECT_EQ(pos.x, 0.2f);
         EXPECT_EQ(pos.y, 0.2f);
     }
 
-    for (auto& [pos, vec] : reg.query<mut<Position, Vectory>, with<Direction>, without<Name, Health>>()) {
+    for (auto [pos, vec] : reg.query<mut<Position, Vectory>, with<Direction>, without<Name, Health>>()) {
         using pos_type = decltype(pos);
         EXPECT_EQ((std::is_same_v<pos_type, Position&>), true);
         EXPECT_EQ(pos.x, 0.3f);

@@ -66,7 +66,7 @@ namespace mytho::ecs {
         using func_list_cat_t = typename mytho::utils::func_list_cat_t<Ls...>;
 
         template<typename L, template<auto...> typename E>
-        using func_list_extract_t = typename mytho::utils::func_list_extract_t<L, E>;
+        using func_list_extract_template_t = typename mytho::utils::func_list_extract_template_t<L, E>;
 
         template<typename RegistryT>
         auto construct_commands(RegistryT& reg) {
@@ -174,8 +174,8 @@ namespace mytho::ecs {
         template<mytho::utils::LocationType... Locs>
         struct location_types {
             using location_list = type_list<Locs...>;
-            using before_list = location_traits_t<func_list_extract_t<location_list, before>, before>;
-            using after_list = location_traits_t<func_list_extract_t<location_list, after>, after>;
+            using before_list = location_traits_t<func_list_extract_template_t<location_list, before>, before>;
+            using after_list = location_traits_t<func_list_extract_template_t<location_list, after>, after>;
         };
 
         template<typename RegistryT, mytho::utils::UnsignedIntegralType SystemIndexT>

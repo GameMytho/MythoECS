@@ -41,25 +41,25 @@ namespace mytho::utils {
 
     namespace internal {
         template<typename L, template<auto...> typename E>
-        struct func_list_extract;
+        struct func_list_extract_template;
 
         template<template<auto...> typename E>
-        struct func_list_extract<type_list<>, E> {
+        struct func_list_extract_template<type_list<>, E> {
             using type = type_list<>;
         };
 
         template<template<auto...> typename E, typename T, typename... Rs>
-        struct func_list_extract<type_list<T, Rs...>, E> {
+        struct func_list_extract_template<type_list<T, Rs...>, E> {
             using type = std::conditional_t<
                 is_location_v<T, E>,
-                type_list_cat_t<type_list<T>, typename func_list_extract<type_list<Rs...>, E>::type>,
-                typename func_list_extract<type_list<Rs...>, E>::type
+                type_list_cat_t<type_list<T>, typename func_list_extract_template<type_list<Rs...>, E>::type>,
+                typename func_list_extract_template<type_list<Rs...>, E>::type
             >;
         };
     }
 
     template<typename L, template<auto...> typename E>
-    using func_list_extract_t = typename internal::func_list_extract<L, E>::type;
+    using func_list_extract_template_t = typename internal::func_list_extract_template<L, E>::type;
 }
 
 namespace mytho::utils::internal {
