@@ -303,12 +303,21 @@ namespace mytho::ecs {
             using prototype = std::decay_t<T>;
             using component_set_type = mytho::container::basic_component_set<entity_type, prototype, std::allocator<prototype>, PageSize>;
 
-            auto id = component_id_generator::template gen<prototype>();
-
-            if constexpr (sizeof...(Rs) > 0) {
-                return std::tuple_cat(std::tie(static_cast<component_set_type&>(*_components[id]).get(e)), _query(e, internal::type_list<Rs...>{}));
+            if constexpr (std::is_same_v<prototype, entity_type>) {
+                if constexpr (sizeof...(Rs) > 0) {
+                    return std::tuple_cat(std::tuple(e), _query(e, internal::type_list<Rs...>{}));
+                } else {
+                    return std::tuple(e);
+                }
             } else {
-                return std::tie(static_cast<component_set_type&>(*_components[id]).get(e));
+                auto id = component_id_generator::template gen<prototype>();
+
+                if constexpr (sizeof...(Rs) > 0) {
+                    return std::tuple_cat(std::tie(static_cast<component_set_type&>(*_components[id]).get(e)), _query(e, internal::type_list<Rs...>{}));
+                }
+                else {
+                    return std::tie(static_cast<component_set_type&>(*_components[id]).get(e));
+                }
             }
         }
 
