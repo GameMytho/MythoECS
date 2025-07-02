@@ -24,6 +24,7 @@ namespace mytho::ecs {
         using size_type = typename entity_storage_type::size_type;
         using component_storage_type = mytho::container::basic_component_storage<entity_type, component_id_type, PageSize>;
         using component_id_generator = mytho::utils::basic_id_generator<component_id_type>;
+        using command_queue_type = mytho::ecs::internal::basic_command_queue<self_type>;
         using system_storage_type = internal::basic_system_storage<self_type, system_index_type>;
 
         template<typename... Ts>
@@ -238,6 +239,8 @@ namespace mytho::ecs {
                     sys(*this);
                 }
             }
+
+            apply_commands();
         }
 
         void update() noexcept {
@@ -246,6 +249,8 @@ namespace mytho::ecs {
                     sys(*this);
                 }
             }
+
+            apply_commands();
         }
 
         void shutdown() noexcept {
@@ -254,11 +259,23 @@ namespace mytho::ecs {
                     sys(*this);
                 }
             }
+
+            apply_commands();
+        }
+
+    public:
+        command_queue_type& command_queue() noexcept {
+            return _command_queue;
+        }
+
+        void apply_commands() noexcept {
+            _command_queue.apply(*this);
         }
 
     private:
         entity_storage_type _entities;
         component_storage_type _components;
+        command_queue_type _command_queue;
         system_storage_type _startup_systems;
         system_storage_type _update_systems;
         system_storage_type _shutdown_systems;
