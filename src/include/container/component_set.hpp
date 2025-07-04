@@ -36,7 +36,8 @@ namespace mytho::container {
 
             auto idx = base_type::index(e);
             _cdata[idx]->~component_type();
-            std::swap(_cdata[idx], _cdata[base_type::size() - 1]);
+            _cdata[idx] = _cdata.back();
+            _cdata.pop_back();
             base_type::remove(e);
         }
 
