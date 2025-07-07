@@ -6,7 +6,6 @@
 
 namespace mytho::ecs {
     template<mytho::utils::PureValueType... Ts>
-    //requires (!std::disjunction_v<mytho::utils::is_entity_v<Ts>...>)
     struct mut {};
 
     template<mytho::utils::PureValueType... Ts>
@@ -14,6 +13,9 @@ namespace mytho::ecs {
 
     template<mytho::utils::PureValueType... Ts>
     struct without {};
+
+    template<mytho::utils::PureValueType... Ts>
+    struct changed {};
 }
 
 namespace mytho::utils {
@@ -26,20 +28,62 @@ namespace mytho::utils {
     template<typename T>
     inline constexpr bool is_without_v = internal::is_template_v<T, mytho::ecs::without>;
 
+    template<typename T>
+    inline constexpr bool is_changed_v = internal::is_template_v<T, mytho::ecs::changed>;
+
+    template<typename T>
+    concept QueryValueType = PureValueType<T>;
+
+    template<typename T>
+    concept PureComponentType = PureValueType<T> && !is_mut_v<T> && !is_with_v<T> && !is_without_v<T> && !is_changed_v<T>;
+
     namespace internal {
         template<typename T>
+        class data_wrapper {
+        public:
+            using data_type = T;
+
+            data_wrapper(T* data, uint64_t& data_tick, uint64_t tick) : _data(data), _data_tick(data_tick), _tick(tick) {}
+
+            const T* operator->() const noexcept { return _data; }
+            const T& operator*() const noexcept { return *_data; }
+
+            T* operator->() noexcept { _data_tick = _tick; return _data; }
+            T& operator*() noexcept { _data_tick = _tick; return *_data; }
+
+        private:
+            T* _data = nullptr;
+            uint64_t& _data_tick;
+            uint64_t _tick = 0;
+        };
+
+        template<typename T, typename U>
+        class data_wrapper<mytho::ecs::basic_entity<T, U>> {
+        public:
+            using data_type = mytho::ecs::basic_entity<T, U>;
+
+            data_wrapper(data_type data) : _data(data) {}
+
+            const data_type* operator->() const noexcept { return &_data; }
+            const data_type& operator*() const noexcept { return _data; }
+
+        private:
+            data_type _data;
+        };
+
+        template<typename T>
         struct rm_mut {
-            using type = type_list<const T&>;
+            using type = type_list<const data_wrapper<T>>;
         };
 
         template<typename T, typename U>
         struct rm_mut<mytho::ecs::basic_entity<T, U>> {
-            using type = type_list<const mytho::ecs::basic_entity<T, U>>;
+            using type = type_list<const data_wrapper<mytho::ecs::basic_entity<T, U>>>;
         };
 
         template<typename... Ts>
         struct rm_mut<mytho::ecs::mut<Ts...>> {
-            using type = type_list<Ts&...>;
+            using type = type_list<data_wrapper<Ts>...>;
         };
     }
 
@@ -51,6 +95,9 @@ namespace mytho::utils {
 
     template<typename T>
     using rm_without_t = internal::rm_template_t<T, mytho::ecs::without>;
+
+    template<typename T>
+    using rm_changed_t = internal::rm_template_t<T, mytho::ecs::changed>;
 
     namespace internal {
         template<typename... Ts>
@@ -82,12 +129,6 @@ namespace mytho::utils {
 
     template<typename L, template<typename...> typename R>
     using prototype_list_convert_t = typename internal::prototype_list_convert<L, R>::type;
-
-    template<typename T>
-    concept QueryValueType = PureValueType<T>;
-
-    template<typename T>
-    concept PureComponentType = PureValueType<T> && !is_mut_v<T> && !is_with_v<T> && !is_without_v<T>;
 }
 
 namespace mytho::ecs {
@@ -119,13 +160,15 @@ namespace mytho::ecs {
         template<mytho::utils::QueryValueType... Ts>
         struct query_types {
             using query_list = internal::type_list<Ts...>;
-            using require_list = internal::type_list_filter_template_t<query_list, with, without>;
+            using require_list = internal::type_list_filter_template_t<query_list, with, without, changed>;
             using require_prototype_list = internal::prototype_list_convert_t<require_list, mut>;
             using require_datatype_list = internal::datatype_list_convert_t<require_list>;
             using with_list = internal::type_list_extract_template_t<query_list, with>;
             using with_prototype_list = internal::prototype_list_convert_t<with_list, with>;
             using without_list = internal::type_list_extract_template_t<query_list, without>;
             using without_prototype_list = internal::prototype_list_convert_t<without_list, without>;
+            using changed_list = internal::type_list_extract_template_t<query_list, changed>;
+            using changed_prototype_list = internal::prototype_list_convert_t<changed_list, changed>;
         };
     }
 
@@ -138,7 +181,8 @@ namespace mytho::ecs {
         using query_types = internal::query_types<Ts...>;
         using component_prototype_list = typename query_types::require_prototype_list;
         using component_datatype_list = typename query_types::require_datatype_list;
-        using component_contain_list = internal::type_list_cat_t<internal::type_list_filter_t<component_prototype_list, entity_type>, typename query_types::with_prototype_list>;
+        using component_changed_list = typename query_types::changed_prototype_list;
+        using component_contain_list = internal::type_list_cat_t<internal::type_list_filter_t<component_prototype_list, entity_type>, typename query_types::with_prototype_list, typename query_types::changed_prototype_list>;
         using component_not_contain_list = typename query_types::without_prototype_list;
         using component_bundle_type = typename internal::list_to_tuple_t<component_datatype_list>;
         using component_bundle_container_type = std::vector<component_bundle_type>;
@@ -146,7 +190,7 @@ namespace mytho::ecs {
         using iterator = typename component_bundle_container_type::iterator;
 
     public:
-        basic_querier(const component_bundle_container_type& component_bundles) : _component_bundles(component_bundles) {}
+        basic_querier(const component_bundle_container_type& component_bundles, uint64_t current_tick) : _component_bundles(component_bundles), _current_tick(current_tick) {}
 
     public:
         size_type size() const noexcept { return _component_bundles.size(); }
@@ -159,6 +203,7 @@ namespace mytho::ecs {
 
     private:
         component_bundle_container_type _component_bundles;
+        uint64_t _current_tick = 0;
     };
 }
 

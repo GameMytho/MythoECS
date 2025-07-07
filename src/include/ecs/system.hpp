@@ -78,14 +78,14 @@ namespace mytho::ecs {
 
         template<typename RegistryT, typename... Ts>
         struct querier_constructor<RegistryT, basic_querier<RegistryT, Ts...>> {
-            auto operator()(RegistryT& reg) const noexcept {
-                return reg.template query<Ts...>();
+            auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
+                return reg.template query<Ts...>(tick);
             }
         };
 
         template<typename RegistryT, typename QuerierT>
-        auto construct_querier(RegistryT& reg) {
-            return querier_constructor<RegistryT, QuerierT>{}(reg);
+        auto construct_querier(RegistryT& reg, uint64_t tick) {
+            return querier_constructor<RegistryT, QuerierT>{}(reg, tick);
         }
 
         template<typename RegistryT, typename ResourcesT>
@@ -119,11 +119,11 @@ namespace mytho::ecs {
         }
 
         template<typename RegistryT, typename T>
-        auto construct(RegistryT& reg) {
+        auto construct(RegistryT& reg, uint64_t tick) {
             if constexpr (mytho::utils::is_commands_v<T>) {
                 return construct_commands(reg);
             } else if constexpr (mytho::utils::is_querier_v<T>) {
-                return construct_querier<RegistryT, T>(reg);
+                return construct_querier<RegistryT, T>(reg, tick);
             } else if constexpr (mytho::utils::is_resources_v<T>) {
                 return construct_resources<RegistryT, T>(reg);
             } else if constexpr (mytho::utils::is_resources_mut_v<T>) {
@@ -136,7 +136,7 @@ namespace mytho::ecs {
         template<typename RegistryT>
         struct basic_system_type {
             using registry_type = RegistryT;
-            using function_type = void(*)(registry_type&);
+            using function_type = void(*)(registry_type&, uint64_t);
 
             basic_system_type(function_type func) : _func(func) {}
 
@@ -152,12 +152,14 @@ namespace mytho::ecs {
                 return _enabled;
             }
 
-            void operator()(registry_type& reg) const noexcept {
-                _func(reg);
+            void operator()(registry_type& reg, uint64_t tick) noexcept {
+                _func(reg, _last_run_tick);
+                _last_run_tick = tick;
             }
 
-            function_type _func{};
             bool _enabled = true;
+            uint64_t _last_run_tick = 0;
+            function_type _func{};
         };
 
         template<typename L, template<auto...> typename T>
@@ -316,16 +318,16 @@ namespace mytho::ecs {
 
             template<auto Func>
             auto function_construct() const noexcept {
-                return [](registry_type& reg){
+                return [](registry_type& reg, uint64_t tick){
                     using types = mytho::utils::system_traits_t<mytho::utils::function_traits_t<std::decay_t<decltype(Func)>>>;
 
-                    function_invoke<Func>(reg, types{});
+                    function_invoke<Func>(reg, tick, types{});
                 };
             }
 
             template<auto Func, typename... Ts>
-            static void function_invoke(registry_type& reg, mytho::utils::type_list<Ts...>) noexcept {
-                std::invoke(Func, construct<RegistryT, Ts>(reg)...);
+            static void function_invoke(registry_type& reg, uint64_t tick, mytho::utils::type_list<Ts...>) noexcept {
+                std::invoke(Func, construct<RegistryT, Ts>(reg, tick)...);
             }
         };
     }

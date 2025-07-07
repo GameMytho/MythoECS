@@ -42,7 +42,7 @@ TEST(ComponentStorageTest, BasicAddAndRemove) {
         EXPECT_EQ((dir.y), 2.5f);
     }
 
-    s.replace(e, Position{1.0f, 1.0f}, Vectory{1.2f, 12.0f}, Direction{3.0f, 5.2f});
+    s.replace(e, 0, Position{1.0f, 1.0f}, Vectory{1.2f, 12.0f}, Direction{3.0f, 5.2f});
     EXPECT_EQ((s.contain<Position, Vectory, Direction>(e)), true);
     {
         auto [pos, vec, dir] = s.get<Position, Vectory, Direction>(e);

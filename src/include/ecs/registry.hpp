@@ -81,7 +81,7 @@ namespace mytho::ecs {
         template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void replace(const entity_type& e, Ts&&... ts) noexcept {
-            _components.replace(e, std::forward<Ts>(ts)...);
+            _components.replace(e, _current_tick, std::forward<Ts>(ts)...);
         }
 
         template<mytho::utils::PureComponentType... Ts>
@@ -93,11 +93,18 @@ namespace mytho::ecs {
         template<mytho::utils::QueryValueType... Ts>
         requires (sizeof...(Ts) > 0)
         querier_type<Ts...> query() noexcept {
+            return query<Ts...>(_current_tick);
+        }
+
+        template<mytho::utils::QueryValueType... Ts>
+        requires (sizeof...(Ts) > 0)
+        querier_type<Ts...> query(uint64_t tick) noexcept {
             using querier = querier_type<Ts...>;
             using component_bundle_container_type = typename querier::component_bundle_container_type;
-            using component_datatype_list = typename querier::component_datatype_list;
+            using component_prototype_list = typename querier::component_prototype_list;
             using component_contain_list = typename querier::component_contain_list;
             using component_not_contain_list = typename querier::component_not_contain_list;
+            using component_changed_list = typename querier::component_changed_list;
 
             component_bundle_container_type component_bundles;
 
@@ -105,13 +112,16 @@ namespace mytho::ecs {
 
             if (id) {
                 for (auto it : *_components[id.value()]) {
-                    if(contain(it, component_contain_list{}) && not_contain(it, component_not_contain_list{})) {
-                        component_bundles.emplace_back(_query(it, component_datatype_list{}));
+                    if(contain(it, component_contain_list{}) 
+                        && not_contain(it, component_not_contain_list{}) 
+                        && is_changed(it, tick, component_changed_list{})
+                    ) {
+                        component_bundles.emplace_back(_query(it, component_prototype_list{}));
                     }
                 }
             }
 
-            return component_bundles;
+            return { component_bundles, _current_tick };
         }
 
     public:
@@ -236,30 +246,33 @@ namespace mytho::ecs {
         void startup() noexcept {
             for (auto& sys : _startup_systems) {
                 if (sys.enabled()) {
-                    sys(*this);
+                    sys(*this, ++_current_tick);
                 }
             }
 
+            _current_tick++;
             apply_commands();
         }
 
         void update() noexcept {
             for (auto& sys : _update_systems) {
                 if (sys.enabled()) {
-                    sys(*this);
+                    sys(*this, ++_current_tick);
                 }
             }
 
+            _current_tick++;
             apply_commands();
         }
 
         void shutdown() noexcept {
             for (auto& sys : _shutdown_systems) {
                 if (sys.enabled()) {
-                    sys(*this);
+                    sys(*this, ++_current_tick);
                 }
             }
 
+            _current_tick++;
             apply_commands();
         }
 
@@ -276,6 +289,8 @@ namespace mytho::ecs {
         entity_storage_type _entities;
         component_storage_type _components;
         command_queue_type _command_queue;
+
+        uint64_t _current_tick = 0;
         system_storage_type _startup_systems;
         system_storage_type _update_systems;
         system_storage_type _shutdown_systems;
@@ -315,6 +330,15 @@ namespace mytho::ecs {
             }
         }
 
+        template<mytho::utils::PureComponentType... Ts>
+        bool is_changed(const entity_type& e, uint64_t tick, internal::type_list<Ts...>) const noexcept {
+            if constexpr (sizeof...(Ts) > 0) {
+                return _components.template is_changed<Ts...>(e, tick);
+            } else {
+                return true;
+            }
+        }
+
         template<typename T, typename... Rs>
         auto _query(const entity_type& e, internal::type_list<T, Rs...>) noexcept {
             using prototype = std::decay_t<T>;
@@ -322,18 +346,36 @@ namespace mytho::ecs {
 
             if constexpr (std::is_same_v<prototype, entity_type>) {
                 if constexpr (sizeof...(Rs) > 0) {
-                    return std::tuple_cat(std::tuple(e), _query(e, internal::type_list<Rs...>{}));
+                    return std::tuple_cat(
+                        std::tuple(utils::internal::data_wrapper<entity_type>(e)),
+                        _query(e, internal::type_list<Rs...>{})
+                    );
                 } else {
-                    return std::tuple(e);
+                    return std::tuple(utils::internal::data_wrapper<entity_type>(e));
                 }
             } else {
                 auto id = component_id_generator::template gen<prototype>();
 
                 if constexpr (sizeof...(Rs) > 0) {
-                    return std::tuple_cat(std::tie(static_cast<component_set_type&>(*_components[id]).get(e)), _query(e, internal::type_list<Rs...>{}));
+                    return std::tuple_cat(
+                        std::tuple(
+                            utils::internal::data_wrapper<T>(
+                                &(static_cast<component_set_type&>(*_components[id]).get(e)),
+                                static_cast<component_set_type&>(*_components[id]).changed_tick(e),
+                                _current_tick
+                            )
+                        ),
+                        _query(e, internal::type_list<Rs...>{})
+                    );
                 }
                 else {
-                    return std::tie(static_cast<component_set_type&>(*_components[id]).get(e));
+                    return std::tuple(
+                        utils::internal::data_wrapper<T>(
+                            &(static_cast<component_set_type&>(*_components[id]).get(e)),
+                            static_cast<component_set_type&>(*_components[id]).changed_tick(e),
+                            _current_tick
+                        )
+                    );
                 }
             }
         }

@@ -17,7 +17,7 @@ TEST(ComponentSetTest, BasicAddAndRemove) {
     EXPECT_EQ(s.get(e).x, 0.5f);
     EXPECT_EQ(s.get(e).y, 5.0f);
 
-    s.replace(e, 0.6f, 6.0f);
+    s.replace(e, 0, 0.6f, 6.0f);
     EXPECT_EQ(s.contain(e), true);
     EXPECT_EQ(s.get(e).x, 0.6f);
     EXPECT_EQ(s.get(e).y, 6.0f);
@@ -40,7 +40,7 @@ TEST(ComponentSetTest, MultipleAddAndRemove) {
 
     for (int i = 0; i < 100; i++) {
         entity e(i * 10);
-        s.replace(e, i * 0.6f, i * 6.0f);
+        s.replace(e, i, i * 0.6f, i * 6.0f);
         EXPECT_EQ(s.contain(e), true);
         EXPECT_EQ(s.get(e).x, i * 0.6f);
         EXPECT_EQ(s.get(e).y, i * 6.0f);
@@ -64,7 +64,7 @@ TEST(ComponentSetTest, FrequentlyAddAndRemove) {
         EXPECT_EQ(s.get(e).x, i * 0.5f);
         EXPECT_EQ(s.get(e).y, i * 5.0f);
 
-        s.replace(e, i * 0.6f, i * 6.0f);
+        s.replace(e, i, i * 0.6f, i * 6.0f);
         EXPECT_EQ(s.contain(e), true);
         EXPECT_EQ(s.get(e).x, i * 0.6f);
         EXPECT_EQ(s.get(e).y, i * 6.0f);

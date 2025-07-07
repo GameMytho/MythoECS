@@ -33,12 +33,18 @@ using with = mytho::ecs::with<Ts...>;
 template<typename... Ts>
 using without = mytho::ecs::without<Ts...>;
 
+template<typename... Ts>
+using changed = mytho::ecs::changed<Ts...>;
+
 using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
 using registry = mytho::ecs::basic_registry<entity, uint8_t, uint8_t, 1024>;
 using commands = mytho::ecs::basic_commands<registry>;
 
 template<typename... Ts>
 using querier = mytho::ecs::basic_querier<registry, Ts...>;
+
+template<typename T>
+using data_wrapper = mytho::utils::internal::data_wrapper<T>;
 
 void startup(commands cmds) {
     cmds.spawn(Position{0.1f, 0.1f});
@@ -47,59 +53,89 @@ void startup(commands cmds) {
 }
 
 void update1(querier<entity, Position, with<Vectory>, without<Direction>> q) {
+    EXPECT_EQ(q.size(), 1);
+
     for (auto [entt, pos] : q) {
         using entt_type = decltype(entt);
-        EXPECT_EQ((std::is_same_v<entt_type, const entity>), true);
-        EXPECT_EQ(entt.id(), 1);
-        EXPECT_EQ(entt.version(), 0);
+        EXPECT_EQ((std::is_same_v<entt_type, const data_wrapper<entity>>), true);
+        EXPECT_EQ(entt->id(), 1);
+        EXPECT_EQ(entt->version(), 0);
 
         using pos_type = decltype(pos);
-        EXPECT_EQ((std::is_same_v<pos_type, const Position&>), true);
-        EXPECT_EQ(pos.x, 0.2f);
-        EXPECT_EQ(pos.y, 0.2f);
+        EXPECT_EQ((std::is_same_v<pos_type, const data_wrapper<Position>>), true);
+        EXPECT_EQ(pos->x, 0.2f);
+        EXPECT_EQ(pos->y, 0.2f);
     }
 }
 
 void update2(querier<mut<Position>, Vectory, with<Direction>, without<Name, Health>> q) {
+    EXPECT_EQ(q.size(), 1);
+
     for (auto [pos, vec] : q) {
         using pos_type = decltype(pos);
-        EXPECT_EQ((std::is_same_v<pos_type, Position&>), true);
-        EXPECT_EQ(pos.x, 0.3f);
-        EXPECT_EQ(pos.y, 0.3f);
+        EXPECT_EQ((std::is_same_v<pos_type, data_wrapper<Position>>), true);
+        EXPECT_EQ(pos->x, 0.3f);
+        EXPECT_EQ(pos->y, 0.3f);
 
-        pos.x = 0.4;
-        pos.y = 0.4;
+        pos->x = 0.4;
+        pos->y = 0.4;
 
         using vec_type = decltype(vec);
-        EXPECT_EQ((std::is_same_v<vec_type, const Vectory&>), true);
-        EXPECT_EQ(vec.x, 0.3f);
-        EXPECT_EQ(vec.y, 0.3f);
+        EXPECT_EQ((std::is_same_v<vec_type, const data_wrapper<Vectory>>), true);
+        EXPECT_EQ(vec->x, 0.3f);
+        EXPECT_EQ(vec->y, 0.3f);
+    }
+}
+
+void update2_changed(querier<Position, changed<Position>> q) {
+    EXPECT_EQ(q.size(), 1);
+
+    for (auto [pos] : q) {
+        using pos_type = decltype(pos);
+        EXPECT_EQ((std::is_same_v<pos_type, const data_wrapper<Position>>), true);
+        EXPECT_EQ(pos->x, 0.4f);
+        EXPECT_EQ(pos->y, 0.4f);
     }
 }
 
 void update3(querier<Position, mut<Vectory>, with<Vectory, Direction>, without<Name, Health>> q) {
+    EXPECT_EQ(q.size(), 1);
+
     for (auto [pos, vec] : q) {
         using pos_type = decltype(pos);
-        EXPECT_EQ((std::is_same_v<pos_type, const Position&>), true);
-        EXPECT_EQ(pos.x, 0.4f);
-        EXPECT_EQ(pos.y, 0.4f);
+        EXPECT_EQ((std::is_same_v<pos_type, const data_wrapper<Position>>), true);
+        EXPECT_EQ(pos->x, 0.4f);
+        EXPECT_EQ(pos->y, 0.4f);
 
         using vec_type = decltype(vec);
-        EXPECT_EQ((std::is_same_v<vec_type, Vectory&>), true);
-        EXPECT_EQ(vec.x, 0.3f);
-        EXPECT_EQ(vec.y, 0.3f);
+        EXPECT_EQ((std::is_same_v<vec_type, data_wrapper<Vectory>>), true);
+        EXPECT_EQ(vec->x, 0.3f);
+        EXPECT_EQ(vec->y, 0.3f);
 
-        vec.x *= 2;
-        vec.y *= 2;
+        vec->x *= 2;
+        vec->y *= 2;
+    }
+}
+
+void update3_changed(querier<Vectory, changed<Vectory>> q) {
+    EXPECT_EQ(q.size(), 1);
+
+    for (auto [vec] : q) {
+        using vec_type = decltype(vec);
+        EXPECT_EQ((std::is_same_v<vec_type, const data_wrapper<Vectory>>), true);
+        EXPECT_EQ(vec->x, 0.6f);
+        EXPECT_EQ(vec->y, 0.6f);
     }
 }
 
 void update4(querier<Vectory, with<Position, Direction>, without<Name, Health>> q) {
+    EXPECT_EQ(q.size(), 1);
+
     for (auto [vec] : q) {
         using vec_type = decltype(vec);
-        EXPECT_EQ((std::is_same_v<vec_type, const Vectory&>), true);
-        EXPECT_EQ(vec.x, 0.6f);
-        EXPECT_EQ(vec.y, 0.6f);
+        EXPECT_EQ((std::is_same_v<vec_type, const data_wrapper<Vectory>>), true);
+        EXPECT_EQ(vec->x, 0.6f);
+        EXPECT_EQ(vec->y, 0.6f);
     }
 }
 
@@ -189,6 +225,27 @@ TEST(SystemTest, SystemLocationTest) {
        .disable_update_system<update2>()
        .enable_update_system<update3>()
        .enable_update_system<update4>();
+
+    reg.update();
+
+    reg.shutdown();
+}
+
+TEST(SystemTest, ComponentChangedTest) {
+    registry reg;
+
+    reg.add_startup_system<startup>()
+       .add_update_system<update1>()
+       .add_update_system<update2>()
+       .add_update_system<update2_changed>()
+       .add_update_system<update3>()
+       .add_update_system<update3_changed>()
+       .add_update_system<update4>()
+       .add_shutdown_system<shutdown>();
+
+    reg.ready();
+
+    reg.startup();
 
     reg.update();
 

@@ -95,6 +95,9 @@ TEST(RegistryTest, BasicTest) {
 template<typename... Ts>
 using mut = mytho::ecs::mut<Ts...>;
 
+template<typename T>
+using data_wrapper = mytho::utils::internal::data_wrapper<T>;
+
 TEST(RegistryTest, QueryMutTest) {
     using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
     mytho::ecs::basic_registry<entity, uint8_t, uint8_t, 1024> reg;
@@ -107,21 +110,21 @@ TEST(RegistryTest, QueryMutTest) {
     int i = 0;
     for (auto [pos, vec, dir] : reg.query<Position, mut<Vectory>, Direction>()) {
         using pos_type = decltype(pos);
-        EXPECT_EQ((std::is_same_v<pos_type, const Position&>), true);
-        EXPECT_EQ(pos.x, i * 0.1f);
-        EXPECT_EQ(pos.y, i * 0.1f);
+        EXPECT_EQ((std::is_same_v<pos_type, const data_wrapper<Position>>), true);
+        EXPECT_EQ(pos->x, i * 0.1f);
+        EXPECT_EQ(pos->y, i * 0.1f);
 
         using vec_type = decltype(vec);
-        EXPECT_EQ((std::is_same_v<vec_type, Vectory&>), true);
-        EXPECT_EQ(vec.x, i * 0.2f);
-        EXPECT_EQ(vec.y, i * 0.2f);
-        vec.x *= 2;
-        vec.y *= 2;
+        EXPECT_EQ((std::is_same_v<vec_type, data_wrapper<Vectory>>), true);
+        EXPECT_EQ(vec->x, i * 0.2f);
+        EXPECT_EQ(vec->y, i * 0.2f);
+        vec->x *= 2;
+        vec->y *= 2;
 
         using dir_type = decltype(dir);
-        EXPECT_EQ((std::is_same_v<dir_type, const Direction&>), true);
-        EXPECT_EQ(dir.x, i * 0.3f);
-        EXPECT_EQ(dir.y, i * 0.3f);
+        EXPECT_EQ((std::is_same_v<dir_type, const data_wrapper<Direction>>), true);
+        EXPECT_EQ(dir->x, i * 0.3f);
+        EXPECT_EQ(dir->y, i * 0.3f);
 
         i++;
     }
@@ -129,9 +132,9 @@ TEST(RegistryTest, QueryMutTest) {
     i = 0;
     for (auto [vec] : reg.query<Vectory>()) {
         using vec_type = decltype(vec);
-        EXPECT_EQ((std::is_same_v<vec_type, const Vectory&>), true);
-        EXPECT_EQ(vec.x, i * 0.4f);
-        EXPECT_EQ(vec.y, i * 0.4f);
+        EXPECT_EQ((std::is_same_v<vec_type, const data_wrapper<Vectory>>), true);
+        EXPECT_EQ(vec->x, i * 0.4f);
+        EXPECT_EQ(vec->y, i * 0.4f);
 
         i++;
     }
@@ -139,14 +142,14 @@ TEST(RegistryTest, QueryMutTest) {
     i = 0;
     for (auto [vec, dir] : reg.query<mut<Vectory, Direction>>()) {
         using vec_type = decltype(vec);
-        EXPECT_EQ((std::is_same_v<vec_type, Vectory&>), true);
-        EXPECT_EQ(vec.x, i * 0.4f);
-        EXPECT_EQ(vec.y, i * 0.4f);
+        EXPECT_EQ((std::is_same_v<vec_type, data_wrapper<Vectory>>), true);
+        EXPECT_EQ(vec->x, i * 0.4f);
+        EXPECT_EQ(vec->y, i * 0.4f);
 
         using dir_type = decltype(dir);
-        EXPECT_EQ((std::is_same_v<dir_type, Direction&>), true);
-        EXPECT_EQ(dir.x, i * 0.3f);
-        EXPECT_EQ(dir.y, i * 0.3f);
+        EXPECT_EQ((std::is_same_v<dir_type, data_wrapper<Direction>>), true);
+        EXPECT_EQ(dir->x, i * 0.3f);
+        EXPECT_EQ(dir->y, i * 0.3f);
 
         i++;
     }
@@ -181,20 +184,20 @@ TEST(RegistryTest, QueryWithTest) {
 
     for (auto [pos] : reg.query<Position, with<Vectory>, without<Direction>>()) {
         using pos_type = decltype(pos);
-        EXPECT_EQ((std::is_same_v<pos_type, const Position&>), true);
-        EXPECT_EQ(pos.x, 0.2f);
-        EXPECT_EQ(pos.y, 0.2f);
+        EXPECT_EQ((std::is_same_v<pos_type, const data_wrapper<Position>>), true);
+        EXPECT_EQ(pos->x, 0.2f);
+        EXPECT_EQ(pos->y, 0.2f);
     }
 
     for (auto [pos, vec] : reg.query<mut<Position, Vectory>, with<Direction>, without<Name, Health>>()) {
         using pos_type = decltype(pos);
-        EXPECT_EQ((std::is_same_v<pos_type, Position&>), true);
-        EXPECT_EQ(pos.x, 0.3f);
-        EXPECT_EQ(pos.y, 0.3f);
+        EXPECT_EQ((std::is_same_v<pos_type, data_wrapper<Position>>), true);
+        EXPECT_EQ(pos->x, 0.3f);
+        EXPECT_EQ(pos->y, 0.3f);
 
         using vec_type = decltype(vec);
-        EXPECT_EQ((std::is_same_v<vec_type, Vectory&>), true);
-        EXPECT_EQ(vec.x, 0.3f);
-        EXPECT_EQ(vec.y, 0.3f);
+        EXPECT_EQ((std::is_same_v<vec_type, data_wrapper<Vectory>>), true);
+        EXPECT_EQ(vec->x, 0.3f);
+        EXPECT_EQ(vec->y, 0.3f);
     }
 }
