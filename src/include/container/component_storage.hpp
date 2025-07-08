@@ -18,10 +18,10 @@ namespace mytho::container {
     public:
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
-        void add(const entity_type& e, Ts&&... ts) noexcept {
+        void add(const entity_type& e, uint64_t tick, Ts&&... ts) noexcept {
             ASSURE(_not_contain<Ts...>(e), "the entity already has some components.");
 
-            _add(e, std::forward<Ts>(ts)...);
+            _add(e, tick, std::forward<Ts>(ts)...);
         }
 
         template<mytho::utils::PureValueType... Ts>
@@ -64,6 +64,12 @@ namespace mytho::container {
 
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
+        bool is_added(const entity_type& e, uint64_t tick) const noexcept {
+            return _is_added<Ts...>(e, tick);
+        }
+
+        template<mytho::utils::PureValueType... Ts>
+        requires (sizeof...(Ts) > 0)
         bool is_changed(const entity_type& e, uint64_t tick) const noexcept {
             return _is_changed<Ts...>(e, tick);
         }
@@ -84,11 +90,11 @@ namespace mytho::container {
 
     private:
         template<typename T, typename... Rs>
-        void _add(const entity_type& e, T&& t, Rs&&... rs) noexcept {
-            assure<T>().add(e, t);
+        void _add(const entity_type& e, uint64_t tick, T&& t, Rs&&... rs) noexcept {
+            assure<T>().add(e, tick, t);
 
             if constexpr (sizeof...(Rs) > 0) {
-                _add(e, std::forward<Rs>(rs)...);
+                _add(e, tick, std::forward<Rs>(rs)...);
             }
         }
 
@@ -156,6 +162,19 @@ namespace mytho::container {
                 return (id >= _pool.size() || !_pool[id]->contain(e)) && _not_contain<Rs...>(e);
             } else {
                 return id >= _pool.size() || !_pool[id]->contain(e);
+            }
+        }
+
+        template<typename T, typename... Rs>
+        bool _is_added(const entity_type& e, uint64_t tick) const noexcept {
+            using component_set_type = basic_component_set<entity_type, T, std::allocator<T>, PageSize>;
+
+            auto id = component_id_generator::template gen<T>();
+
+            if constexpr (sizeof...(Rs) > 0) {
+                return id < _pool.size() && static_cast<component_set_type&>(*_pool[id]).is_added(e, tick) && _is_added<Rs...>(e, tick);
+            } else {
+                return id < _pool.size() && static_cast<component_set_type&>(*_pool[id]).is_added(e, tick);
             }
         }
 

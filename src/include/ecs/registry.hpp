@@ -46,7 +46,7 @@ namespace mytho::ecs {
 
             if constexpr (sizeof...(Ts) > 0) {
                 _entities.template add<Ts...>(e);
-                _components.add(e, std::forward<Ts>(ts)...);
+                _components.add(e, _current_tick, std::forward<Ts>(ts)...);
             }
 
             return e;
@@ -62,7 +62,7 @@ namespace mytho::ecs {
         requires (sizeof...(Ts) > 0)
         void insert(const entity_type& e, Ts&&... ts) noexcept {
             _entities.template add<Ts...>(e);
-            _components.add(e, std::forward<Ts>(ts)...);
+            _components.add(e, _current_tick, std::forward<Ts>(ts)...);
         }
 
         template<mytho::utils::PureComponentType... Ts>
@@ -104,6 +104,7 @@ namespace mytho::ecs {
             using component_prototype_list = typename querier::component_prototype_list;
             using component_contain_list = typename querier::component_contain_list;
             using component_not_contain_list = typename querier::component_not_contain_list;
+            using component_added_list = typename querier::component_added_list;
             using component_changed_list = typename querier::component_changed_list;
 
             component_bundle_container_type component_bundles;
@@ -114,6 +115,7 @@ namespace mytho::ecs {
                 for (auto it : *_components[id.value()]) {
                     if(contain(it, component_contain_list{}) 
                         && not_contain(it, component_not_contain_list{}) 
+                        && is_added(it, tick, component_added_list{})
                         && is_changed(it, tick, component_changed_list{})
                     ) {
                         component_bundles.emplace_back(_query(it, component_prototype_list{}));
@@ -325,6 +327,15 @@ namespace mytho::ecs {
         bool not_contain(const entity_type& e, internal::type_list<Ts...>) const noexcept {
             if constexpr (sizeof...(Ts) > 0) {
                 return _entities.template not_has<Ts...>(e) && _components.template not_contain<Ts...>(e);
+            } else {
+                return true;
+            }
+        }
+
+        template<mytho::utils::PureComponentType... Ts>
+        bool is_added(const entity_type& e, uint64_t tick, internal::type_list<Ts...>) const noexcept {
+            if constexpr (sizeof...(Ts) > 0) {
+                return _components.template is_added<Ts...>(e, tick);
             } else {
                 return true;
             }

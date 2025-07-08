@@ -15,6 +15,9 @@ namespace mytho::ecs {
     struct without {};
 
     template<mytho::utils::PureValueType... Ts>
+    struct added {};
+
+    template<mytho::utils::PureValueType... Ts>
     struct changed {};
 }
 
@@ -29,13 +32,16 @@ namespace mytho::utils {
     inline constexpr bool is_without_v = internal::is_template_v<T, mytho::ecs::without>;
 
     template<typename T>
+    inline constexpr bool is_added_v = internal::is_template_v<T, mytho::ecs::added>;
+
+    template<typename T>
     inline constexpr bool is_changed_v = internal::is_template_v<T, mytho::ecs::changed>;
 
     template<typename T>
     concept QueryValueType = PureValueType<T>;
 
     template<typename T>
-    concept PureComponentType = PureValueType<T> && !is_mut_v<T> && !is_with_v<T> && !is_without_v<T> && !is_changed_v<T>;
+    concept PureComponentType = PureValueType<T> && !is_mut_v<T> && !is_with_v<T> && !is_without_v<T> && !is_added_v<T> && !is_changed_v<T>;
 
     namespace internal {
         template<typename T>
@@ -160,13 +166,15 @@ namespace mytho::ecs {
         template<mytho::utils::QueryValueType... Ts>
         struct query_types {
             using query_list = internal::type_list<Ts...>;
-            using require_list = internal::type_list_filter_template_t<query_list, with, without, changed>;
+            using require_list = internal::type_list_filter_template_t<query_list, with, without, added, changed>;
             using require_prototype_list = internal::prototype_list_convert_t<require_list, mut>;
             using require_datatype_list = internal::datatype_list_convert_t<require_list>;
             using with_list = internal::type_list_extract_template_t<query_list, with>;
             using with_prototype_list = internal::prototype_list_convert_t<with_list, with>;
             using without_list = internal::type_list_extract_template_t<query_list, without>;
             using without_prototype_list = internal::prototype_list_convert_t<without_list, without>;
+            using added_list = internal::type_list_extract_template_t<query_list, added>;
+            using added_prototype_list = internal::prototype_list_convert_t<added_list, added>;
             using changed_list = internal::type_list_extract_template_t<query_list, changed>;
             using changed_prototype_list = internal::prototype_list_convert_t<changed_list, changed>;
         };
@@ -181,6 +189,7 @@ namespace mytho::ecs {
         using query_types = internal::query_types<Ts...>;
         using component_prototype_list = typename query_types::require_prototype_list;
         using component_datatype_list = typename query_types::require_datatype_list;
+        using component_added_list = typename query_types::added_prototype_list;
         using component_changed_list = typename query_types::changed_prototype_list;
         using component_contain_list = internal::type_list_cat_t<internal::type_list_filter_t<component_prototype_list, entity_type>, typename query_types::with_prototype_list, typename query_types::changed_prototype_list>;
         using component_not_contain_list = typename query_types::without_prototype_list;

@@ -15,6 +15,7 @@ namespace mytho::container {
         using alloc_traits = std::allocator_traits<allocator_type>;
         using component_data_ptr_type = typename alloc_traits::pointer;
         using component_data_ptr_set_type = std::vector<component_data_ptr_type, typename alloc_traits::template rebind_alloc<component_data_ptr_type>>;
+        using component_added_ticks_type = std::vector<uint64_t>;
         using component_changed_ticks_type = std::vector<uint64_t>;
 
     public:
@@ -24,14 +25,17 @@ namespace mytho::container {
 
         template<typename... Ts>
         requires (sizeof...(Ts) > 0)
-        void add(const entity_type& e, Ts&&... ts) noexcept {
+        void add(const entity_type& e, uint64_t tick, Ts&&... ts) noexcept {
             ASSURE(!base_type::contain(e), "entity already exist.");
 
             base_type::add(e);
             auto idx = base_type::index(e);
             new (assure(idx)) component_type{std::forward<Ts>(ts)...};
 
+            _added_ticks.resize(base_type::size(), 0);
             _changed_ticks.resize(base_type::size(), 0);
+
+            _added_ticks[idx] = tick;
         }
 
         void remove(const entity_type& e) noexcept {
@@ -41,6 +45,9 @@ namespace mytho::container {
             _cdata[idx]->~component_type();
             _cdata[idx] = _cdata.back();
             _cdata.pop_back();
+
+            _added_ticks[idx] = _added_ticks.back();
+            _added_ticks.pop_back();
 
             _changed_ticks[idx] = _changed_ticks.back();
             _changed_ticks.pop_back();
@@ -71,6 +78,7 @@ namespace mytho::container {
             }
 
             _cdata.clear();
+            _added_ticks.clear();
             _changed_ticks.clear();
             base_type::clear();
         }
@@ -93,6 +101,12 @@ namespace mytho::container {
             return _changed_ticks[base_type::index(e)];
         }
 
+        bool is_added(const entity_type& e, uint64_t tick) const noexcept {
+            ASSURE(base_type::contain(e), "entity not exist.");
+
+            return _added_ticks[base_type::index(e)] > tick;
+        }
+
         bool is_changed(const entity_type& e, uint64_t tick) const noexcept {
             ASSURE(base_type::contain(e), "entity not exist.");
 
@@ -107,6 +121,7 @@ namespace mytho::container {
 
     private:
         component_data_ptr_set_type _cdata;
+        component_added_ticks_type _added_ticks;
         component_changed_ticks_type _changed_ticks;
 
     private:

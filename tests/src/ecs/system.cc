@@ -34,6 +34,9 @@ template<typename... Ts>
 using without = mytho::ecs::without<Ts...>;
 
 template<typename... Ts>
+using added = mytho::ecs::added<Ts...>;
+
+template<typename... Ts>
 using changed = mytho::ecs::changed<Ts...>;
 
 using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
@@ -50,6 +53,45 @@ void startup(commands cmds) {
     cmds.spawn(Position{0.1f, 0.1f});
     cmds.spawn(Position{0.2f, 0.2f}, Vectory{0.2f, 0.2f});
     cmds.spawn(Position{0.3f, 0.3f}, Vectory{0.3f, 0.3f}, Direction{0.3f, 0.3f});
+}
+
+void update_added1(querier<Position, added<Position>> q) {
+    EXPECT_EQ(q.size(), 3);
+
+    uint32_t count = 0;
+    for (auto [pos] : q) {
+        count++;
+
+        using pos_type = decltype(pos);
+        EXPECT_EQ((std::is_same_v<pos_type, const data_wrapper<Position>>), true);
+        EXPECT_EQ(pos->x, 0.1f * count);
+        EXPECT_EQ(pos->y, 0.1f * count);
+    }
+}
+
+void update_added2(querier<Vectory, added<Vectory>> q) {
+    EXPECT_EQ(q.size(), 2);
+
+    uint32_t count = 1;
+    for (auto [vec] : q) {
+        count++;
+
+        using vec_type = decltype(vec);
+        EXPECT_EQ((std::is_same_v<vec_type, const data_wrapper<Vectory>>), true);
+        EXPECT_EQ(vec->x, 0.1f * count);
+        EXPECT_EQ(vec->y, 0.1f * count);
+    }
+}
+
+void update_added3(querier<Direction, added<Position, Vectory, Direction>> q) {
+    EXPECT_EQ(q.size(), 1);
+
+    for (auto [dir] : q) {
+        using dir_type = decltype(dir);
+        EXPECT_EQ((std::is_same_v<dir_type, const data_wrapper<Direction>>), true);
+        EXPECT_EQ(dir->x, 0.3f);
+        EXPECT_EQ(dir->y, 0.3f);
+    }
 }
 
 void update1(querier<entity, Position, with<Vectory>, without<Direction>> q) {
@@ -235,6 +277,9 @@ TEST(SystemTest, ComponentChangedTest) {
     registry reg;
 
     reg.add_startup_system<startup>()
+       .add_update_system<update_added1>()
+       .add_update_system<update_added2>()
+       .add_update_system<update_added3>()
        .add_update_system<update1>()
        .add_update_system<update2>()
        .add_update_system<update2_changed>()

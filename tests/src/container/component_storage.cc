@@ -22,7 +22,7 @@ TEST(ComponentStorageTest, BasicAddAndRemove) {
 
     entity e(10);
 
-    s.add(e, Position{0.5f, 5.0f});
+    s.add(e, 0, Position{0.5f, 5.0f});
     EXPECT_EQ(s.contain<Position>(e), true);
     {
         auto [pos] = s.get<Position>(e);
@@ -30,7 +30,7 @@ TEST(ComponentStorageTest, BasicAddAndRemove) {
         EXPECT_EQ((pos.y), 5.0f);
     }
 
-    s.add(e, Vectory{0.6f, 6.0f}, Direction{1.5f, 2.5f});
+    s.add(e, 0, Vectory{0.6f, 6.0f}, Direction{1.5f, 2.5f});
     EXPECT_EQ((s.contain<Position, Vectory, Direction>(e)), true);
     {
         auto [pos, vec, dir] = s.get<Position, Vectory, Direction>(e);
