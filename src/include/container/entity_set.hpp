@@ -1,4 +1,9 @@
 #pragma once
+#include <vector>
+#include <utility>
+#include <cstddef>
+#include <iterator>
+
 #include "ecs/entity.hpp"
 #include "container/sparse_set.hpp"
 

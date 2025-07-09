@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
-#include "utils/concept.hpp"
+#include <cstdint>
+
 #include "utils/type_list.hpp"
 #include "ecs/entity.hpp"
 

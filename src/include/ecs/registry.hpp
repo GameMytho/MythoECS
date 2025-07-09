@@ -1,11 +1,15 @@
 #pragma once
-
 #include <optional>
+#include <cstdint>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+#include <vector>
+#include <cstddef>
 
 #include "container/entity_storage.hpp"
 #include "container/component_storage.hpp"
 #include "ecs/system.hpp"
-#include "ecs/resources.hpp"
 
 namespace mytho::ecs {
     template<

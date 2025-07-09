@@ -1,6 +1,10 @@
 #pragma once
-#include <vector>
+#include <type_traits>
 #include <optional>
+#include <functional>
+#include <utility>
+#include <cstdint>
+
 #include "utils/func_list.hpp"
 #include "ecs/commands.hpp"
 #include "ecs/querier.hpp"

@@ -1,5 +1,8 @@
 #pragma once
 #include <memory>
+#include <cstdint>
+#include <utility>
+#include <vector>
 
 #include "container/entity_set.hpp"
 

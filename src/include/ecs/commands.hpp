@@ -1,4 +1,13 @@
 #pragma once
+#include <vector>
+#include <tuple>
+#include <functional>
+#include <utility>
+#include <type_traits>
+#include <cstdint>
+#include <cstddef>
+
+#include "utils/concept.hpp"
 #include "ecs/querier.hpp"
 
 namespace mytho::ecs {
@@ -11,7 +20,7 @@ namespace mytho::ecs {
             using executors_type = std::vector<void(*)(registry_type&, void*)>;
             using destroyers_type = std::vector<void(*)(void*)>;
             using buffers_type = std::vector<uint8_t>;
-            using offsets_type = std::vector<std::size_t>;
+            using offsets_type = std::vector<size_t>;
 
         public:
             template<mytho::utils::PureComponentType... Ts>

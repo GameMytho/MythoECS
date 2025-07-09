@@ -1,5 +1,7 @@
 #pragma once
 #include <memory>
+#include <utility>
+#include <vector>
 
 #include "container/entity_set.hpp"
 #include "utils/idgen.hpp"

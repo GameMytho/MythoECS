@@ -1,5 +1,9 @@
 #pragma once
+#include <vector>
 #include <tuple>
+#include <memory>
+#include <utility>
+#include <cstdint>
 
 #include "container/component_set.hpp"
 #include "utils/idgen.hpp"
