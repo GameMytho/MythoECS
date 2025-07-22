@@ -40,7 +40,7 @@ template<typename... Ts>
 using changed = mytho::ecs::changed<Ts...>;
 
 using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
-using registry = mytho::ecs::basic_registry<entity, uint8_t, uint8_t, 1024>;
+using registry = mytho::ecs::basic_registry<entity, uint8_t, 1024>;
 using commands = mytho::ecs::basic_commands<registry>;
 
 template<typename... Ts>
@@ -185,88 +185,15 @@ void shutdown() {
 
 }
 
-TEST(SystemTest, AddAndRemoveTest) {
+TEST(SystemTest, AddAndRunTest) {
     registry reg;
 
-    reg.add_startup_system<startup>()
-       .add_update_system<update1>()
-       .add_update_system<update2>()
-       .add_shutdown_system<shutdown>();
+    reg.add_startup_system(startup)
+       .add_update_system(update1)
+       .add_update_system(update2)
+       .add_shutdown_system(shutdown);
 
     reg.startup();
-
-    reg.update();
-
-    reg.remove_update_system<update1>()
-       .remove_update_system<update2>()
-       .add_update_system<update3>();
-
-    reg.update();
-
-    reg.shutdown();
-}
-
-TEST(SystemTest, EnableAndDisableTest) {
-    registry reg;
-
-    reg.add_startup_system<startup>()
-       .add_update_system<update1>()
-       .add_update_system<update2>()
-       .add_update_system<update3>()
-       .add_shutdown_system<shutdown>();
-
-    reg.enable_update_system<update1>()
-       .enable_update_system<update2>()
-       .disable_update_system<update3>();
-
-    reg.startup();
-
-    reg.update();
-
-    reg.disable_update_system<update1>()
-       .disable_update_system<update2>()
-       .enable_update_system<update3>();
-
-    reg.update();
-
-    reg.shutdown();
-}
-
-template<auto... Funcs>
-using before = mytho::ecs::before<Funcs...>;
-
-template<auto... Funcs>
-using after = mytho::ecs::after<Funcs...>;
-
-TEST(SystemTest, SystemLocationTest) {
-    registry reg;
-
-    reg.add_startup_system<startup>()
-       .add_update_system<update4>()
-       .add_update_system<update1, before<update4>>()
-       .add_update_system<update3, after<update1>, before<update4>>()
-       .add_update_system<update2, before<update3, update4>, after<update1>>()
-       .remove_update_system<update4>()
-       .add_update_system<update4, after<update1, update2, update3>>()
-       .remove_update_system<update1>()
-       .add_update_system<update1, before<update2, update3, update4>>()
-       .add_shutdown_system<shutdown>();
-
-    reg.enable_update_system<update1>()
-       .enable_update_system<update2>()
-       .disable_update_system<update3>()
-       .disable_update_system<update4>();
-
-    reg.ready();
-
-    reg.startup();
-
-    reg.update();
-
-    reg.disable_update_system<update1>()
-       .disable_update_system<update2>()
-       .enable_update_system<update3>()
-       .enable_update_system<update4>();
 
     reg.update();
 
@@ -276,19 +203,17 @@ TEST(SystemTest, SystemLocationTest) {
 TEST(SystemTest, ComponentChangedTest) {
     registry reg;
 
-    reg.add_startup_system<startup>()
-       .add_update_system<update_added1>()
-       .add_update_system<update_added2>()
-       .add_update_system<update_added3>()
-       .add_update_system<update1>()
-       .add_update_system<update2>()
-       .add_update_system<update2_changed>()
-       .add_update_system<update3>()
-       .add_update_system<update3_changed>()
-       .add_update_system<update4>()
-       .add_shutdown_system<shutdown>();
-
-    reg.ready();
+    reg.add_startup_system(startup)
+       .add_update_system(update_added1)
+       .add_update_system(update_added2)
+       .add_update_system(update_added3)
+       .add_update_system(update1)
+       .add_update_system(update2)
+       .add_update_system(update2_changed)
+       .add_update_system(update3)
+       .add_update_system(update3_changed)
+       .add_update_system(update4)
+       .add_shutdown_system(shutdown);
 
     reg.startup();
 

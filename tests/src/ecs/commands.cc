@@ -17,7 +17,7 @@ struct Direction {
 };
 
 using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
-using registry = mytho::ecs::basic_registry<entity, uint8_t, uint8_t, 1024>;
+using registry = mytho::ecs::basic_registry<entity, uint8_t, 1024>;
 using commands = mytho::ecs::basic_commands<registry>;
 
 template<typename... Ts>
@@ -133,12 +133,12 @@ void shutdown_changed(querier<Position, Vectory, Direction, changed<Position>> q
 TEST(CommandsTest, CommandsQueueTest) {
     registry reg;
 
-    reg.add_startup_system<startup>();
-    reg.add_update_system<update>();
-    reg.add_update_system<update_added>();
-    reg.add_shutdown_system<shutdown>();
-    reg.add_shutdown_system<shutdown_added>();
-    reg.add_shutdown_system<shutdown_changed>();
+    reg.add_startup_system(startup);
+    reg.add_update_system(update);
+    reg.add_update_system(update_added);
+    reg.add_shutdown_system(shutdown);
+    reg.add_shutdown_system(shutdown_added);
+    reg.add_shutdown_system(shutdown_changed);
 
     reg.startup();
     reg.update();

@@ -15,21 +15,19 @@ namespace mytho::ecs {
     template<
         mytho::utils::EntityType EntityT,
         mytho::utils::UnsignedIntegralType ComponentIdT = size_t,
-        mytho::utils::UnsignedIntegralType SystemIndexT = size_t,
         size_t PageSize = 1024
     >
     class basic_registry final {
     public:
         using entity_type = EntityT;
         using component_id_type = ComponentIdT;
-        using system_index_type = SystemIndexT;
-        using self_type = mytho::ecs::basic_registry<entity_type, component_id_type, system_index_type, PageSize>;
+        using self_type = mytho::ecs::basic_registry<entity_type, component_id_type, PageSize>;
         using entity_storage_type = mytho::container::basic_entity_storage<entity_type, component_id_type, PageSize>;
         using size_type = typename entity_storage_type::size_type;
         using component_storage_type = mytho::container::basic_component_storage<entity_type, component_id_type, PageSize>;
         using component_id_generator = mytho::utils::basic_id_generator<component_id_type>;
         using command_queue_type = mytho::ecs::internal::basic_command_queue<self_type>;
-        using system_storage_type = internal::basic_system_storage<self_type, system_index_type>;
+        using system_storage_type = internal::basic_system_storage<self_type>;
 
         template<typename... Ts>
         using querier_type = mytho::ecs::basic_querier<self_type, Ts...>;
@@ -158,102 +156,31 @@ namespace mytho::ecs {
         }
 
     public:
-        template<auto Func, mytho::utils::LocationType... Locs>
-        self_type& add_startup_system() noexcept {
-            _startup_systems.template add<Func, Locs...>();
+        template<mytho::utils::FunctionType Func>
+        self_type& add_startup_system(Func&& func) noexcept {
+            _startup_systems.add(std::forward<Func>(func));
 
             return *this;
         }
 
-        template<auto Func>
-        self_type& remove_startup_system() noexcept {
-            _startup_systems.template remove<Func>();
+        template<mytho::utils::FunctionType Func>
+        self_type& add_update_system(Func&& func) noexcept {
+            _update_systems.add(std::forward<Func>(func));
 
             return *this;
         }
 
-        template<auto Func>
-        self_type& enable_startup_system() noexcept {
-            _startup_systems.template enable<Func>();
-
-            return *this;
-        }
-
-        template<auto Func>
-        self_type& disable_startup_system() noexcept {
-            _startup_systems.template disable<Func>();
-
-            return *this;
-        }
-
-        template<auto Func, mytho::utils::LocationType... Locs>
-        self_type& add_update_system() noexcept {
-            _update_systems.template add<Func, Locs...>();
-
-            return *this;
-        }
-
-        template<auto Func>
-        self_type& remove_update_system() noexcept {
-            _update_systems.template remove<Func>();
-
-            return *this;
-        }
-
-        template<auto Func>
-        self_type& enable_update_system() noexcept {
-            _update_systems.template enable<Func>();
-
-            return *this;
-        }
-
-        template<auto Func>
-        self_type& disable_update_system() noexcept {
-            _update_systems.template disable<Func>();
-
-            return *this;
-        }
-
-        template<auto Func, mytho::utils::LocationType... Locs>
-        self_type& add_shutdown_system() noexcept {
-            _shutdown_systems.template add<Func, Locs...>();
-
-            return *this;
-        }
-
-        template<auto Func>
-        self_type& remove_shutdown_system() noexcept {
-            _shutdown_systems.template remove<Func>();
-
-            return *this;
-        }
-
-        template<auto Func>
-        self_type& enable_shutdown_system() noexcept {
-            _shutdown_systems.template enable<Func>();
-
-            return *this;
-        }
-
-        template<auto Func>
-        self_type& disable_shutdown_system() noexcept {
-            _shutdown_systems.template disable<Func>();
+        template<mytho::utils::FunctionType Func>
+        self_type& add_shutdown_system(Func&& func) noexcept {
+            _shutdown_systems.add(std::forward<Func>(func));
 
             return *this;
         }
 
     public:
-        void ready() noexcept {
-            _startup_systems.sort();
-            _update_systems.sort();
-            _shutdown_systems.sort();
-        }
-
         void startup() noexcept {
             for (auto& sys : _startup_systems) {
-                if (sys.enabled()) {
-                    sys(*this, ++_current_tick);
-                }
+                sys(*this, ++_current_tick);
             }
 
             _current_tick++;
@@ -262,9 +189,7 @@ namespace mytho::ecs {
 
         void update() noexcept {
             for (auto& sys : _update_systems) {
-                if (sys.enabled()) {
-                    sys(*this, ++_current_tick);
-                }
+                sys(*this, ++_current_tick);
             }
 
             _current_tick++;
@@ -273,9 +198,7 @@ namespace mytho::ecs {
 
         void shutdown() noexcept {
             for (auto& sys : _shutdown_systems) {
-                if (sys.enabled()) {
-                    sys(*this, ++_current_tick);
-                }
+                sys(*this, ++_current_tick);
             }
 
             _current_tick++;
@@ -362,11 +285,11 @@ namespace mytho::ecs {
             if constexpr (std::is_same_v<prototype, entity_type>) {
                 if constexpr (sizeof...(Rs) > 0) {
                     return std::tuple_cat(
-                        std::tuple(utils::internal::data_wrapper<entity_type>(e)),
+                        std::tuple(mytho::utils::internal::data_wrapper<entity_type>(e)),
                         _query(e, internal::type_list<Rs...>{})
                     );
                 } else {
-                    return std::tuple(utils::internal::data_wrapper<entity_type>(e));
+                    return std::tuple(mytho::utils::internal::data_wrapper<entity_type>(e));
                 }
             } else {
                 auto id = component_id_generator::template gen<prototype>();
@@ -374,7 +297,7 @@ namespace mytho::ecs {
                 if constexpr (sizeof...(Rs) > 0) {
                     return std::tuple_cat(
                         std::tuple(
-                            utils::internal::data_wrapper<T>(
+                            mytho::utils::internal::data_wrapper<T>(
                                 &(static_cast<component_set_type&>(*_components[id]).get(e)),
                                 static_cast<component_set_type&>(*_components[id]).changed_tick(e),
                                 _current_tick
@@ -385,7 +308,7 @@ namespace mytho::ecs {
                 }
                 else {
                     return std::tuple(
-                        utils::internal::data_wrapper<T>(
+                        mytho::utils::internal::data_wrapper<T>(
                             &(static_cast<component_set_type&>(*_components[id]).get(e)),
                             static_cast<component_set_type&>(*_components[id]).changed_tick(e),
                             _current_tick

@@ -14,7 +14,7 @@ struct Log {
 };
 
 using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
-using registry = mytho::ecs::basic_registry<entity, uint8_t, uint8_t, 1024>;
+using registry = mytho::ecs::basic_registry<entity, uint8_t, 1024>;
 
 template<typename... Ts>
 using res = mytho::ecs::basic_resources<Ts...>;
@@ -66,11 +66,11 @@ void update3(res<Time, KeyBoard> r) {
 TEST(ResourcesTest, AddAndRemoveTest) {
     registry reg;
 
-    reg.init_resource<Time>((unsigned int)10)
-       .init_resource<KeyBoard>((unsigned int)5)
-       .add_update_system<update1>()
-       .add_update_system<update2>()
-       .add_update_system<update3>();
+    reg.init_resource<Time>(10u)
+       .init_resource<KeyBoard>(5u)
+       .add_update_system(update1)
+       .add_update_system(update2)
+       .add_update_system(update3);
 
     reg.startup();
 
