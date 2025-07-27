@@ -118,25 +118,23 @@ namespace mytho::ecs {
         }
 
         template<typename RegistryT>
-        class basic_system_type {
+        class basic_function_wrapper {
         public:
             using registry_type = RegistryT;
             using function_type = void(*)(void*, registry_type&, uint64_t);
 
             template<mytho::utils::FunctionType Func>
-            basic_system_type(Func&& func) noexcept {
+            basic_function_wrapper(Func&& func) noexcept {
                 new (&_func_ptr) std::decay_t<Func>(std::forward<Func>(func));
                 _func_wrapper = function_wrapper_construct<Func>();
             }
 
         public:
             void operator()(registry_type& reg, uint64_t tick) noexcept {
-                _func_wrapper(_func_ptr, reg, _last_run_tick);
-                _last_run_tick = tick;
+                _func_wrapper(_func_ptr, reg, tick);
             }
 
         private:
-            uint64_t _last_run_tick = 0;
             function_type _func_wrapper = nullptr;
             void* _func_ptr = nullptr;
 
@@ -157,10 +155,30 @@ namespace mytho::ecs {
         };
 
         template<typename RegistryT>
+        class basic_system {
+        public:
+            using registry_type = RegistryT;
+            using function_wrapper_type = basic_function_wrapper<registry_type>;
+
+            template<mytho::utils::FunctionType Func>
+            basic_system(Func&& func) noexcept : _wrapper(std::forward<Func>(func)) {}
+
+        public:
+            void operator()(registry_type& reg, uint64_t tick) noexcept {
+                _wrapper(reg, _last_run_tick);
+                _last_run_tick = tick;
+            }
+
+        private:
+            uint64_t _last_run_tick = 0;
+            function_wrapper_type _wrapper;
+        };
+
+        template<typename RegistryT>
         class basic_system_storage {
         public:
             using registry_type = RegistryT;
-            using system_type = basic_system_type<registry_type>;
+            using system_type = basic_system<registry_type>;
             using systems_type = std::vector<system_type>;
 
         public:
