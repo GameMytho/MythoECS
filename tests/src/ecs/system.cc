@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "ecs/registry.hpp"
+#include "ecs/ecs.hpp"
 
 struct Position {
     float x;
@@ -23,31 +23,6 @@ struct Name {
 struct Health {
     uint32_t value;
 };
-
-template<typename... Ts>
-using mut = mytho::ecs::mut<Ts...>;
-
-template<typename... Ts>
-using with = mytho::ecs::with<Ts...>;
-
-template<typename... Ts>
-using without = mytho::ecs::without<Ts...>;
-
-template<typename... Ts>
-using added = mytho::ecs::added<Ts...>;
-
-template<typename... Ts>
-using changed = mytho::ecs::changed<Ts...>;
-
-using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
-using registry = mytho::ecs::basic_registry<entity, uint8_t, 1024>;
-using commands = mytho::ecs::basic_commands<registry>;
-
-template<typename... Ts>
-using querier = mytho::ecs::basic_querier<registry, Ts...>;
-
-template<typename T>
-using data_wrapper = mytho::utils::internal::data_wrapper<T>;
 
 void startup(commands cmds) {
     cmds.spawn(Position{0.1f, 0.1f});
@@ -190,8 +165,9 @@ TEST(SystemTest, AddAndRunTest) {
 
     reg.add_startup_system(startup)
        .add_update_system(update1)
-       .add_update_system(update2)
        .add_shutdown_system(shutdown);
+
+    reg.ready();
 
     reg.startup();
 
@@ -200,20 +176,22 @@ TEST(SystemTest, AddAndRunTest) {
     reg.shutdown();
 }
 
-TEST(SystemTest, ComponentChangedTest) {
+TEST(SystemTest, SystemConfigTest) {
     registry reg;
 
     reg.add_startup_system(startup)
-       .add_update_system(update_added1)
-       .add_update_system(update_added2)
-       .add_update_system(update_added3)
-       .add_update_system(update1)
-       .add_update_system(update2)
-       .add_update_system(update2_changed)
-       .add_update_system(update3)
-       .add_update_system(update3_changed)
-       .add_update_system(update4)
+       .add_update_system(system(update_added1).before(update_added2))
+       .add_update_system(system(update_added2).before(update_added3))
+       .add_update_system(system(update_added3).before(update1).after(update_added1))
+       .add_update_system(system(update1).after(update_added2).before(update2))
+       .add_update_system(system(update2).after(update1).before(update2_changed))
+       .add_update_system(system(update2_changed).after(update2))
+       .add_update_system(system(update3).after(update2_changed).before(update3_changed))
+       .add_update_system(system(update3_changed).after(update3))
+       .add_update_system(system(update4).after(update3_changed))
        .add_shutdown_system(shutdown);
+
+    reg.ready();
 
     reg.startup();
 

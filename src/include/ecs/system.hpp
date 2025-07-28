@@ -6,6 +6,9 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
+#include <queue>
+#include <unordered_set>
+#include <unordered_map>
 
 #include "utils/func_list.hpp"
 #include "ecs/commands.hpp"
@@ -117,26 +120,43 @@ namespace mytho::ecs {
             }
         }
 
+        struct basic_function_hash {
+            size_t operator()(void* p) const noexcept {
+                size_t v = reinterpret_cast<size_t>(p);
+                v ^= v >> 16;
+                v *= 0x85ebca6b;
+                v ^= v >> 13;
+                v *= 0xc2b2ae35;
+                v ^= v >> 16;
+                return v;
+            }
+        };
+
         template<typename RegistryT>
-        class basic_function_wrapper {
+        class basic_function {
         public:
             using registry_type = RegistryT;
-            using function_type = void(*)(void*, registry_type&, uint64_t);
+            using function_wrapper_type = void(*)(void*, registry_type&, uint64_t);
+
+            basic_function() noexcept : _function_wrapper(nullptr), _function_pointer(nullptr) {}
 
             template<mytho::utils::FunctionType Func>
-            basic_function_wrapper(Func&& func) noexcept {
-                new (&_func_ptr) std::decay_t<Func>(std::forward<Func>(func));
-                _func_wrapper = function_wrapper_construct<Func>();
+            basic_function(Func&& func) noexcept {
+                new (&_function_pointer) std::decay_t<Func>(std::forward<Func>(func));
+                _function_wrapper = function_wrapper_construct<Func>();
             }
 
         public:
             void operator()(registry_type& reg, uint64_t tick) noexcept {
-                _func_wrapper(_func_ptr, reg, tick);
+                _function_wrapper(_function_pointer, reg, tick);
             }
 
+        public:
+            void* pointer() const noexcept { return _function_pointer; }
+
         private:
-            function_type _func_wrapper = nullptr;
-            void* _func_ptr = nullptr;
+            function_wrapper_type _function_wrapper;
+            void* _function_pointer;
 
         private:
             template<typename Func>
@@ -158,20 +178,65 @@ namespace mytho::ecs {
         class basic_system {
         public:
             using registry_type = RegistryT;
-            using function_wrapper_type = basic_function_wrapper<registry_type>;
+            using function_type = basic_function<registry_type>;
 
             template<mytho::utils::FunctionType Func>
-            basic_system(Func&& func) noexcept : _wrapper(std::forward<Func>(func)) {}
+            basic_system(Func&& func) noexcept : _function(std::forward<Func>(func)) {}
+
+            basic_system(const function_type& func) noexcept : _function(func) {}
 
         public:
             void operator()(registry_type& reg, uint64_t tick) noexcept {
-                _wrapper(reg, _last_run_tick);
+                _function(reg, _last_run_tick);
                 _last_run_tick = tick;
             }
 
         private:
             uint64_t _last_run_tick = 0;
-            function_wrapper_type _wrapper;
+            function_type _function;
+        };
+
+        template<typename RegistryT>
+        class basic_system_config {
+        public:
+            using registry_type = RegistryT;
+            using function_type = basic_function<registry_type>;
+            using hash_type = basic_function_hash;
+            using afters_type = std::unordered_set<void*, hash_type>;
+            using befores_type = std::unordered_set<void*, hash_type>;
+            using system_config_type = basic_system_config<registry_type>;
+
+            basic_system_config() noexcept : _function() {}
+
+            template<mytho::utils::FunctionType Func>
+            basic_system_config(Func&& func) noexcept : _function(std::forward<Func>(func)) {}
+
+        public:
+            template<mytho::utils::FunctionType Func>
+            basic_system_config& after(Func&& func) noexcept {
+                _afters.emplace(reinterpret_cast<void*>(std::forward<Func>(func)));
+                return *this;
+            }
+
+            template<mytho::utils::FunctionType Func>
+            basic_system_config& before(Func&& func) noexcept {
+                _befores.emplace(reinterpret_cast<void*>(std::forward<Func>(func)));
+                return *this;
+            }
+
+        public:
+            const function_type& function() const noexcept { return _function; }
+
+            const afters_type& afters() const noexcept { return _afters; }
+            afters_type& afters() noexcept { return _afters; }
+
+            const befores_type& befores() const noexcept { return _befores; }
+            befores_type& befores() noexcept { return _befores; }
+
+        private:
+            function_type _function;
+            afters_type _afters;
+            befores_type _befores;
         };
 
         template<typename RegistryT>
@@ -179,12 +244,32 @@ namespace mytho::ecs {
         public:
             using registry_type = RegistryT;
             using system_type = basic_system<registry_type>;
+            using system_config_type = basic_system_config<registry_type>;
             using systems_type = std::vector<system_type>;
+            using configs_type = std::unordered_map<void*, system_config_type, basic_function_hash>;
 
         public:
             template<mytho::utils::FunctionType Func>
             void add(Func&& func) noexcept {
-                _systems.emplace_back(std::forward<Func>(func));
+                _configs.emplace(reinterpret_cast<void*>(std::forward<Func>(func)), system_config_type(std::forward<Func>(func)));
+            }
+
+            void add(const system_config_type& config) noexcept {
+                _configs.emplace(config.function().pointer(), config);
+            }
+
+        public:
+            void ready() noexcept {
+                ASSURE(valid_dependencies(), "There are some system dependencies not found in the system dependencies map!");
+
+                for (auto& [ptr, config] : _configs) {
+                    for (auto& before : config.befores()) {
+                        _configs[before].afters().emplace(ptr);
+                    }
+                    config.befores().clear();
+                }
+
+                kahn();
             }
 
         public:
@@ -196,6 +281,59 @@ namespace mytho::ecs {
 
         private:
             systems_type _systems;
+            configs_type _configs;
+
+        private:
+            bool valid_dependencies() const noexcept {
+                for (auto& [ptr, config] : _configs) {
+                    for (auto& after : config.afters()) {
+                        if (!_configs.contains(after)) {
+                            return false;
+                        }
+                    }
+
+                    for (auto& before : config.befores()) {
+                        if (!_configs.contains(before)) {
+                            return false;
+                        }
+                    }
+                }
+
+                return true;
+            }
+
+            void kahn() noexcept {
+                std::unordered_map<void*, int> in_degree;
+                std::queue<void*> zero_in_degree;
+
+                for (auto& [ptr, config] : _configs) {
+                    if (config.afters().empty()) {
+                        zero_in_degree.push(ptr);
+                    } else {
+                        in_degree[ptr] = config.afters().size();
+                    }
+                }
+
+                while (!zero_in_degree.empty()) {
+                    auto current = zero_in_degree.front();
+                    zero_in_degree.pop();
+
+                    _systems.emplace_back(_configs[current].function());
+                    _configs.erase(current);
+
+                    for (auto& [ptr, config] : _configs) {
+                        if (config.afters().contains(current)) {
+                            in_degree[ptr]--;
+                            if (in_degree[ptr] == 0) {
+                                zero_in_degree.push(ptr);
+                                in_degree.erase(ptr);
+                            }
+                        }
+                    }
+                }
+
+                ASSURE(in_degree.empty(), "Cycle detected in system dependencies!");
+            }
         };
     }
 }

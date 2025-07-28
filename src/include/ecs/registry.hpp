@@ -28,6 +28,7 @@ namespace mytho::ecs {
         using component_id_generator = mytho::utils::basic_id_generator<component_id_type>;
         using command_queue_type = mytho::ecs::internal::basic_command_queue<self_type>;
         using system_storage_type = internal::basic_system_storage<self_type>;
+        using system_config_type = typename system_storage_type::system_config_type;
 
         template<typename... Ts>
         using querier_type = mytho::ecs::basic_querier<self_type, Ts...>;
@@ -157,9 +158,19 @@ namespace mytho::ecs {
 
     public:
         template<mytho::utils::FunctionType Func>
+        static system_config_type system(Func&& func) noexcept {
+            return system_config_type(std::forward<Func>(func));
+        }
+
+        template<mytho::utils::FunctionType Func>
         self_type& add_startup_system(Func&& func) noexcept {
             _startup_systems.add(std::forward<Func>(func));
 
+            return *this;
+        }
+
+        self_type& add_startup_system(const system_config_type& config) noexcept {
+            _startup_systems.add(config);
             return *this;
         }
 
@@ -170,6 +181,11 @@ namespace mytho::ecs {
             return *this;
         }
 
+        self_type& add_update_system(const system_config_type& config) noexcept {
+            _update_systems.add(config);
+            return *this;
+        }
+
         template<mytho::utils::FunctionType Func>
         self_type& add_shutdown_system(Func&& func) noexcept {
             _shutdown_systems.add(std::forward<Func>(func));
@@ -177,7 +193,18 @@ namespace mytho::ecs {
             return *this;
         }
 
+        self_type& add_shutdown_system(const system_config_type& config) noexcept {
+            _shutdown_systems.add(config);
+            return *this;
+        }
+
     public:
+        void ready() noexcept {
+            _startup_systems.ready();
+            _update_systems.ready();
+            _shutdown_systems.ready();
+        }
+
         void startup() noexcept {
             for (auto& sys : _startup_systems) {
                 sys(*this, ++_current_tick);

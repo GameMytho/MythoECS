@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "ecs/registry.hpp"
+#include "ecs/ecs.hpp"
 
 struct Time {
     unsigned int seconds;
@@ -12,15 +12,6 @@ struct KeyBoard {
 struct Log {
     unsigned int level;
 };
-
-using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
-using registry = mytho::ecs::basic_registry<entity, uint8_t, 1024>;
-
-template<typename... Ts>
-using res = mytho::ecs::basic_resources<Ts...>;
-
-template<typename... Ts>
-using res_mut = mytho::ecs::basic_resources_mut<Ts...>;
 
 void update1(res<Time> r1, res_mut<KeyBoard> r2) {
     auto [time] = r1;
@@ -69,8 +60,10 @@ TEST(ResourcesTest, AddAndRemoveTest) {
     reg.init_resource<Time>(10u)
        .init_resource<KeyBoard>(5u)
        .add_update_system(update1)
-       .add_update_system(update2)
-       .add_update_system(update3);
+       .add_update_system(system(update2).after(update1))
+       .add_update_system(system(update3).after(update2));
+
+    reg.ready();
 
     reg.startup();
 
