@@ -32,13 +32,23 @@ namespace mytho::container {
             ASSURE(!base_type::contain(e), "entity already exist.");
 
             base_type::add(e);
+
             auto idx = base_type::index(e);
-            new (assure(idx)) component_type{std::forward<Ts>(ts)...};
+            auto data_size = _cdata.size();
+            if (idx >= data_size) {
+                _cdata.resize(idx + 1);
+                _added_ticks.resize(idx + 1, 0);
+                _changed_ticks.resize(idx + 1, 0);
 
-            _added_ticks.resize(base_type::size(), 0);
-            _changed_ticks.resize(base_type::size(), 0);
+                for (int i = data_size; i < _cdata.size(); i++) {
+                    allocator_type allocator{_cdata.get_allocator()};
+                    _cdata[i] = alloc_traits::allocate(allocator, 1);
+                }
+            }
 
+            new (_cdata[idx]) component_type{ std::forward<Ts>(ts)... };
             _added_ticks[idx] = tick;
+            _changed_ticks[idx] = 0;
         }
 
         void remove(const entity_type& e) noexcept {
@@ -46,14 +56,12 @@ namespace mytho::container {
 
             auto idx = base_type::index(e);
             _cdata[idx]->~component_type();
-            _cdata[idx] = _cdata.back();
-            _cdata.pop_back();
 
-            _added_ticks[idx] = _added_ticks.back();
-            _added_ticks.pop_back();
-
-            _changed_ticks[idx] = _changed_ticks.back();
-            _changed_ticks.pop_back();
+            if (idx != base_type::size() - 1) {
+                std::swap(_cdata[idx], _cdata[base_type::size() - 1]);
+                _added_ticks[idx] = _added_ticks[base_type::size() - 1];
+                _changed_ticks[idx] = _changed_ticks[base_type::size() - 1];
+            }
 
             base_type::remove(e);
         }
@@ -126,20 +134,5 @@ namespace mytho::container {
         component_data_ptr_set_type _cdata;
         component_added_ticks_type _added_ticks;
         component_changed_ticks_type _changed_ticks;
-
-    private:
-        component_data_ptr_type assure(size_t index) noexcept {
-            auto data_size = _cdata.size();
-            if (index >= data_size) {
-                _cdata.resize(index + 1);
-            }
-
-            for (int i = data_size; i < _cdata.size(); i++) {
-                allocator_type allocator{_cdata.get_allocator()};
-                _cdata[i] = alloc_traits::allocate(allocator, 1);
-            }
-
-            return _cdata[index];
-        }
     };
 }
