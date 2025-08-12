@@ -192,7 +192,7 @@ namespace mytho::ecs {
         using component_datatype_list = typename query_types::require_datatype_list;
         using component_added_list = typename query_types::added_prototype_list;
         using component_changed_list = typename query_types::changed_prototype_list;
-        using component_contain_list = internal::type_list_cat_t<internal::type_list_filter_t<component_prototype_list, entity_type>, typename query_types::with_prototype_list, typename query_types::changed_prototype_list>;
+        using component_contain_list = internal::type_list_cat_t<internal::type_list_filter_t<component_prototype_list, entity_type>, typename query_types::with_prototype_list, component_added_list, component_changed_list>;
         using component_not_contain_list = typename query_types::without_prototype_list;
         using component_bundle_type = typename internal::list_to_tuple_t<component_datatype_list>;
         using component_bundle_container_type = std::vector<component_bundle_type>;
