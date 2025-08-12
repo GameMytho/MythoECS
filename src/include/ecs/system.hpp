@@ -303,36 +303,53 @@ namespace mytho::ecs::internal {
         }
 
         void kahn() noexcept {
+            const std::size_t sys_count = _configs.size();
+            _systems.reserve(sys_count);
+
             std::unordered_map<void*, int> in_degree;
-            std::queue<void*> zero_in_degree;
+            in_degree.reserve(sys_count);
+            std::unordered_map<void*, std::vector<void*>> adj;
+            adj.reserve(sys_count);
 
             for (auto& [ptr, config] : _configs) {
-                if (config.afters().empty()) {
-                    zero_in_degree.push(ptr);
-                } else {
-                    in_degree[ptr] = config.afters().size();
+                in_degree.emplace(ptr, 0);
+                for (auto after : config.afters()) {
+                    if (!_configs.contains(after)) continue;
+                    adj[after].push_back(ptr);
+                    ++in_degree[ptr];
                 }
             }
 
-            while (!zero_in_degree.empty()) {
-                auto current = zero_in_degree.front();
+            std::queue<void*> zero_in_degree;
+            for (auto& [ptr, ind] : in_degree) {
+                if (ind == 0) {
+                    zero_in_degree.push(ptr);
+                }
+            }
+
+            std::size_t count = 0;
+            while(!zero_in_degree.empty()) {
+                void* ptr = zero_in_degree.front();
                 zero_in_degree.pop();
 
-                _systems.emplace_back(_configs[current].function());
-                _configs.erase(current);
+                ++count;
 
-                for (auto& [ptr, config] : _configs) {
-                    if (config.afters().contains(current)) {
-                        in_degree[ptr]--;
-                        if (in_degree[ptr] == 0) {
-                            zero_in_degree.push(ptr);
-                            in_degree.erase(ptr);
+                if (auto it = _configs.find(ptr); it != _configs.end()) {
+                    _systems.emplace_back(it->second.function());
+                    _configs.erase(it);
+                }
+
+                if (auto item = adj.find(ptr); item != adj.end()) {
+                    for (auto it : item->second) {
+                        if (auto i = in_degree.find(it); i != in_degree.end() && --(i->second) == 0) {
+                            zero_in_degree.push(it);
                         }
                     }
                 }
             }
 
-            ASSURE(in_degree.empty(), "Cycle detected in system dependencies!");
+
+            ASSURE(count == sys_count, "Cycle detected in system dependencies!");
         }
     };
 }
