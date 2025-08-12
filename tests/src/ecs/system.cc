@@ -199,3 +199,22 @@ TEST(SystemTest, SystemConfigTest) {
 
     reg.shutdown();
 }
+
+TEST(SystemTest, SystemRunifTest) {
+    registry reg;
+
+    reg.add_startup_system(startup)
+       .add_update_system(system(update1).before(update2).runif(components_added<Position, Vectory>))
+       .add_update_system(system(update2).before(update3).runif(components_added<Position, Vectory, Direction>))
+       .add_update_system(system(update3).before(update4).runif(components_changed<Position>))
+       .add_update_system(system(update4).runif(components_changed<Vectory>))
+       .add_shutdown_system(shutdown);
+
+    reg.ready();
+
+    reg.startup();
+
+    reg.update();
+
+    reg.shutdown();
+}

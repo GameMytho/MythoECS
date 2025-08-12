@@ -38,6 +38,11 @@ namespace mytho::utils {
         template<typename T>
         struct system_traits;
 
+        template<typename Ret, typename... Args>
+        struct system_traits<Ret(Args...)> {
+            using type = type_list<Args...>;
+        };
+
         template<typename... Args>
         struct system_traits<void(Args...)> {
             using type = type_list<Args...>;
@@ -129,7 +134,47 @@ namespace mytho::ecs::internal {
     };
 
     template<typename RegistryT, typename ReturnT>
-    class basic_function;
+    class basic_function {
+    public:
+        using registry_type = RegistryT;
+        using return_type = ReturnT;
+        using function_wrapper_type = return_type(*)(void*, registry_type&, uint64_t);
+
+        basic_function() noexcept : _function_wrapper(nullptr), _function_pointer(nullptr) {}
+
+        template<mytho::utils::FunctionType Func>
+        basic_function(Func&& func) noexcept {
+            new (&_function_pointer) std::decay_t<Func>(std::forward<Func>(func));
+            _function_wrapper = function_wrapper_construct<Func>();
+        }
+
+    public:
+        return_type operator()(registry_type& reg, uint64_t tick) noexcept {
+            return _function_wrapper(_function_pointer, reg, tick);
+        }
+
+    public:
+        void* pointer() const noexcept { return _function_pointer; }
+
+    private:
+        function_wrapper_type _function_wrapper;
+        void* _function_pointer;
+
+    private:
+        template<typename Func>
+        auto function_wrapper_construct() noexcept {
+            return [](void* func_ptr, registry_type& reg, uint64_t tick) -> return_type {
+                using types = mytho::utils::system_traits_t<mytho::utils::function_traits_t<std::decay_t<Func>>>;
+
+                return function_invoke(*reinterpret_cast<std::decay_t<Func>>(func_ptr), reg, tick, types{});
+            };
+        }
+
+        template<typename Func, typename... Ts>
+        static return_type function_invoke(Func&& func, registry_type& reg, uint64_t tick, mytho::utils::type_list<Ts...>) noexcept {
+            return std::invoke(std::forward<Func>(func), construct<registry_type, Ts>(reg, tick)...);
+        }
+    };
 
     template<typename RegistryT>
     class basic_function<RegistryT, void> {
@@ -180,13 +225,18 @@ namespace mytho::ecs::internal {
     public:
         using registry_type = RegistryT;
         using function_type = basic_function<registry_type, void>;
+        using runif_type = basic_function<registry_type, bool>;
 
         template<mytho::utils::FunctionType Func>
         basic_system(Func&& func) noexcept : _function(std::forward<Func>(func)) {}
 
-        basic_system(const function_type& func) noexcept : _function(func) {}
+        basic_system(const function_type& func, const runif_type& runif) noexcept : _function(func), _runif(runif) {}
 
     public:
+        bool should_run(registry_type& reg) noexcept {
+            return !_runif.pointer() || _runif(reg, _last_run_tick);
+        }
+
         void operator()(registry_type& reg, uint64_t tick) noexcept {
             _function(reg, _last_run_tick);
             _last_run_tick = tick;
@@ -195,16 +245,18 @@ namespace mytho::ecs::internal {
     private:
         uint64_t _last_run_tick = 0;
         function_type _function;
+        runif_type _runif;
     };
 
     template<typename RegistryT>
     class basic_system_config {
     public:
         using registry_type = RegistryT;
+        using self_type = basic_system_config<registry_type>;
         using function_type = basic_function<registry_type, void>;
+        using runif_type = basic_function<registry_type, bool>;
         using afters_type = std::unordered_set<void*, function_pointer_hash>;
         using befores_type = std::unordered_set<void*, function_pointer_hash>;
-        using self_type = basic_system_config<registry_type>;
 
         basic_system_config() noexcept : _function() {}
 
@@ -224,8 +276,16 @@ namespace mytho::ecs::internal {
             return *this;
         }
 
+        template<mytho::utils::FunctionType Func>
+        self_type& runif(Func&& func) noexcept {
+            _runif = std::forward<Func>(func);
+            return *this;
+        }
+
     public:
         const function_type& function() const noexcept { return _function; }
+
+        const runif_type& runif() const noexcept { return _runif; }
 
         const afters_type& afters() const noexcept { return _afters; }
         afters_type& afters() noexcept { return _afters; }
@@ -235,6 +295,7 @@ namespace mytho::ecs::internal {
 
     private:
         function_type _function;
+        runif_type _runif;
         afters_type _afters;
         befores_type _befores;
     };
@@ -335,7 +396,7 @@ namespace mytho::ecs::internal {
                 ++count;
 
                 if (auto it = _configs.find(ptr); it != _configs.end()) {
-                    _systems.emplace_back(it->second.function());
+                    _systems.emplace_back(it->second.function(), it->second.runif());
                     _configs.erase(it);
                 }
 

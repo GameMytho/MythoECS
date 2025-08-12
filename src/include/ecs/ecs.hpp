@@ -37,4 +37,14 @@ namespace {
     auto system(Func&& func) {
         return registry::system(std::forward<Func>(func));
     }
+
+    template<mytho::utils::PureComponentType T, mytho::utils::PureComponentType... Rs>
+    bool components_added(querier<T, added<T, Rs...>> q) {
+        return q.size() > 0;
+    }
+
+    template<mytho::utils::PureComponentType T, mytho::utils::PureComponentType... Rs>
+    bool components_changed(querier<T, changed<T, Rs...>> q) {
+        return q.size() > 0;
+    }
 }

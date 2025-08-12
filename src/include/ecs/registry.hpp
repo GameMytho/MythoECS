@@ -207,7 +207,9 @@ namespace mytho::ecs {
 
         void startup() noexcept {
             for (auto& sys : _startup_systems) {
-                sys(*this, ++_current_tick);
+                if (sys.should_run(*this)) {
+                    sys(*this, ++_current_tick);
+                }
             }
 
             _current_tick++;
@@ -216,7 +218,9 @@ namespace mytho::ecs {
 
         void update() noexcept {
             for (auto& sys : _update_systems) {
-                sys(*this, ++_current_tick);
+                if (sys.should_run(*this)) {
+                    sys(*this, ++_current_tick);
+                }
             }
 
             _current_tick++;
@@ -225,7 +229,9 @@ namespace mytho::ecs {
 
         void shutdown() noexcept {
             for (auto& sys : _shutdown_systems) {
-                sys(*this, ++_current_tick);
+                if (sys.should_run(*this)) {
+                    sys(*this, ++_current_tick);
+                }
             }
 
             _current_tick++;
