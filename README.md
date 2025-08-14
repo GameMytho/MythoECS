@@ -43,7 +43,7 @@ Open the project directory by terminal, and create a build directory by the foll
 
 Use cmake tools to build project files:
 
-`cmake -S . -B build -DBUILD_TESTS=ON`
+`cmake -S . -B build -DBUILD_TESTS=ON -DCAMKE_BUILD_TYPE=<Debug/RelWithDebInfo/Release/MinSizeRel>`
 
 Compile the project:
 
@@ -73,4 +73,4 @@ After successfully compiling by Visual Studio, we can use breakpoints and memory
 
 After installing valgrind on linux/macos, we can use the following command to check memory leaks:
 
-`valgrind build/bin/MythoECSTest`
+`valgrind build/tests/bin/<Debug/RelWithDebInfo/Release/MinSizeRel>/MythoECS_<UnitCase/UseCase>Test`

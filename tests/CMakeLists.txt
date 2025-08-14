@@ -8,17 +8,47 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
-# check all the source files in the src directory and add them to the test executable
-file(GLOB_RECURSE MYTHO_ECS_TEST_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*)
+function(add_unit_test SRC_DIR LABEL)
+    set(oneValueArgs TARGET_NAME)
+    cmake_parse_arguments(MAT "" "TARGET_NAME" "" "${ARGN}")
 
-# add test executable
-add_executable(MythoECSTest ${MYTHO_ECS_TEST_SOURCES})
+    if(MAT_TARGET_NAME)
+        set(TARGET ${MAT_TARGET_NAME})
+    else()
+        set(TARGET "MythoECS_${LABEL}Tests")
+    endif()
 
-# set include directories for the test executable
-target_include_directories(MythoECSTest PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../src/include)
+    file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS ${SRC_DIR}/*.cc)
 
-# link the library to the test executable
-target_link_libraries(MythoECSTest PRIVATE MythoECS gtest)
+    add_executable(${TARGET} ${TEST_SOURCES})
 
-# add test to CMake
-add_test(NAME MythoECSTest COMMAND MythoECSTest)
+    target_link_libraries(${TARGET} PRIVATE MythoECS GTest::gtest GTest::gtest_main)
+
+    # set compile options for the test executable
+    target_compile_options(${TARGET} PRIVATE
+      $<$<CXX_COMPILER_ID:MSVC>:
+        $<$<CONFIG:Debug>:/Od /Zi>
+        $<$<CONFIG:RelWithDebInfo>:/O2 /Zi>
+        $<$<CONFIG:Release>:/O2>
+        $<$<CONFIG:MinSizeRel>:/O1>
+      >
+      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:
+        $<$<CONFIG:Debug>:-O0 -g>
+        $<$<CONFIG:RelWithDebInfo>:-O2 -g>
+        $<$<CONFIG:Release>:-O3>
+        $<$<CONFIG:MinSizeRel>:-Os>
+      >
+    )
+
+    # set output directory for the test executable
+    set_target_properties(${TARGET} PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests/bin/$<CONFIG>"
+    )
+
+    # add test to CMake
+    add_test(NAME ${TARGET} COMMAND $<TARGET_FILE:${TARGET}>)
+    set_tests_properties(${TARGET} PROPERTIES LABELS "${LABEL}")
+endfunction()
+
+add_unit_test(src/unit_case unit_case TARGET_NAME MythoECS_UnitCaseTests)
+add_unit_test(src/use_case use_case TARGET_NAME MythoECS_UseCaseTests)

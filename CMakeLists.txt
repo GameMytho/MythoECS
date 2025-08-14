@@ -7,24 +7,38 @@ project(MythoECS VERSION 0.1.0 LANGUAGES CXX)
 # This option is used to enable or disable the building of tests
 # for the MythoECS library. By default, it is set to ON, meaning that tests will be built.
 option(BUILD_TESTS "Build tests for MythoECS" ON)
+option(MYTHO_ASSERTS_ENABLED "Enable asserts for MythoECS" ON)
 
-# c++ standard 20
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+# add subdirectory for src
+add_subdirectory(src)
 
-# set output directories
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+# install and export MythoECS
+install(TARGETS MythoECS
+    EXPORT MythoECSTargets
+    FILE_SET HEADERS
+)
+install(EXPORT MythoECSTargets
+    NAMESPACE MythoECS::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/MythoECS
+)
 
-# check all the source files in the src directory
-file(GLOB_RECURSE MYTHO_ECS_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*)
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/MythoECSConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/MythoECSConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/MythoECS
+)
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/MythoECSConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
 
-# add interface library
-# The INTERFACE library is a special type of library in CMake that does not produce an actual binary file.
-add_library(MythoECS INTERFACE ${MYTHO_ECS_SOURCES})
-
-# set include directories for the library
-target_include_directories(MythoECS INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/include)
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/MythoECSConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/MythoECSConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/MythoECS
+)
 
 # add subdirectory for tests if BUILD_TESTS is ON
 if(BUILD_TESTS)
