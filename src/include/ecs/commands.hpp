@@ -38,7 +38,7 @@ namespace mytho::ecs {
                     _destroyers.push_back(nullptr);
                 } else {
                     _destroyers.push_back([](void* ptr) {
-                        static_cast<tuple_type*>(ptr)->~tuple();
+                        static_cast<tuple_type*>(ptr)->~tuple_type();
                     });
                 }
 
@@ -82,7 +82,7 @@ namespace mytho::ecs {
                     _destroyers.push_back(nullptr);
                 } else {
                     _destroyers.push_back([](void* ptr) {
-                        static_cast<tuple_type*>(ptr)->~tuple();
+                        static_cast<tuple_type*>(ptr)->~tuple_type();
                     });
                 }
 
@@ -127,7 +127,7 @@ namespace mytho::ecs {
                     _destroyers.push_back(nullptr);
                 } else {
                     _destroyers.push_back([](void* ptr) {
-                        static_cast<tuple_type*>(ptr)->~tuple();
+                        static_cast<tuple_type*>(ptr)->~tuple_type();
                     });
                 }
 
@@ -155,7 +155,7 @@ namespace mytho::ecs {
                     _destroyers.push_back(nullptr);
                 } else {
                     _destroyers.push_back([](void* ptr) {
-                        static_cast<tuple_type*>(ptr)->~tuple();
+                        static_cast<tuple_type*>(ptr)->~tuple_type();
                     });
                 }
 
