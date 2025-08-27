@@ -1,0 +1,42 @@
+#pragma once
+#include "ecs/querier.hpp"
+
+namespace mytho::ecs {
+    template<typename RegistryT>
+    class basic_registrar {
+    public:
+        using registry_type = RegistryT;
+        using entity_type = typename registry_type::entity_type;
+        using size_type = typename registry_type::size_type;
+
+        basic_registrar(registry_type& reg, uint64_t tick) : _reg(reg), _current_tick(tick) {}
+
+    public:
+        template<mytho::utils::PureComponentType... Ts>
+        requires (sizeof...(Ts) > 0)
+        auto get(const entity_type& e) const noexcept {
+            return _reg.template get<Ts...>(e);
+        }
+
+        template<mytho::utils::PureComponentType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool contain(const entity_type& e) const noexcept {
+            return _reg.template contain<Ts...>(e);
+        }
+
+        template<mytho::utils::QueryValueType... Ts>
+        requires (sizeof...(Ts) > 0)
+        size_type count() const noexcept {
+            return _reg.template count<Ts...>(_current_tick);
+        }
+
+    private:
+        registry_type& _reg;
+        uint64_t _current_tick;
+    };
+}
+
+namespace mytho::utils {
+    template<typename T>
+    inline constexpr bool is_registrar_v = internal::is_template_v<T, mytho::ecs::basic_registrar>;
+}

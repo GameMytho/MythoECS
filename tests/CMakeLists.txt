@@ -8,6 +8,9 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 function(add_unit_test SRC_DIR LABEL)
     set(oneValueArgs TARGET_NAME)
     cmake_parse_arguments(MAT "" "TARGET_NAME" "" "${ARGN}")

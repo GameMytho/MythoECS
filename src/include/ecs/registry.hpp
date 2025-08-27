@@ -129,28 +129,60 @@ namespace mytho::ecs {
             return { component_bundles, _current_tick };
         }
 
+        template<mytho::utils::QueryValueType... Ts>
+        requires (sizeof...(Ts) > 0)
+        size_type count(uint64_t tick) noexcept {
+            using query_types = internal::query_types<Ts...>;
+            using component_contain_list = internal::type_list_cat_t<
+                                                internal::type_list_filter_t<typename query_types::require_prototype_list, entity_type>,
+                                                typename query_types::with_prototype_list,
+                                                typename query_types::added_prototype_list,
+                                                typename query_types::changed_prototype_list
+                                            >;
+            using component_not_contain_list = typename query_types::without_prototype_list;
+            using component_added_list = typename query_types::added_prototype_list;
+            using component_changed_list = typename query_types::changed_prototype_list;
+
+            size_type count = 0;
+            auto id = get_cid_with_minimun_entities(component_contain_list{});
+
+            if (id) {
+                for (auto it : *_components[id.value()]) {
+                    if(contain(it, component_contain_list{})
+                        && not_contain(it, component_not_contain_list{})
+                        && is_added(it, tick, component_added_list{})
+                        && is_changed(it, tick, component_changed_list{})
+                    ) {
+                        ++count;
+                    }
+                }
+            }
+
+            return count;
+        }
+
     public:
-        template<typename T, typename... Rs>
+        template<mytho::utils::PureResourceType T, typename... Rs>
         self_type& init_resource(Rs&&... rs) noexcept {
             resource_cache<T>::init(std::forward<Rs>(rs)...);
 
             return *this;
         }
 
-        template<typename T>
+        template<mytho::utils::PureResourceType T>
         self_type& remove_resource() noexcept {
             resource_cache<T>::destroy();
 
             return *this;
         }
 
-        template<typename... Ts>
+        template<mytho::utils::PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         auto resources() const noexcept {
             return std::tuple_cat(std::tie(_resource<Ts>())...);
         }
 
-        template<typename... Ts>
+        template<mytho::utils::PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         auto resources_mut() const noexcept {
             return std::tuple_cat(std::tie(_resource_mut<Ts>())...);

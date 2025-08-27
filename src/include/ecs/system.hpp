@@ -11,6 +11,7 @@
 #include <unordered_map>
 
 #include "utils/type_list.hpp"
+#include "ecs/registrar.hpp"
 #include "ecs/commands.hpp"
 #include "ecs/querier.hpp"
 #include "ecs/resources.hpp"
@@ -60,12 +61,18 @@ namespace mytho::utils {
 
 namespace mytho::ecs::internal {
     template<typename RegistryT>
+    auto construct_registrar(RegistryT& reg, uint64_t tick) {
+        return basic_registrar(reg, tick);
+    }
+
+    template<typename RegistryT>
     auto construct_commands(RegistryT& reg) {
         return basic_commands(reg);
     }
 
     template<typename RegistryT, typename QuerierT>
     struct querier_constructor;
+
     template<typename RegistryT, typename... Ts>
     struct querier_constructor<RegistryT, basic_querier<RegistryT, Ts...>> {
         auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
@@ -80,6 +87,7 @@ namespace mytho::ecs::internal {
 
     template<typename RegistryT, typename ResourcesT>
     struct resources_constructor;
+
     template<typename RegistryT, typename... Ts>
     struct resources_constructor<RegistryT, basic_resources<Ts...>> {
         auto operator()(RegistryT& reg) const noexcept {
@@ -94,6 +102,7 @@ namespace mytho::ecs::internal {
 
     template<typename RegistryT, typename ResourcesMutT>
     struct resources_mut_constructor;
+
     template<typename RegistryT, typename... Ts>
     struct resources_mut_constructor<RegistryT, basic_resources_mut<Ts...>> {
         auto operator()(RegistryT& reg) const noexcept {
@@ -108,7 +117,9 @@ namespace mytho::ecs::internal {
 
     template<typename RegistryT, typename T>
     auto construct(RegistryT& reg, uint64_t tick) {
-        if constexpr (mytho::utils::is_commands_v<T>) {
+        if constexpr (mytho::utils::is_registrar_v<T>) {
+            return construct_registrar(reg, tick);
+        } else if constexpr (mytho::utils::is_commands_v<T>) {
             return construct_commands(reg);
         } else if constexpr (mytho::utils::is_querier_v<T>) {
             return construct_querier<RegistryT, T>(reg, tick);

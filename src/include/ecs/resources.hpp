@@ -7,9 +7,14 @@
 #include "utils/concept.hpp"
 #include "utils/type_list.hpp"
 
+namespace mytho::utils {
+    template<typename T>
+    concept PureResourceType = PureValueType<T>;
+}
+
 namespace mytho::ecs {
     namespace internal {
-        template<typename T>
+        template<mytho::utils::PureResourceType T>
         class basic_resource_cache {
         public:
             using data_type = std::optional<T>;
@@ -44,7 +49,7 @@ namespace mytho::ecs {
         };
     }
 
-    template<mytho::utils::PureValueType... Ts>
+    template<mytho::utils::PureResourceType... Ts>
     requires (sizeof...(Ts) > 0)
     class basic_resources {
     public:
@@ -67,7 +72,7 @@ namespace mytho::ecs {
         resource_bundle_type _resources;
     };
 
-    template<mytho::utils::PureValueType... Ts>
+    template<mytho::utils::PureResourceType... Ts>
     requires (sizeof...(Ts) > 0)
     class basic_resources_mut {
     public:

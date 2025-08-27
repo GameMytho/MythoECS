@@ -29,6 +29,7 @@ namespace {
     using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
     using registry = mytho::ecs::basic_registry<entity, uint8_t, 1024>;
     using commands = mytho::ecs::basic_commands<registry>;
+    using registrar = mytho::ecs::basic_registrar<registry>;
 
     template<typename... Ts>
     using querier = mytho::ecs::basic_querier<registry, Ts...>;
@@ -39,12 +40,12 @@ namespace {
     }
 
     template<mytho::utils::PureComponentType T, mytho::utils::PureComponentType... Rs>
-    bool components_added(querier<T, added<T, Rs...>> q) {
-        return q.size() > 0;
+    bool components_added(registrar reg) {
+        return reg.template count<added<T, Rs...>>() > 0;
     }
 
     template<mytho::utils::PureComponentType T, mytho::utils::PureComponentType... Rs>
-    bool components_changed(querier<T, changed<T, Rs...>> q) {
-        return q.size() > 0;
+    bool components_changed(registrar reg) {
+        return reg.template count<changed<T, Rs...>>() > 0;
     }
 }

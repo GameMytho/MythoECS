@@ -24,6 +24,11 @@ namespace mytho::utils {
         template<typename... Ls>
         struct type_list_cat;
 
+        template<>
+        struct type_list_cat<> {
+            using type = type_list<>;
+        };
+
         template<typename... Ts>
         struct type_list_cat<type_list<Ts...>> {
             using type = type_list<Ts...>;
