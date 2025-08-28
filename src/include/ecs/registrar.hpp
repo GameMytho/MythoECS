@@ -1,5 +1,6 @@
 #pragma once
 #include "ecs/querier.hpp"
+#include "ecs/resources.hpp"
 
 namespace mytho::ecs {
     template<typename RegistryT>
@@ -28,6 +29,12 @@ namespace mytho::ecs {
         requires (sizeof...(Ts) > 0)
         size_type count() const noexcept {
             return _reg.template count<Ts...>(_current_tick);
+        }
+
+        template<mytho::utils::PureResourceType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool resources_exist() const noexcept {
+            return _reg.template resources_exist<Ts...>();
         }
 
     private:

@@ -60,8 +60,8 @@ TEST(ResourcesTest, AddAndRemoveTest) {
     reg.init_resource<Time>(10u)
        .init_resource<KeyBoard>(5u)
        .add_update_system(update1)
-       .add_update_system(system(update2).after(update1))
-       .add_update_system(system(update3).after(update2));
+       .add_update_system(system(update2).after(update1).runif(resources_exist<Time, KeyBoard>))
+       .add_update_system(system(update3).after(update2).runif(resources_exist<Time, KeyBoard>));
 
     reg.ready();
 

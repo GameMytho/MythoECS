@@ -188,6 +188,17 @@ namespace mytho::ecs {
             return std::tuple_cat(std::tie(_resource_mut<Ts>())...);
         }
 
+        template<typename T>
+        bool resource_exist() const noexcept {
+            return internal::basic_resource_cache<T>::instance() != std::nullopt;
+        }
+
+        template<mytho::utils::PureResourceType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool resources_exist() const noexcept {
+            return (resource_exist<Ts>() && ...);
+        }
+
     public:
         template<mytho::utils::FunctionType Func>
         static system_config_type system(Func&& func) noexcept {

@@ -48,4 +48,9 @@ namespace {
     bool components_changed(registrar reg) {
         return reg.template count<changed<T, Rs...>>() > 0;
     }
+
+    template<mytho::utils::PureResourceType... Ts>
+    bool resources_exist(registrar reg) {
+        return reg.template resources_exist<Ts...>();
+    }
 }
