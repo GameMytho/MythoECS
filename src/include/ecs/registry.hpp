@@ -126,7 +126,7 @@ namespace mytho::ecs {
                 }
             }
 
-            return { component_bundles, _current_tick };
+            return component_bundles;
         }
 
         template<mytho::utils::QueryValueType... Ts>

@@ -200,7 +200,7 @@ namespace mytho::ecs {
         using iterator = typename component_bundle_container_type::iterator;
 
     public:
-        basic_querier(const component_bundle_container_type& component_bundles, uint64_t current_tick) : _component_bundles(component_bundles), _current_tick(current_tick) {}
+        basic_querier(const component_bundle_container_type& component_bundles) : _component_bundles(component_bundles) {}
 
     public:
         size_type size() const noexcept { return _component_bundles.size(); }
@@ -213,7 +213,6 @@ namespace mytho::ecs {
 
     private:
         component_bundle_container_type _component_bundles;
-        uint64_t _current_tick = 0;
     };
 }
 

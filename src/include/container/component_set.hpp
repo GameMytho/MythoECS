@@ -5,9 +5,15 @@
 #include <vector>
 
 #include "container/entity_set.hpp"
+#include "container/tick_set.hpp"
 
 namespace mytho::container {
-    template<mytho::utils::EntityType EntityT, typename ComponentT, typename AllocatorT, size_t PageSize = 1024>
+    template<
+        mytho::utils::EntityType EntityT,
+        typename ComponentT,
+        typename AllocatorT,
+        size_t PageSize = 1024
+    >
     class basic_component_set : public basic_entity_set<EntityT, PageSize> {
     public:
         using entity_type = EntityT;
@@ -18,8 +24,7 @@ namespace mytho::container {
         using alloc_traits = std::allocator_traits<allocator_type>;
         using component_data_ptr_type = typename alloc_traits::pointer;
         using component_data_ptr_set_type = std::vector<component_data_ptr_type, typename alloc_traits::template rebind_alloc<component_data_ptr_type>>;
-        using component_added_ticks_type = std::vector<uint64_t>;
-        using component_changed_ticks_type = std::vector<uint64_t>;
+        using component_tick_set_type = basic_tick_set;
 
     public:
         ~basic_component_set() {
@@ -37,8 +42,7 @@ namespace mytho::container {
             auto data_size = _cdata.size();
             if (idx >= data_size) {
                 _cdata.resize(idx + 1);
-                _added_ticks.resize(idx + 1, 0);
-                _changed_ticks.resize(idx + 1, 0);
+                _ticks.resize(idx + 1);
 
                 for (int i = data_size; i < _cdata.size(); i++) {
                     allocator_type allocator{_cdata.get_allocator()};
@@ -47,8 +51,8 @@ namespace mytho::container {
             }
 
             new (_cdata[idx]) component_type{ std::forward<Ts>(ts)... };
-            _added_ticks[idx] = tick;
-            _changed_ticks[idx] = 0;
+            _ticks.set_added_tick(idx, tick);
+            _ticks.set_changed_tick(idx, 0);
         }
 
         void remove(const entity_type& e) noexcept {
@@ -59,8 +63,8 @@ namespace mytho::container {
 
             if (idx != base_type::size() - 1) {
                 std::swap(_cdata[idx], _cdata[base_type::size() - 1]);
-                _added_ticks[idx] = _added_ticks[base_type::size() - 1];
-                _changed_ticks[idx] = _changed_ticks[base_type::size() - 1];
+                _ticks.set_added_tick(idx, _ticks.get_added_tick(base_type::size() - 1));
+                _ticks.set_changed_tick(idx, _ticks.get_changed_tick(base_type::size() - 1));
             }
 
             base_type::remove(e);
@@ -75,7 +79,7 @@ namespace mytho::container {
             _cdata[idx]->~component_type();
             new (_cdata[idx]) component_type{ std::forward<Ts>(ts)... };
 
-            _changed_ticks[idx] = tick;
+            _ticks.set_changed_tick(idx, tick);
         }
 
         void clear() noexcept {
@@ -89,8 +93,7 @@ namespace mytho::container {
             }
 
             _cdata.clear();
-            _added_ticks.clear();
-            _changed_ticks.clear();
+            _ticks.clear();
             base_type::clear();
         }
 
@@ -109,19 +112,19 @@ namespace mytho::container {
         uint64_t& changed_tick(const entity_type& e) noexcept {
             ASSURE(base_type::contain(e), "entity not exist.");
 
-            return _changed_ticks[base_type::index(e)];
+            return _ticks.get_changed_tick(base_type::index(e));
         }
 
         bool is_added(const entity_type& e, uint64_t tick) const noexcept {
             ASSURE(base_type::contain(e), "entity not exist.");
 
-            return _added_ticks[base_type::index(e)] > tick;
+            return _ticks.get_added_tick(base_type::index(e)) > tick;
         }
 
         bool is_changed(const entity_type& e, uint64_t tick) const noexcept {
             ASSURE(base_type::contain(e), "entity not exist.");
 
-            return _changed_ticks[base_type::index(e)] > tick;
+            return _ticks.get_changed_tick(base_type::index(e)) > tick;
         }
 
         bool contain(const entity_type& e) const noexcept {
@@ -132,7 +135,6 @@ namespace mytho::container {
 
     private:
         component_data_ptr_set_type _cdata;
-        component_added_ticks_type _added_ticks;
-        component_changed_ticks_type _changed_ticks;
+        component_tick_set_type _ticks;
     };
 }
