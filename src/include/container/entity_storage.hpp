@@ -26,14 +26,14 @@ namespace mytho::container {
 
             if (_length <= base_type::size()) {
                 if constexpr (sizeof...(Ts) > 0) {
-                    insert_components<Ts...>(_map[_length - 1]);
+                    (insert_components<Ts>(_map[_length - 1]), ...);
                 }
 
                 return base_type::entity(_length - 1);
             } else {
                 _map.push_back(std::make_unique<component_id_set_type>());
                 if constexpr (sizeof...(Ts) > 0) {
-                    insert_components<Ts...>(_map.back());
+                    (insert_components<Ts>(_map.back()), ...);
                 }
 
                 return base_type::add(entity_type(base_type::size()));
@@ -59,7 +59,7 @@ namespace mytho::container {
         void add(const entity_type& e) noexcept {
             ASSURE(contain(e), "invalid entity value(entity not exist).");
 
-            insert_components<Ts...>(_map[base_type::index(e)]);
+            (insert_components<Ts>(_map[base_type::index(e)]), ...);
         }
 
         template<mytho::utils::PureValueType... Ts>
@@ -67,7 +67,7 @@ namespace mytho::container {
         void remove(const entity_type& e) noexcept {
             ASSURE(contain(e), "invalid entity value(entity not exist).");
 
-            remove_components<Ts...>(_map[base_type::index(e)]);
+            (remove_components<Ts>(_map[base_type::index(e)]), ...);
         }
 
         template<mytho::utils::PureValueType... Ts>
@@ -75,7 +75,7 @@ namespace mytho::container {
         bool has(const entity_type& e) const noexcept {
             ASSURE(contain(e), "invalid entity value(entity not exist).");
 
-            return _has<Ts...>(e);
+            return (_has<Ts>(e) && ...);
         }
 
         template<mytho::utils::PureValueType... Ts>
@@ -83,7 +83,7 @@ namespace mytho::container {
         bool not_has(const entity_type& e) const noexcept {
             ASSURE(contain(e), "invalid entity value(entity not exist).");
 
-            return _not_has<Ts...>(e);
+            return (_not_has<Ts>(e) && ...);
         }
 
         bool contain(const entity_type& e) const noexcept {
@@ -98,52 +98,28 @@ namespace mytho::container {
         size_type size() const noexcept { return _length; }
 
     private:
-        template<typename T, typename... Rs>
+        template<typename T>
         void insert_components(const component_id_set_ptr_type& s) {
             auto id = component_id_generator::template gen<T>();
-
-            if (!s->contain(id)) {
-                s->add(id);
-            }
-
-            if constexpr (sizeof...(Rs) > 0) {
-                insert_components<Rs...>(s);
-            }
+            if (!s->contain(id)) { s->add(id); }
         }
 
-        template<typename T, typename... Rs>
+        template<typename T>
         void remove_components(const component_id_set_ptr_type& s) noexcept {
             auto id = component_id_generator::template gen<T>();
-
-            if (s->contain(id)) {
-                s->remove(id);
-            }
-
-            if constexpr (sizeof...(Rs) > 0) {
-                remove_components<Rs...>(s);
-            }
+            if (s->contain(id)) { s->remove(id); }
         }
 
-        template<typename T, typename... Rs>
+        template<typename T>
         bool _has(const entity_type& e) const noexcept {
             auto id = component_id_generator::template gen<T>();
-
-            if constexpr (sizeof...(Rs) > 0) {
-                return _map[base_type::index(e)]->contain(id) && _has<Rs...>(e);
-            } else {
-                return _map[base_type::index(e)]->contain(id);
-            }
+            return _map[base_type::index(e)]->contain(id);
         }
 
-        template<typename T, typename... Rs>
+        template<typename T>
         bool _not_has(const entity_type& e) const noexcept {
             auto id = component_id_generator::template gen<T>();
-
-            if constexpr (sizeof...(Rs) > 0) {
-                return !_map[base_type::index(e)]->contain(id) && _not_has<Rs...>(e);
-            } else {
-                return !_map[base_type::index(e)]->contain(id);
-            }
+            return !_map[base_type::index(e)]->contain(id);
         }
 
     private:

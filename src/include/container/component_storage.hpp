@@ -23,16 +23,16 @@ namespace mytho::container {
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         void add(const entity_type& e, uint64_t tick, Ts&&... ts) noexcept {
-            ASSURE(_not_contain<Ts...>(e), "the entity already has some components.");
+            ASSURE(not_contain<Ts...>(e), "the entity already has some components.");
 
-            _add(e, tick, std::forward<Ts>(ts)...);
+            (assure<Ts>().add(e, tick, std::forward<Ts>(ts)), ...);
         }
 
         template<mytho::utils::PureValueType... Ts>
         void remove(const entity_type& e) noexcept {
             if constexpr (sizeof...(Ts) > 0) {
-                ASSURE(_contain<Ts...>(e), "the entity is missing some components.");
-                _remove_components<Ts...>(e);
+                ASSURE(contain<Ts...>(e), "the entity is missing some components.");
+                (_remove_components<Ts>(e), ...);
             } else {
                 _remove_entity(e);
             }
@@ -41,7 +41,7 @@ namespace mytho::container {
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         std::tuple<const Ts&...> get(const entity_type& e) const noexcept {
-            ASSURE(_contain<Ts...>(e), "the entity is missing some components.");
+            ASSURE(contain<Ts...>(e), "the entity is missing some components.");
 
             return _get<Ts...>(e);
         }
@@ -49,33 +49,33 @@ namespace mytho::container {
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         void replace(const entity_type& e, uint64_t tick, Ts&&... ts) noexcept {
-            ASSURE(_contain<Ts...>(e), "the entity is missing some components.");
+            ASSURE(contain<Ts...>(e), "the entity is missing some components.");
 
-            _replace(e, tick, std::forward<Ts>(ts)...);
+            (_replace(e, tick, std::forward<Ts>(ts)), ...);
         }
 
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         bool contain(const entity_type& e) const noexcept {
-            return _contain<Ts...>(e);
+            return (_contain<Ts>(e) && ...);
         }
 
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         bool not_contain(const entity_type& e) const noexcept {
-            return _not_contain<Ts...>(e);
+            return (_not_contain<Ts>(e) && ...);
         }
 
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         bool is_added(const entity_type& e, uint64_t tick) const noexcept {
-            return _is_added<Ts...>(e, tick);
+            return (_is_added<Ts>(e, tick) && ...);
         }
 
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         bool is_changed(const entity_type& e, uint64_t tick) const noexcept {
-            return _is_changed<Ts...>(e, tick);
+            return (_is_changed<Ts>(e, tick) && ...);
         }
 
         void clear() noexcept {
@@ -93,26 +93,12 @@ namespace mytho::container {
         component_pool_type _pool;
 
     private:
-        template<typename T, typename... Rs>
-        void _add(const entity_type& e, uint64_t tick, T&& t, Rs&&... rs) noexcept {
-            assure<T>().add(e, tick, t);
-
-            if constexpr (sizeof...(Rs) > 0) {
-                _add(e, tick, std::forward<Rs>(rs)...);
-            }
-        }
-
-        template<typename T, typename... Rs>
+        template<typename T>
         void _remove_components(const entity_type& e) noexcept {
             using component_set_type = basic_component_set<entity_type, T, std::allocator<T>, PageSize>;
 
             auto id = component_id_generator::template gen<T>();
-
             static_cast<component_set_type&>(*_pool[id]).remove(e);
-
-            if constexpr (sizeof...(Rs) > 0) {
-                _remove_components<Rs...>(e);
-            }
         }
 
         void _remove_entity(const entity_type& e) noexcept {
@@ -134,65 +120,42 @@ namespace mytho::container {
             }
         }
 
-        template<typename T, typename... Rs>
-        void _replace(const entity_type& e, uint64_t tick, T&& t, Rs&&... rs) noexcept {
+        template<typename T>
+        void _replace(const entity_type& e, uint64_t tick, T&& t) noexcept {
             using component_set_type = basic_component_set<entity_type, T, std::allocator<T>, PageSize>;
 
             auto id = component_id_generator::template gen<T>();
-
             static_cast<component_set_type&>(*_pool[id]).replace(e, tick, t);
-
-            if constexpr (sizeof...(Rs) > 0) {
-                _replace(e, tick, std::forward<Rs>(rs)...);
-            }
         }
 
-        template<typename T, typename... Rs>
+        template<typename T>
         bool _contain(const entity_type& e) const noexcept {
             auto id = component_id_generator::template gen<T>();
 
-            if constexpr (sizeof...(Rs) > 0) {
-                return id < _pool.size() && _pool[id]->contain(e) && _contain<Rs...>(e);
-            } else {
-                return id < _pool.size() && _pool[id]->contain(e);
-            }
+            return id < _pool.size() && _pool[id]->contain(e);
         }
 
-        template<typename T, typename... Rs>
+        template<typename T>
         bool _not_contain(const entity_type& e) const noexcept {
             auto id = component_id_generator::template gen<T>();
 
-            if constexpr (sizeof...(Rs) > 0) {
-                return (id >= _pool.size() || !_pool[id]->contain(e)) && _not_contain<Rs...>(e);
-            } else {
-                return id >= _pool.size() || !_pool[id]->contain(e);
-            }
+            return id >= _pool.size() || !_pool[id]->contain(e);
         }
 
-        template<typename T, typename... Rs>
+        template<typename T>
         bool _is_added(const entity_type& e, uint64_t tick) const noexcept {
             using component_set_type = basic_component_set<entity_type, T, std::allocator<T>, PageSize>;
 
             auto id = component_id_generator::template gen<T>();
-
-            if constexpr (sizeof...(Rs) > 0) {
-                return id < _pool.size() && static_cast<component_set_type&>(*_pool[id]).is_added(e, tick) && _is_added<Rs...>(e, tick);
-            } else {
-                return id < _pool.size() && static_cast<component_set_type&>(*_pool[id]).is_added(e, tick);
-            }
+            return id < _pool.size() && static_cast<component_set_type&>(*_pool[id]).is_added(e, tick);
         }
 
-        template<typename T, typename... Rs>
+        template<typename T>
         bool _is_changed(const entity_type& e, uint64_t tick) const noexcept {
             using component_set_type = basic_component_set<entity_type, T, std::allocator<T>, PageSize>;
 
             auto id = component_id_generator::template gen<T>();
-
-            if constexpr (sizeof...(Rs) > 0) {
-                return id < _pool.size() && static_cast<component_set_type&>(*_pool[id]).is_changed(e, tick) && _is_changed<Rs...>(e, tick);
-            } else {
-                return id < _pool.size() && static_cast<component_set_type&>(*_pool[id]).is_changed(e, tick);
-            }
+            return id < _pool.size() && static_cast<component_set_type&>(*_pool[id]).is_changed(e, tick);
         }
 
     private:

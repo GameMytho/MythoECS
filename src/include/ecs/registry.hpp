@@ -116,10 +116,10 @@ namespace mytho::ecs {
 
             if (id) {
                 for (auto it : *_components[id.value()]) {
-                    if(contain(it, component_contain_list{}) 
-                        && not_contain(it, component_not_contain_list{}) 
-                        && is_added(it, tick, component_added_list{})
-                        && is_changed(it, tick, component_changed_list{})
+                    if(component_list_contained(it, component_contain_list{})
+                        && component_list_not_contained(it, component_not_contain_list{}) 
+                        && component_list_added(it, tick, component_added_list{})
+                        && component_list_changed(it, tick, component_changed_list{})
                     ) {
                         component_bundles.emplace_back(_query(it, component_prototype_list{}));
                     }
@@ -148,10 +148,10 @@ namespace mytho::ecs {
 
             if (id) {
                 for (auto it : *_components[id.value()]) {
-                    if(contain(it, component_contain_list{})
-                        && not_contain(it, component_not_contain_list{})
-                        && is_added(it, tick, component_added_list{})
-                        && is_changed(it, tick, component_changed_list{})
+                    if(component_list_contained(it, component_contain_list{})
+                        && component_list_not_contained(it, component_not_contain_list{})
+                        && component_list_added(it, tick, component_added_list{})
+                        && component_list_changed(it, tick, component_changed_list{})
                     ) {
                         ++count;
                     }
@@ -179,13 +179,13 @@ namespace mytho::ecs {
         template<mytho::utils::PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         auto resources() const noexcept {
-            return std::tuple_cat(std::tie(_resource<Ts>())...);
+            return std::tuple<const Ts&...>{ _resource<Ts>()... };
         }
 
         template<mytho::utils::PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         auto resources_mut() const noexcept {
-            return std::tuple_cat(std::tie(_resource_mut<Ts>())...);
+            return std::tuple<Ts&...>{ _resource_mut<Ts>()... };
         }
 
         template<typename T>
@@ -303,31 +303,28 @@ namespace mytho::ecs {
     private:
         template<typename T, typename... Rs>
         std::optional<component_id_type> get_cid_with_minimun_entities(internal::type_list<T, Rs...>) {
-            auto id = component_id_generator::template gen<T>();
-            if (id >= _components.size() || !_components[id]) {
-                return std::nullopt;
-            }
+            auto best = component_id_generator::template gen<T>();
 
-            if constexpr (sizeof...(Rs) > 0) {
-                auto id_rs = get_cid_with_minimun_entities(internal::type_list<Rs...>{});
-                if (!id_rs) {
-                    return std::nullopt;
-                } else {
-                    return _components[id]->size() < _components[id_rs.value()]->size() ? id : id_rs;
-                }
-            }
+            bool ok = (best < _components.size() && _components[best]) && (
+                true && ... && [&]{
+                    auto cur = component_id_generator::template gen<Rs>();
+                    if (cur >= _components.size() || !_components[cur]) return false;
+                    if (_components[cur]->size() < _components[best]->size()) best = cur;
+                    return true;
+                }()
+            );
 
-            return id;
+            return ok ? std::optional<component_id_type>(best) : std::nullopt;
         }
 
         template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
-        bool contain(const entity_type& e, internal::type_list<Ts...>) const noexcept {
+        bool component_list_contained(const entity_type& e, internal::type_list<Ts...>) const noexcept {
             return _entities.template has<Ts...>(e) && _components.template contain<Ts...>(e);
         }
 
         template<mytho::utils::PureComponentType... Ts>
-        bool not_contain(const entity_type& e, internal::type_list<Ts...>) const noexcept {
+        bool component_list_not_contained(const entity_type& e, internal::type_list<Ts...>) const noexcept {
             if constexpr (sizeof...(Ts) > 0) {
                 return _entities.template not_has<Ts...>(e) && _components.template not_contain<Ts...>(e);
             } else {
@@ -336,7 +333,7 @@ namespace mytho::ecs {
         }
 
         template<mytho::utils::PureComponentType... Ts>
-        bool is_added(const entity_type& e, uint64_t tick, internal::type_list<Ts...>) const noexcept {
+        bool component_list_added(const entity_type& e, uint64_t tick, internal::type_list<Ts...>) const noexcept {
             if constexpr (sizeof...(Ts) > 0) {
                 return _components.template is_added<Ts...>(e, tick);
             } else {
@@ -345,7 +342,7 @@ namespace mytho::ecs {
         }
 
         template<mytho::utils::PureComponentType... Ts>
-        bool is_changed(const entity_type& e, uint64_t tick, internal::type_list<Ts...>) const noexcept {
+        bool component_list_changed(const entity_type& e, uint64_t tick, internal::type_list<Ts...>) const noexcept {
             if constexpr (sizeof...(Ts) > 0) {
                 return _components.template is_changed<Ts...>(e, tick);
             } else {
@@ -353,44 +350,27 @@ namespace mytho::ecs {
             }
         }
 
-        template<typename T, typename... Rs>
-        auto _query(const entity_type& e, internal::type_list<T, Rs...>) noexcept {
+        template<typename... Ts>
+        auto _query(const entity_type& e, internal::type_list<Ts...>) noexcept {
+            return std::tuple_cat(_query<Ts>(e)...);
+        }
+
+        template<typename T>
+        auto _query(const entity_type& e) noexcept {
             using prototype = std::decay_t<T>;
             using component_set_type = mytho::container::basic_component_set<entity_type, prototype, std::allocator<prototype>, PageSize>;
 
             if constexpr (std::is_same_v<prototype, entity_type>) {
-                if constexpr (sizeof...(Rs) > 0) {
-                    return std::tuple_cat(
-                        std::tuple(mytho::utils::internal::data_wrapper<entity_type>(e)),
-                        _query(e, internal::type_list<Rs...>{})
-                    );
-                } else {
-                    return std::tuple(mytho::utils::internal::data_wrapper<entity_type>(e));
-                }
+                return std::tuple(mytho::utils::internal::data_wrapper<entity_type>(e));
             } else {
                 auto id = component_id_generator::template gen<prototype>();
-
-                if constexpr (sizeof...(Rs) > 0) {
-                    return std::tuple_cat(
-                        std::tuple(
-                            mytho::utils::internal::data_wrapper<T>(
-                                &(static_cast<component_set_type&>(*_components[id]).get(e)),
-                                static_cast<component_set_type&>(*_components[id]).changed_tick(e),
-                                _current_tick
-                            )
-                        ),
-                        _query(e, internal::type_list<Rs...>{})
-                    );
-                }
-                else {
-                    return std::tuple(
-                        mytho::utils::internal::data_wrapper<T>(
-                            &(static_cast<component_set_type&>(*_components[id]).get(e)),
-                            static_cast<component_set_type&>(*_components[id]).changed_tick(e),
-                            _current_tick
-                        )
-                    );
-                }
+                return std::tuple(
+                    mytho::utils::internal::data_wrapper<T>(
+                        &(static_cast<component_set_type&>(*_components[id]).get(e)),
+                        static_cast<component_set_type&>(*_components[id]).changed_tick(e),
+                        _current_tick
+                    )
+                );
             }
         }
 
