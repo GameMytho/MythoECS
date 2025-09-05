@@ -41,12 +41,12 @@ namespace {
 
     template<mytho::utils::PureComponentType T, mytho::utils::PureComponentType... Rs>
     bool components_added(registrar reg) {
-        return reg.template count<added<T, Rs...>>() > 0;
+        return reg.template components_added<T, Rs...>();
     }
 
     template<mytho::utils::PureComponentType T, mytho::utils::PureComponentType... Rs>
     bool components_changed(registrar reg) {
-        return reg.template count<changed<T, Rs...>>() > 0;
+        return reg.template components_changed<T, Rs...>();
     }
 
     template<mytho::utils::PureResourceType... Ts>

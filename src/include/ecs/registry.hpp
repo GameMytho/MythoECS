@@ -93,6 +93,38 @@ namespace mytho::ecs {
             return _entities.contain(e) && _entities.template has<Ts...>(e) && _components.template contain<Ts...>(e);
         }
 
+        template<mytho::utils::PureComponentType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool components_added(uint64_t tick) noexcept {
+            auto id = _get_cid_with_minimun_entities<Ts...>();
+
+            if (id) {
+                for (auto it : *_components[id.value()]) {
+                    if(_components.template is_added<Ts...>(it, tick)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        template<mytho::utils::PureComponentType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool components_changed(uint64_t tick) noexcept {
+            auto id = _get_cid_with_minimun_entities<Ts...>();
+
+            if (id) {
+                for (auto it : *_components[id.value()]) {
+                    if(_components.template is_changed<Ts...>(it, tick)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         template<mytho::utils::QueryValueType... Ts>
         requires (sizeof...(Ts) > 0)
         querier_type<Ts...> query() noexcept {
@@ -302,7 +334,12 @@ namespace mytho::ecs {
 
     private:
         template<typename T, typename... Rs>
-        std::optional<component_id_type> get_cid_with_minimun_entities(internal::type_list<T, Rs...>) {
+        auto get_cid_with_minimun_entities(internal::type_list<T, Rs...>) noexcept {
+            return _get_cid_with_minimun_entities<T, Rs...>();
+        }
+
+        template<typename T, typename... Rs>
+        auto _get_cid_with_minimun_entities() noexcept {
             auto best = component_id_generator::template gen<T>();
 
             bool ok = (best < _components.size() && _components[best]) && (

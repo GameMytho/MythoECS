@@ -10,7 +10,7 @@ namespace mytho::ecs {
         using entity_type = typename registry_type::entity_type;
         using size_type = typename registry_type::size_type;
 
-        basic_registrar(registry_type& reg, uint64_t tick) : _reg(reg), _current_tick(tick) {}
+        basic_registrar(registry_type& reg, uint64_t tick) : _reg(reg), _last_run_tick(tick) {}
 
     public:
         template<mytho::utils::PureComponentType... Ts>
@@ -25,10 +25,22 @@ namespace mytho::ecs {
             return _reg.template contain<Ts...>(e);
         }
 
+        template<mytho::utils::PureComponentType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool components_added() const noexcept {
+            return _reg.template components_added<Ts...>(_last_run_tick);
+        }
+
+        template<mytho::utils::PureComponentType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool components_changed() const noexcept {
+            return _reg.template components_changed<Ts...>(_last_run_tick);
+        }
+
         template<mytho::utils::QueryValueType... Ts>
         requires (sizeof...(Ts) > 0)
         size_type count() const noexcept {
-            return _reg.template count<Ts...>(_current_tick);
+            return _reg.template count<Ts...>(_last_run_tick);
         }
 
         template<mytho::utils::PureResourceType... Ts>
@@ -39,7 +51,7 @@ namespace mytho::ecs {
 
     private:
         registry_type& _reg;
-        uint64_t _current_tick;
+        uint64_t _last_run_tick;
     };
 }
 
