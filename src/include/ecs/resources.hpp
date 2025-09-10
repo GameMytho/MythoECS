@@ -6,6 +6,7 @@
 
 #include "utils/concept.hpp"
 #include "utils/type_list.hpp"
+#include "ecs/entity.hpp"
 
 namespace mytho::utils {
     template<typename T>
@@ -54,7 +55,7 @@ namespace mytho::ecs {
     class basic_resources {
     public:
         using size_type = size_t;
-        using resource_list_type = mytho::utils::type_list<const Ts&...>;
+        using resource_list_type = mytho::utils::type_list<const mytho::utils::internal::data_wrapper<Ts>...>;
         using resource_bundle_type = mytho::utils::list_to_tuple_t<resource_list_type>;
 
         basic_resources(const resource_bundle_type& resources) : _resources(resources) {}
@@ -68,6 +69,10 @@ namespace mytho::ecs {
             return _resources;
         }
 
+        resource_bundle_type& data() noexcept {
+            return _resources;
+        }
+
     private:
         resource_bundle_type _resources;
     };
@@ -77,7 +82,7 @@ namespace mytho::ecs {
     class basic_resources_mut {
     public:
         using size_type = size_t;
-        using resource_list_type = mytho::utils::type_list<Ts&...>;
+        using resource_list_type = mytho::utils::type_list<mytho::utils::internal::data_wrapper<Ts>...>;
         using resource_bundle_type = mytho::utils::list_to_tuple_t<resource_list_type>;
 
         basic_resources_mut(const resource_bundle_type& resources) : _resources(resources) {}
@@ -88,6 +93,10 @@ namespace mytho::ecs {
         }
 
         const resource_bundle_type& data() const noexcept {
+            return _resources;
+        }
+
+        resource_bundle_type& data() noexcept {
             return _resources;
         }
 
@@ -111,7 +120,7 @@ namespace std {
 
     template <size_t I, typename... Ts>
     struct tuple_element<I, mytho::ecs::basic_resources<Ts...>> {
-        using type = typename std::tuple_element<I, std::tuple<const Ts&...>>::type;
+        using type = typename std::tuple_element<I, std::tuple<const mytho::utils::internal::data_wrapper<Ts>...>>::type;
     };
 
     template <typename... Ts>
@@ -119,16 +128,48 @@ namespace std {
 
     template <size_t I, typename... Ts>
     struct tuple_element<I, mytho::ecs::basic_resources_mut<Ts...>> {
-        using type = typename std::tuple_element<I, std::tuple<Ts&...>>::type;
+        using type = typename std::tuple_element<I, std::tuple<mytho::utils::internal::data_wrapper<Ts>...>>::type;
     };
 }
 
-template <size_t I, typename... Ts>
-decltype(auto) get(const mytho::ecs::basic_resources<Ts...>& res) {
-    return std::get<I>(res.data());
-}
+namespace mytho::ecs {
+    template <size_t I, typename... Ts>
+    decltype(auto) get(mytho::ecs::basic_resources<Ts...>& res) {
+        return std::get<I>(res.data());
+    }
 
-template <size_t I, typename... Ts>
-decltype(auto) get(const mytho::ecs::basic_resources_mut<Ts...>& res) {
-    return std::get<I>(res.data());
+    template <size_t I, typename... Ts>
+    decltype(auto) get(const mytho::ecs::basic_resources<Ts...>& res) {
+        return std::get<I>(res.data());
+    }
+
+    template <size_t I, typename... Ts>
+    decltype(auto) get(mytho::ecs::basic_resources<Ts...>&& res) {
+        return std::get<I>(res.data());
+    }
+
+    template <size_t I, typename... Ts>
+    decltype(auto) get(const mytho::ecs::basic_resources<Ts...>&& res) {
+        return std::get<I>(res.data());
+    }
+
+    template <size_t I, typename... Ts>
+    decltype(auto) get(mytho::ecs::basic_resources_mut<Ts...>& res) {
+        return std::get<I>(res.data());
+    }
+
+    template <size_t I, typename... Ts>
+    decltype(auto) get(const mytho::ecs::basic_resources_mut<Ts...>& res) {
+        return std::get<I>(res.data());
+    }
+
+    template <size_t I, typename... Ts>
+    decltype(auto) get(mytho::ecs::basic_resources_mut<Ts...>&& res) {
+        return std::get<I>(res.data());
+    }
+
+    template <size_t I, typename... Ts>
+    decltype(auto) get(const mytho::ecs::basic_resources_mut<Ts...>&& res) {
+        return std::get<I>(res.data());
+    }
 }

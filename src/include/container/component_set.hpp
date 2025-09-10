@@ -50,7 +50,10 @@ namespace mytho::container {
                 }
             }
 
+            // use placement new, construct_at(c++20) need explicit constructor
+            // alloc_traits::construct(allocator, _cdata[idx], std::forward<Ts>(ts)...);
             new (_cdata[idx]) component_type{ std::forward<Ts>(ts)... };
+
             _ticks.set_added_tick(idx, tick);
             _ticks.set_changed_tick(idx, 0);
         }
@@ -59,6 +62,9 @@ namespace mytho::container {
             ASSURE(base_type::contain(e), "entity not exist.");
 
             auto idx = base_type::index(e);
+
+            // allocator_type allocator{_cdata.get_allocator()};
+            // alloc_traits::destroy(allocator, _cdata[idx]);
             _cdata[idx]->~component_type();
 
             if (idx != base_type::size() - 1) {

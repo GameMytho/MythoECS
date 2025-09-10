@@ -9,23 +9,27 @@
 
 #include "container/entity_storage.hpp"
 #include "container/component_storage.hpp"
+#include "container/resource_storage.hpp"
 #include "ecs/system.hpp"
 
 namespace mytho::ecs {
     template<
         mytho::utils::EntityType EntityT,
         mytho::utils::UnsignedIntegralType ComponentIdT = size_t,
+        mytho::utils::UnsignedIntegralType ResourceIdT = size_t,
         size_t PageSize = 1024
     >
     class basic_registry final {
     public:
         using entity_type = EntityT;
         using component_id_type = ComponentIdT;
-        using self_type = mytho::ecs::basic_registry<entity_type, component_id_type, PageSize>;
+        using resource_id_type = ResourceIdT;
+        using self_type = mytho::ecs::basic_registry<entity_type, component_id_type, resource_id_type, PageSize>;
         using entity_storage_type = mytho::container::basic_entity_storage<entity_type, component_id_type, PageSize>;
         using size_type = typename entity_storage_type::size_type;
         using component_storage_type = mytho::container::basic_component_storage<entity_type, component_id_type, PageSize>;
-        using component_id_generator = mytho::utils::basic_id_generator<component_id_type>;
+        using component_id_generator = mytho::utils::basic_id_generator<mytho::utils::GeneratorType::COMPONENT_GENOR, component_id_type>;
+        using resource_storage_type = mytho::container::basic_resource_storage<resource_id_type, std::allocator>;
         using command_queue_type = mytho::ecs::internal::basic_command_queue<self_type>;
         using system_storage_type = internal::basic_system_storage<self_type>;
         using system_config_type = typename system_storage_type::system_config_type;
@@ -196,39 +200,46 @@ namespace mytho::ecs {
     public:
         template<mytho::utils::PureResourceType T, typename... Rs>
         self_type& init_resource(Rs&&... rs) noexcept {
-            resource_cache<T>::init(std::forward<Rs>(rs)...);
+            _resources.template init<T>(_current_tick, std::forward<Rs>(rs)...);
 
             return *this;
         }
 
         template<mytho::utils::PureResourceType T>
         self_type& remove_resource() noexcept {
-            resource_cache<T>::destroy();
+            _resources.template deinit<T>();
 
             return *this;
         }
 
         template<mytho::utils::PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
-        auto resources() const noexcept {
-            return std::tuple<const Ts&...>{ _resource<Ts>()... };
+        auto resources(uint64_t tick) noexcept {
+            return std::tuple<const mytho::utils::internal::data_wrapper<Ts>...>{
+                mytho::utils::internal::data_wrapper<Ts>{
+                    &_resources.template get<Ts>(),
+                    _resources.template get_changed_tick_ref<Ts>(),
+                    tick
+                }...
+            };
         }
 
         template<mytho::utils::PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
-        auto resources_mut() const noexcept {
-            return std::tuple<Ts&...>{ _resource_mut<Ts>()... };
-        }
-
-        template<typename T>
-        bool resource_exist() const noexcept {
-            return internal::basic_resource_cache<T>::instance() != std::nullopt;
+        auto resources_mut(uint64_t tick) noexcept {
+            return std::tuple<mytho::utils::internal::data_wrapper<Ts>...>{
+                mytho::utils::internal::data_wrapper<Ts>{
+                    &_resources.template get<Ts>(),
+                    _resources.template get_changed_tick_ref<Ts>(),
+                    tick
+                }...
+            };
         }
 
         template<mytho::utils::PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         bool resources_exist() const noexcept {
-            return (resource_exist<Ts>() && ...);
+            return (_resources.template contain<Ts>() && ...);
         }
 
     public:
@@ -325,9 +336,11 @@ namespace mytho::ecs {
     private:
         entity_storage_type _entities;
         component_storage_type _components;
+        resource_storage_type _resources;
         command_queue_type _command_queue;
 
-        uint64_t _current_tick = 0;
+        // tick start from 1, and 0 is reserved for init
+        uint64_t _current_tick = 1;
         system_storage_type _startup_systems;
         system_storage_type _update_systems;
         system_storage_type _shutdown_systems;
@@ -409,20 +422,6 @@ namespace mytho::ecs {
                     )
                 );
             }
-        }
-
-        template<typename T>
-        const T& _resource() const noexcept {
-            ASSURE(internal::basic_resource_cache<T>::instance(), "Resource not exist (may be destroyed or uninitialized).");
-
-            return internal::basic_resource_cache<T>::instance().value();
-        }
-
-        template<typename T>
-        T& _resource_mut() const noexcept {
-            ASSURE(internal::basic_resource_cache<T>::instance(), "Resource not exist (may be destroyed or uninitialized).");
-
-            return internal::basic_resource_cache<T>::instance().value();
         }
     };
 }

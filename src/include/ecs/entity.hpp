@@ -39,3 +39,38 @@ namespace mytho::utils {
     template<typename T>
     concept EntityType = is_entity_v<T>;
 }
+
+namespace mytho::utils::internal {
+    template<typename T>
+    class data_wrapper {
+    public:
+        using data_type = T;
+
+        data_wrapper(T* data, uint64_t& data_tick, uint64_t tick) : _data(data), _data_tick(data_tick), _tick(tick) {}
+
+        const T* operator->() const noexcept { return _data; }
+        const T& operator*() const noexcept { return *_data; }
+
+        T* operator->() noexcept { _data_tick = _tick; return _data; }
+        T& operator*() noexcept { _data_tick = _tick; return *_data; }
+
+    private:
+        T* _data = nullptr;
+        uint64_t& _data_tick;
+        uint64_t _tick = 0;
+    };
+
+    template<typename T, typename U>
+    class data_wrapper<mytho::ecs::basic_entity<T, U>> {
+    public:
+        using data_type = mytho::ecs::basic_entity<T, U>;
+
+        data_wrapper(data_type data) : _data(data) {}
+
+        const data_type* operator->() const noexcept { return &_data; }
+        const data_type& operator*() const noexcept { return _data; }
+
+    private:
+        data_type _data;
+    };
+}

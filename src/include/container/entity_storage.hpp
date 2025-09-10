@@ -17,7 +17,7 @@ namespace mytho::container {
         using component_id_set_type = basic_sparse_set<component_id_type, PageSize>;
         using component_id_set_ptr_type = std::unique_ptr<component_id_set_type>;
         using component_id_map_type = std::vector<component_id_set_ptr_type>;
-        using component_id_generator = mytho::utils::basic_id_generator<component_id_type>;
+        using component_id_generator = mytho::utils::basic_id_generator<mytho::utils::GeneratorType::COMPONENT_GENOR, component_id_type>;
 
     public:
         template<mytho::utils::PureValueType... Ts>
