@@ -104,14 +104,25 @@ void update2(querier<mut<Position>, Vectory, with<Direction>, without<Name, Heal
     }
 }
 
-void update2_changed(querier<Position, changed<Position>> q) {
-    EXPECT_EQ(q.size(), 1);
+void update2_changed(querier<entity, Position, changed<Position>> q) {
+    EXPECT_EQ(q.size(), 3);
 
-    for (auto [pos] : q) {
+    for (auto [e, pos] : q) {
         using pos_type = decltype(pos);
         EXPECT_EQ((std::is_same_v<pos_type, const data_wrapper<Position>>), true);
-        EXPECT_EQ(pos->x, 0.4f);
-        EXPECT_EQ(pos->y, 0.4f);
+
+        if (e->id() == 0) {
+            EXPECT_EQ(pos->x, 0.1f);
+            EXPECT_EQ(pos->y, 0.1f);
+        } else if (e->id() == 1) {
+            EXPECT_EQ(pos->x, 0.2f);
+            EXPECT_EQ(pos->y, 0.2f);
+        } else if (e->id() == 2) {
+            EXPECT_EQ(pos->x, 0.4f);
+            EXPECT_EQ(pos->y, 0.4f);
+        } else {
+            FAIL() << "This should not be reached";
+        }
     }
 }
 
@@ -134,14 +145,22 @@ void update3(querier<Position, mut<Vectory>, with<Vectory, Direction>, without<N
     }
 }
 
-void update3_changed(querier<Vectory, changed<Vectory>> q) {
-    EXPECT_EQ(q.size(), 1);
+void update3_changed(querier<entity, Vectory, changed<Vectory>> q) {
+    EXPECT_EQ(q.size(), 2);
 
-    for (auto [vec] : q) {
+    for (auto [e, vec] : q) {
         using vec_type = decltype(vec);
         EXPECT_EQ((std::is_same_v<vec_type, const data_wrapper<Vectory>>), true);
-        EXPECT_EQ(vec->x, 0.6f);
-        EXPECT_EQ(vec->y, 0.6f);
+
+        if (e->id() == 1) {
+            EXPECT_EQ(vec->x, 0.2f);
+            EXPECT_EQ(vec->y, 0.2f);
+        } else if (e->id() == 2) {
+            EXPECT_EQ(vec->x, 0.6f);
+            EXPECT_EQ(vec->y, 0.6f);
+        } else {
+            FAIL() << "This should not be reached";
+        }
     }
 }
 

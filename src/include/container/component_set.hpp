@@ -124,13 +124,23 @@ namespace mytho::container {
         bool is_added(const entity_type& e, uint64_t tick) const noexcept {
             ASSURE(base_type::contain(e), "entity not exist.");
 
-            return _ticks.get_added_tick(base_type::index(e)) > tick;
+            /*
+             * if the component added system is same as the caller of this,
+             * component added tick will be equal to the last run tick of the system,
+             * so we use `>=` not `>`.
+             */
+            return _ticks.get_added_tick(base_type::index(e)) >= tick;
         }
 
         bool is_changed(const entity_type& e, uint64_t tick) const noexcept {
             ASSURE(base_type::contain(e), "entity not exist.");
 
-            return _ticks.get_changed_tick(base_type::index(e)) > tick;
+            /*
+             * if the component changed system is same as the caller of this,
+             * component changed tick will be equal to the last run tick of the system,
+             * so we use `>=` not `>`, and then `is_changed` means component added or changed.
+             */
+            return _ticks.get_changed_tick(base_type::index(e)) >= tick;
         }
 
         bool contain(const entity_type& e) const noexcept {

@@ -104,16 +104,27 @@ void shutdown_added(querier<entity, Position, Vectory, Direction, added<Position
     }
 }
 
-void shutdown_changed(querier<Position, Vectory, Direction, changed<Position>> q) {
-    EXPECT_EQ(q.size(), 1);
+void shutdown_changed(querier<entity, Position, Vectory, Direction, changed<Position>> q) {
+    EXPECT_EQ(q.size(), 2);
 
-    for (auto [pos, vec, dir] : q) {
-        EXPECT_EQ(pos->x, 100.0f);
-        EXPECT_EQ(pos->y, 200.0f);
-        EXPECT_EQ(vec->x, 3.0f);
-        EXPECT_EQ(vec->y, 4.0f);
-        EXPECT_EQ(dir->x, 5.0f);
-        EXPECT_EQ(dir->y, 6.0f);
+    for (auto [e, pos, vec, dir] : q) {
+        if (e->id() == 0) {
+            EXPECT_EQ(pos->x, 100.0f);
+            EXPECT_EQ(pos->y, 200.0f);
+            EXPECT_EQ(vec->x, 3.0f);
+            EXPECT_EQ(vec->y, 4.0f);
+            EXPECT_EQ(dir->x, 5.0f);
+            EXPECT_EQ(dir->y, 6.0f);
+        } else if (e->id() == 1) {
+            EXPECT_EQ(pos->x, 10.0f);
+            EXPECT_EQ(pos->y, 20.0f);
+            EXPECT_EQ(vec->x, 30.0f);
+            EXPECT_EQ(vec->y, 40.0f);
+            EXPECT_EQ(dir->x, 50.0f);
+            EXPECT_EQ(dir->y, 60.0f);
+        } else {
+            FAIL() << "This should not be reached";
+        }
     }
 }
 
