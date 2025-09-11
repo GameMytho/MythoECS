@@ -94,6 +94,20 @@ namespace mytho::container {
             return _pool[resource_id_generator::template gen<T>()] != nullptr;
         }
 
+        template<mytho::utils::PureValueType T>
+        bool is_added(uint64_t tick) const noexcept {
+            auto id = resource_id_generator::template gen<T>();
+
+            return _pool[id] != nullptr && _ticks.get_added_tick(id) >= tick;
+        }
+
+        template<mytho::utils::PureValueType T>
+        bool is_changed(uint64_t tick) const noexcept {
+            auto id = resource_id_generator::template gen<T>();
+
+            return _pool[id] != nullptr && _ticks.get_changed_tick(id) >= tick;
+        }
+
         void clear() noexcept {
             for (size_type i = 0; i < _pool.size(); i++) {
                 if (_pool[i] == nullptr) continue;

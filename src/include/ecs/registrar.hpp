@@ -49,6 +49,17 @@ namespace mytho::ecs {
             return _reg.template resources_exist<Ts...>();
         }
 
+        template<mytho::utils::PureResourceType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool resources_added() const noexcept {
+            return _reg.template resources_added<Ts...>(_last_run_tick);
+        }
+
+        template<mytho::utils::PureResourceType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool resources_changed() const noexcept {
+            return _reg.template resources_changed<Ts...>(_last_run_tick);
+        }
     private:
         registry_type& _reg;
         uint64_t _last_run_tick;

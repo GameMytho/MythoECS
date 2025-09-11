@@ -54,7 +54,25 @@ void update3(res<Time, KeyBoard> r) {
     EXPECT_EQ(keyboard->key, 45);
 }
 
-TEST(ResourcesTest, AddAndRemoveTest) {
+TEST(ResourcesTest, BasicTest) {
+    registry reg;
+
+    reg.init_resource<Time>(10u)
+       .init_resource<KeyBoard>(5u)
+       .add_update_system(update1)
+       .add_update_system(system(update2).after(update1))
+       .add_update_system(system(update3).after(update2));
+
+    reg.ready();
+
+    reg.startup();
+
+    reg.update();
+
+    reg.shutdown();
+}
+
+TEST(ResourcesTest, ResourceExistTest) {
     registry reg;
 
     reg.init_resource<Time>(10u)
@@ -62,6 +80,42 @@ TEST(ResourcesTest, AddAndRemoveTest) {
        .add_update_system(update1)
        .add_update_system(system(update2).after(update1).runif(resources_exist<Time, KeyBoard>))
        .add_update_system(system(update3).after(update2).runif(resources_exist<Time, KeyBoard>));
+
+    reg.ready();
+
+    reg.startup();
+
+    reg.update();
+
+    reg.shutdown();
+}
+
+TEST(ResourcesTest, ResourceAddedTest) {
+    registry reg;
+
+    reg.init_resource<Time>(10u)
+       .init_resource<KeyBoard>(5u)
+       .add_update_system(system(update1).runif(resources_added<Time, KeyBoard>))
+       .add_update_system(system(update2).after(update1).runif(resources_added<Time, KeyBoard>))
+       .add_update_system(system(update3).after(update2).runif(resources_added<Time, KeyBoard>));
+
+    reg.ready();
+
+    reg.startup();
+
+    reg.update();
+
+    reg.shutdown();
+}
+
+TEST(ResourcesTest, ResourceChangedTest) {
+    registry reg;
+
+    reg.init_resource<Time>(10u)
+       .init_resource<KeyBoard>(5u)
+       .add_update_system(system(update1).runif(resources_changed<Time, KeyBoard>))
+       .add_update_system(system(update2).after(update1).runif(resources_changed<KeyBoard>))
+       .add_update_system(system(update3).after(update2).runif(resources_changed<Time, KeyBoard>));
 
     reg.ready();
 

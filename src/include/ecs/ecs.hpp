@@ -53,4 +53,14 @@ namespace {
     bool resources_exist(registrar reg) {
         return reg.template resources_exist<Ts...>();
     }
+
+    template<mytho::utils::PureResourceType... Ts>
+    bool resources_added(registrar reg) {
+        return reg.template resources_added<Ts...>();
+    }
+
+    template<mytho::utils::PureResourceType... Ts>
+    bool resources_changed(registrar reg) {
+        return reg.template resources_changed<Ts...>();
+    }
 }

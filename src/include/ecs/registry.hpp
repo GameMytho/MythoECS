@@ -242,6 +242,18 @@ namespace mytho::ecs {
             return (_resources.template contain<Ts>() && ...);
         }
 
+        template<mytho::utils::PureResourceType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool resources_added(uint64_t tick) const noexcept {
+            return (_resources.template is_added<Ts>(tick) && ...);
+        }
+
+        template<mytho::utils::PureResourceType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool resources_changed(uint64_t tick) const noexcept {
+            return (_resources.template is_changed<Ts>(tick) && ...);
+        }
+
     public:
         template<mytho::utils::FunctionType Func>
         static system_config_type system(Func&& func) noexcept {
