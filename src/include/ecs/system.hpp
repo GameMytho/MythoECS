@@ -90,14 +90,14 @@ namespace mytho::ecs::internal {
 
     template<typename RegistryT, typename... Ts>
     struct resources_constructor<RegistryT, basic_resources<Ts...>> {
-        auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
-            return reg.template resources<Ts...>(tick);
+        auto operator()(RegistryT& reg) const noexcept {
+            return reg.template resources<Ts...>();
         }
     };
 
     template<typename RegistryT, typename ResourcesT>
-    auto construct_resources(RegistryT& reg, uint64_t tick) {
-        return resources_constructor<RegistryT, ResourcesT>{}(reg, tick);
+    auto construct_resources(RegistryT& reg) {
+        return resources_constructor<RegistryT, ResourcesT>{}(reg);
     }
 
     template<typename RegistryT, typename ResourcesMutT>
@@ -105,14 +105,14 @@ namespace mytho::ecs::internal {
 
     template<typename RegistryT, typename... Ts>
     struct resources_mut_constructor<RegistryT, basic_resources_mut<Ts...>> {
-        auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
-            return reg.template resources_mut<Ts...>(tick);
+        auto operator()(RegistryT& reg) const noexcept {
+            return reg.template resources_mut<Ts...>();
         }
     };
 
     template<typename RegistryT, typename ResourcesMutT>
-    auto construct_resources_mut(RegistryT& reg, uint64_t tick) {
-        return resources_mut_constructor<RegistryT, ResourcesMutT>{}(reg, tick);
+    auto construct_resources_mut(RegistryT& reg) {
+        return resources_mut_constructor<RegistryT, ResourcesMutT>{}(reg);
     }
 
     template<typename RegistryT, typename T>
@@ -124,9 +124,9 @@ namespace mytho::ecs::internal {
         } else if constexpr (mytho::utils::is_querier_v<T>) {
             return construct_querier<RegistryT, T>(reg, tick);
         } else if constexpr (mytho::utils::is_resources_v<T>) {
-            return construct_resources<RegistryT, T>(reg, tick);
+            return construct_resources<RegistryT, T>(reg);
         } else if constexpr (mytho::utils::is_resources_mut_v<T>) {
-            return construct_resources_mut<RegistryT, T>(reg, tick);
+            return construct_resources_mut<RegistryT, T>(reg);
         } else {
             ASSURE(false, "Unsupport type, please check the args of systems!");
         }

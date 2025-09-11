@@ -214,24 +214,24 @@ namespace mytho::ecs {
 
         template<mytho::utils::PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
-        auto resources(uint64_t tick) noexcept {
+        auto resources() noexcept {
             return std::tuple<const mytho::utils::internal::data_wrapper<Ts>...>{
                 mytho::utils::internal::data_wrapper<Ts>{
                     &_resources.template get<Ts>(),
                     _resources.template get_changed_tick_ref<Ts>(),
-                    tick
+                    _current_tick
                 }...
             };
         }
 
         template<mytho::utils::PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
-        auto resources_mut(uint64_t tick) noexcept {
+        auto resources_mut() noexcept {
             return std::tuple<mytho::utils::internal::data_wrapper<Ts>...>{
                 mytho::utils::internal::data_wrapper<Ts>{
                     &_resources.template get<Ts>(),
                     _resources.template get_changed_tick_ref<Ts>(),
-                    tick
+                    _current_tick
                 }...
             };
         }
