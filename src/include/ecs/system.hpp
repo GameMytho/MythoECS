@@ -15,6 +15,7 @@
 #include "ecs/commands.hpp"
 #include "ecs/querier.hpp"
 #include "ecs/resources.hpp"
+#include "ecs/event.hpp"
 
 namespace mytho::utils {
     namespace internal {
@@ -60,6 +61,53 @@ namespace mytho::utils {
 }
 
 namespace mytho::ecs::internal {
+    // argument constructors
+    template<typename RegistryT, typename ArgumentT>
+    struct argument_constructor;
+
+    template<typename RegistryT, typename... Ts>
+    struct argument_constructor<RegistryT, basic_querier<RegistryT, Ts...>> {
+        auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
+            return reg.template query<Ts...>(tick);
+        }
+    };
+
+    template<typename RegistryT, typename... Ts>
+    struct argument_constructor<RegistryT, basic_resources<Ts...>> {
+        auto operator()(RegistryT& reg) const noexcept {
+            return reg.template resources<Ts...>();
+        }
+    };
+
+    template<typename RegistryT, typename... Ts>
+    struct argument_constructor<RegistryT, basic_resources_mut<Ts...>> {
+        auto operator()(RegistryT& reg) const noexcept {
+            return reg.template resources_mut<Ts...>();
+        }
+    };
+
+    template<typename RegistryT, typename T>
+    struct argument_constructor<RegistryT, basic_event_writer<RegistryT, T>> {
+        auto operator()(RegistryT& reg) const noexcept {
+            return basic_event_writer<RegistryT, T>(reg);
+        }
+    };
+
+    template<typename RegistryT, typename T>
+    struct argument_constructor<RegistryT, basic_event_mutator<T>> {
+        auto operator()(RegistryT& reg) const noexcept {
+            return basic_event_mutator<T>(reg.template event_mutate<T>());
+        }
+    };
+
+    template<typename RegistryT, typename T>
+    struct argument_constructor<RegistryT, basic_event_reader<T>> {
+        auto operator()(RegistryT& reg) const noexcept {
+            return basic_event_reader<T>(reg.template event_read<T>());
+        }
+    };
+
+    // argument construct functions
     template<typename RegistryT>
     auto construct_registrar(RegistryT& reg, uint64_t tick) {
         return basic_registrar(reg, tick);
@@ -71,48 +119,33 @@ namespace mytho::ecs::internal {
     }
 
     template<typename RegistryT, typename QuerierT>
-    struct querier_constructor;
-
-    template<typename RegistryT, typename... Ts>
-    struct querier_constructor<RegistryT, basic_querier<RegistryT, Ts...>> {
-        auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
-            return reg.template query<Ts...>(tick);
-        }
-    };
-
-    template<typename RegistryT, typename QuerierT>
     auto construct_querier(RegistryT& reg, uint64_t tick) {
-        return querier_constructor<RegistryT, QuerierT>{}(reg, tick);
+        return argument_constructor<RegistryT, QuerierT>{}(reg, tick);
     }
-
-    template<typename RegistryT, typename ResourcesT>
-    struct resources_constructor;
-
-    template<typename RegistryT, typename... Ts>
-    struct resources_constructor<RegistryT, basic_resources<Ts...>> {
-        auto operator()(RegistryT& reg) const noexcept {
-            return reg.template resources<Ts...>();
-        }
-    };
 
     template<typename RegistryT, typename ResourcesT>
     auto construct_resources(RegistryT& reg) {
-        return resources_constructor<RegistryT, ResourcesT>{}(reg);
+        return argument_constructor<RegistryT, ResourcesT>{}(reg);
     }
 
     template<typename RegistryT, typename ResourcesMutT>
-    struct resources_mut_constructor;
-
-    template<typename RegistryT, typename... Ts>
-    struct resources_mut_constructor<RegistryT, basic_resources_mut<Ts...>> {
-        auto operator()(RegistryT& reg) const noexcept {
-            return reg.template resources_mut<Ts...>();
-        }
-    };
-
-    template<typename RegistryT, typename ResourcesMutT>
     auto construct_resources_mut(RegistryT& reg) {
-        return resources_mut_constructor<RegistryT, ResourcesMutT>{}(reg);
+        return argument_constructor<RegistryT, ResourcesMutT>{}(reg);
+    }
+
+    template<typename RegistryT, typename EventWriterT>
+    auto construct_event_writer(RegistryT& reg) {
+        return argument_constructor<RegistryT, EventWriterT>{}(reg);
+    }
+
+    template<typename RegistryT, typename EventMutatorT>
+    auto construct_event_mutator(RegistryT& reg) {
+        return argument_constructor<RegistryT, EventMutatorT>{}(reg);
+    }
+
+    template<typename RegistryT, typename EventReaderT>
+    auto construct_event_reader(RegistryT& reg) {
+        return argument_constructor<RegistryT, EventReaderT>{}(reg);
     }
 
     template<typename RegistryT, typename T>
@@ -127,6 +160,12 @@ namespace mytho::ecs::internal {
             return construct_resources<RegistryT, T>(reg);
         } else if constexpr (mytho::utils::is_resources_mut_v<T>) {
             return construct_resources_mut<RegistryT, T>(reg);
+        } else if constexpr (mytho::utils::is_event_writer_v<T>) {
+            return construct_event_writer<RegistryT, T>(reg);
+        } else if constexpr (mytho::utils::is_event_mutator_v<T>) {
+            return construct_event_mutator<RegistryT, T>(reg);
+        } else if constexpr (mytho::utils::is_event_reader_v<T>) {
+            return construct_event_reader<RegistryT, T>(reg);
         } else {
             ASSURE(false, "Unsupport type, please check the args of systems!");
         }

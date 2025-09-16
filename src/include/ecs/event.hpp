@@ -1,0 +1,107 @@
+#pragma once
+
+#include "container/event_storage.hpp"
+
+namespace mytho::utils {
+    template<typename T>
+    concept PureEventType = PureValueType<T>;
+}
+
+namespace mytho::ecs {
+    template<
+        mytho::utils::UnsignedIntegralType EventIdT = size_t,
+        template<typename> typename AllocatorT = std::allocator
+    >
+    class basic_events final {
+    public:
+        using event_id_type = EventIdT;
+        using event_storage_type = mytho::container::basic_event_storage<event_id_type, AllocatorT>;
+
+        template<mytho::utils::PureValueType T, typename... Rs>
+        void write(Rs&&... rs) noexcept {
+            _write_events.template write<T>(std::forward<Rs>(rs)...);
+        }
+
+        template<mytho::utils::PureValueType T>
+        auto mutate() noexcept {
+            return _read_events.template mutate<T>();
+        }
+
+        template<mytho::utils::PureValueType T>
+        auto read() const noexcept {
+            return _read_events.template read<T>();
+        }
+
+        void swap() noexcept {
+            _read_events.swap(_write_events);
+            _write_events.clear();
+        }
+
+    private:
+        event_storage_type _read_events;
+        event_storage_type _write_events;
+    };
+
+    template<typename RegistryT, mytho::utils::PureEventType T>
+    class basic_event_writer final {
+    public:
+        using registry_type = RegistryT;
+        using event_type = T;
+
+        basic_event_writer(registry_type& reg) : _reg(reg) {}
+
+    public:
+        template<typename... Ts>
+        void write(Ts&&... ts) noexcept {
+            _reg.template event_write<event_type>(std::forward<Ts>(ts)...);
+        }
+
+    private:
+        registry_type& _reg;
+    };
+
+    template<mytho::utils::PureEventType T>
+    class basic_event_mutator final {
+    public:
+        using event_type = T;
+        using events_type = mytho::container::basic_event_set<T>;
+
+        basic_event_mutator(const events_type& events) : _events(events) {}
+
+    public:
+        events_type& mutate() noexcept {
+            return _events;
+        }
+
+    private:
+        events_type _events;
+    };
+
+    template<mytho::utils::PureEventType T>
+    class basic_event_reader final {
+    public:
+        using event_type = T;
+        using events_type = mytho::container::basic_event_set<T>;
+
+        basic_event_reader(const events_type& events) : _events(events) {}
+
+    public:
+        const events_type& read() noexcept {
+            return _events;
+        }
+
+    private:
+        events_type _events;
+    };
+}
+
+namespace mytho::utils {
+    template<typename T>
+    inline constexpr bool is_event_writer_v = internal::is_template_v<T, mytho::ecs::basic_event_writer>;
+
+    template<typename T>
+    inline constexpr bool is_event_mutator_v = internal::is_template_v<T, mytho::ecs::basic_event_mutator>;
+
+    template<typename T>
+    inline constexpr bool is_event_reader_v = internal::is_template_v<T, mytho::ecs::basic_event_reader>;
+}

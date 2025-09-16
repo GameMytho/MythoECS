@@ -18,7 +18,7 @@ struct Direction {
 
 TEST(RegistryTest, BasicTest) {
     using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
-    mytho::ecs::basic_registry<entity, uint8_t, uint8_t, 1024> reg;
+    mytho::ecs::basic_registry<entity, uint8_t, uint8_t, uint8_t, 1024> reg;
 
     auto e = reg.spawn();
     EXPECT_EQ(e.id(), 0);
@@ -100,7 +100,7 @@ using data_wrapper = mytho::utils::internal::data_wrapper<T>;
 
 TEST(RegistryTest, QueryMutTest) {
     using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
-    mytho::ecs::basic_registry<entity, uint8_t, uint8_t, 1024> reg;
+    mytho::ecs::basic_registry<entity, uint8_t, uint8_t, uint8_t, 1024> reg;
 
     for (int i = 0; i < 3; i++) {
         auto e = reg.spawn(Position{i * 0.1f, i * 0.1f}, Vectory{i * 0.2f, i * 0.2f}, Direction{i * 0.3f, i * 0.3f});
@@ -171,7 +171,7 @@ struct Health {
 
 TEST(RegistryTest, QueryWithTest) {
     using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
-    mytho::ecs::basic_registry<entity, uint8_t, uint8_t, 1024> reg;
+    mytho::ecs::basic_registry<entity, uint8_t, uint8_t, uint8_t, 1024> reg;
 
     auto e1 = reg.spawn(Position{0.1f, 0.1f});
     EXPECT_EQ((reg.contain<Position>(e1)), true);

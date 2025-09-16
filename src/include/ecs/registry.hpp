@@ -17,6 +17,7 @@ namespace mytho::ecs {
         mytho::utils::EntityType EntityT,
         mytho::utils::UnsignedIntegralType ComponentIdT = size_t,
         mytho::utils::UnsignedIntegralType ResourceIdT = size_t,
+        mytho::utils::UnsignedIntegralType EventIdT = size_t,
         size_t PageSize = 1024
     >
     class basic_registry final {
@@ -24,12 +25,14 @@ namespace mytho::ecs {
         using entity_type = EntityT;
         using component_id_type = ComponentIdT;
         using resource_id_type = ResourceIdT;
-        using self_type = mytho::ecs::basic_registry<entity_type, component_id_type, resource_id_type, PageSize>;
+        using event_id_type = EventIdT;
+        using self_type = mytho::ecs::basic_registry<entity_type, component_id_type, resource_id_type, event_id_type, PageSize>;
         using entity_storage_type = mytho::container::basic_entity_storage<entity_type, component_id_type, PageSize>;
         using size_type = typename entity_storage_type::size_type;
         using component_storage_type = mytho::container::basic_component_storage<entity_type, component_id_type, PageSize>;
         using component_id_generator = mytho::utils::basic_id_generator<mytho::utils::GeneratorType::COMPONENT_GENOR, component_id_type>;
         using resource_storage_type = mytho::container::basic_resource_storage<resource_id_type, std::allocator>;
+        using events_type = mytho::ecs::basic_events<event_id_type, std::allocator>;
         using command_queue_type = mytho::ecs::internal::basic_command_queue<self_type>;
         using system_storage_type = internal::basic_system_storage<self_type>;
         using system_config_type = typename system_storage_type::system_config_type;
@@ -255,6 +258,22 @@ namespace mytho::ecs {
         }
 
     public:
+        template<mytho::utils::PureEventType T, typename... Rs>
+        void event_write(Rs&&... rs) noexcept {
+            _events.template write<T>(std::forward<Rs>(rs)...);
+        }
+
+        template<mytho::utils::PureEventType T>
+        auto event_mutate() noexcept {
+            return _events.template mutate<T>();
+        }
+
+        template<mytho::utils::PureEventType T>
+        auto event_read() const noexcept {
+            return _events.template read<T>();
+        }
+
+    public:
         template<mytho::utils::FunctionType Func>
         static system_config_type system(Func&& func) noexcept {
             return system_config_type(std::forward<Func>(func));
@@ -323,6 +342,8 @@ namespace mytho::ecs {
 
             _current_tick++;
             apply_commands();
+
+            _events.swap();
         }
 
         void shutdown() noexcept {
@@ -349,6 +370,8 @@ namespace mytho::ecs {
         entity_storage_type _entities;
         component_storage_type _components;
         resource_storage_type _resources;
+        events_type _events;
+
         command_queue_type _command_queue;
 
         // tick start from 1, and 0 is reserved for init

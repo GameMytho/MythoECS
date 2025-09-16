@@ -3,7 +3,8 @@
 namespace mytho::utils {
     enum class GeneratorType : uint8_t {
         COMPONENT_GENOR,
-        RESOURCE_GENOR
+        RESOURCE_GENOR,
+        EVENT_GENOR
     };
 
     template<GeneratorType GT, typename IdT>
