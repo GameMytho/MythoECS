@@ -1,6 +1,8 @@
 #pragma once
 
 #include "utils/idgen.hpp"
+#include "utils/concept.hpp"
+#include "utils/assert.hpp"
 #include "container/tick_set.hpp"
 
 namespace mytho::container {
@@ -91,21 +93,23 @@ namespace mytho::container {
 
         template<mytho::utils::PureValueType T>
         bool contain() const noexcept {
-            return _pool[resource_id_generator::template gen<T>()] != nullptr;
+            auto id = resource_id_generator::template gen<T>();
+
+            return id < _pool.size() && _pool[id] != nullptr;
         }
 
         template<mytho::utils::PureValueType T>
         bool is_added(uint64_t tick) const noexcept {
             auto id = resource_id_generator::template gen<T>();
 
-            return _pool[id] != nullptr && _ticks.get_added_tick(id) >= tick;
+            return id < _pool.size() && _pool[id] != nullptr && _ticks.get_added_tick(id) >= tick;
         }
 
         template<mytho::utils::PureValueType T>
         bool is_changed(uint64_t tick) const noexcept {
             auto id = resource_id_generator::template gen<T>();
 
-            return _pool[id] != nullptr && _ticks.get_changed_tick(id) >= tick;
+            return id < _pool.size() && _pool[id] != nullptr && _ticks.get_changed_tick(id) >= tick;
         }
 
         void clear() noexcept {

@@ -103,7 +103,7 @@ namespace mytho::container {
 
         void _remove_entity(const entity_type& e) noexcept {
             for (auto& s : _pool) {
-                if (s->contain(e)) s->remove(e);
+                if (s && s->contain(e)) s->remove(e);
             }
         }
 
@@ -132,14 +132,14 @@ namespace mytho::container {
         bool _contain(const entity_type& e) const noexcept {
             auto id = component_id_generator::template gen<T>();
 
-            return id < _pool.size() && _pool[id]->contain(e);
+            return id < _pool.size() && _pool[id] &&  _pool[id]->contain(e);
         }
 
         template<typename T>
         bool _not_contain(const entity_type& e) const noexcept {
             auto id = component_id_generator::template gen<T>();
 
-            return id >= _pool.size() || !_pool[id]->contain(e);
+            return id >= _pool.size() || !_pool[id] || !_pool[id]->contain(e);
         }
 
         template<typename T>
