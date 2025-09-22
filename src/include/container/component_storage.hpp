@@ -82,12 +82,12 @@ namespace mytho::container {
             _pool.clear();
         }
 
+    public:
         size_type size() const noexcept { return _pool.size(); }
 
-    public:
-        component_set_base_type* operator[](size_type index) noexcept {
-            return _pool[index].get();
-        }
+        bool empty() const noexcept { return _pool.empty(); }
+
+        component_set_base_type* operator[](size_type index) noexcept { return _pool[index].get(); }
 
     private:
         component_pool_type _pool;

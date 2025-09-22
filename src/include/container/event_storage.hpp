@@ -87,6 +87,10 @@ namespace mytho::container {
 
         event_destroy_funcs_type& destroy_funcs() noexcept { return _destroy_funcs; }
 
+        size_type size() const noexcept { return _pool.size(); }
+
+        bool empty() const noexcept { return _pool.empty(); }
+
     private:
         event_pool_type _pool;
         event_destroy_funcs_type _destroy_funcs;

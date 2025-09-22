@@ -147,7 +147,10 @@ namespace mytho::container {
             return base_type::contain(e);
         }
 
+    public:
         size_type size() const noexcept { return base_type::size(); }
+
+        bool empty() const noexcept { return base_type::empty(); }
 
     private:
         component_data_ptr_set_type _cdata;

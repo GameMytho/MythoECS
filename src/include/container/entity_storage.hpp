@@ -95,7 +95,10 @@ namespace mytho::container {
             _length = 0;
         }
 
+    public:
         size_type size() const noexcept { return _length; }
+
+        bool empty() const noexcept { return _length == 0; }
 
     private:
         template<typename T>

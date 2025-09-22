@@ -44,9 +44,12 @@ namespace mytho::container {
             _changed_ticks.clear();
         }
 
+    public:
         size_type size() const noexcept {
             return _added_ticks.size();
         }
+
+        bool empty() const noexcept { return _added_ticks.empty(); }
 
     private:
         added_ticks_type _added_ticks;

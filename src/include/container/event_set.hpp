@@ -71,9 +71,9 @@ namespace mytho::container {
         const_iterator cbegin() const noexcept { if(!_data) return const_iterator{}; return const_iterator(_data->cbegin()); }
         const_iterator cend() const noexcept { if(!_data) return const_iterator{}; return const_iterator(_data->cend()); }
 
-        bool empty() const noexcept { if(!_data) return true; return _data->empty(); }
-
         size_type size() const noexcept { if(!_data) return 0; return _data->size(); }
+
+        bool empty() const noexcept { if(!_data) return true; return _data->empty(); }
 
     private:
         events_data_type* _data;

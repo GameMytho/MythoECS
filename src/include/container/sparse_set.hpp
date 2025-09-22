@@ -21,6 +21,7 @@ namespace mytho::container {
         using page_type = std::array<page_data_type, PageSize>;
         using sparsity_type = std::vector<page_type>;
         using iterator = typename density_type::iterator;
+        using const_iterator = typename density_type::const_iterator;
 
         static constexpr data_type data_null = std::numeric_limits<data_type>::max();
 
@@ -71,8 +72,6 @@ namespace mytho::container {
             _sparsity.clear();
         }
 
-        size_type size() const noexcept { return _density.size(); }
-
         data_type data(size_type idx) const noexcept {
             ASSURE(idx < _density.size(), "index out of sparse set!");
 
@@ -81,8 +80,14 @@ namespace mytho::container {
 
     public:
         iterator begin() noexcept { return _density.begin(); }
+        const_iterator begin() const noexcept { return _density.begin(); }
 
         iterator end() noexcept { return _density.end(); }
+        const_iterator end() const noexcept { return _density.end(); }
+
+        size_type size() const noexcept { return _density.size(); }
+
+        bool empty() const noexcept { return _density.empty(); }
 
     private:
         density_type _density;

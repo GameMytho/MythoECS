@@ -124,6 +124,11 @@ namespace mytho::container {
             _destroy_funcs.clear();
         }
 
+    public:
+        size_type size() const noexcept { return _pool.size(); }
+
+        bool empty() const noexcept { return _pool.empty(); }
+
     private:
         resource_pool_type _pool;
         resource_ticks_type _ticks;
