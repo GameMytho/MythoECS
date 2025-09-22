@@ -44,6 +44,28 @@ namespace mytho::utils {
     using type_list_cat_t = typename internal::type_list_cat<Ls...>::type;
 
     namespace internal {
+        template<typename L, typename... Fs>
+        struct type_list_filter;
+
+        template<typename... Fs>
+        struct type_list_filter<type_list<>, Fs...> {
+            using type = type_list<>;
+        };
+
+        template<typename T, typename... Rs, typename... Fs>
+        struct type_list_filter<type_list<T, Rs...>, Fs...> {
+            using type = std::conditional_t<
+                std::disjunction_v<std::is_same<T, Fs>...>,
+                typename type_list_filter<type_list<Rs...>, Fs...>::type,
+                type_list_cat_t<type_list<T>, typename type_list_filter<type_list<Rs...>, Fs...>::type>
+            >;
+        };
+    }
+
+    template<typename L, typename... Fs>
+    using type_list_filter_t = typename internal::type_list_filter<L, Fs...>::type;
+
+    namespace internal {
         template<typename L, template<typename...> typename... Fs>
         struct type_list_filter_template;
 
@@ -86,28 +108,6 @@ namespace mytho::utils {
 
     template<typename L, template<typename...> typename E>
     using type_list_extract_template_t = typename internal::type_list_extract_template<L, E>::type;
-
-    namespace internal {
-        template<typename L, typename... Fs>
-        struct type_list_filter;
-
-        template<typename... Fs>
-        struct type_list_filter<type_list<>, Fs...> {
-            using type = type_list<>;
-        };
-
-        template<typename T, typename... Rs, typename... Fs>
-        struct type_list_filter<type_list<T, Rs...>, Fs...> {
-            using type = std::conditional_t<
-                std::disjunction_v<std::is_same<T, Fs>...>,
-                typename type_list_filter<type_list<Rs...>, Fs...>::type,
-                type_list_cat_t<type_list<T>, typename type_list_filter<type_list<Rs...>, Fs...>::type>
-            >;
-        };
-    }
-
-    template<typename L, typename... Fs>
-    using type_list_filter_t = typename internal::type_list_filter<L, Fs...>::type;
 
     namespace internal {
         template<typename L>

@@ -1,10 +1,9 @@
 #pragma once
 
 #if MYTHO_ASSERTS_ENABLED
+    // this is a temporary solution, we need to implement a better assert macro
     #include <cassert>
-    #define ASSERT(x, msg) do { if ((x)) { assert(false); }} while(false)
-    #define ASSURE(x, msg) ASSERT((!(x)), msg)
+    #define ASSURE(x, msg) do { if (!(x)) { assert(false); }} while(false)
 #else
-    #define ASSERT(x, msg)
     #define ASSURE(x, msg)
 #endif

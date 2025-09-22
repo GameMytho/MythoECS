@@ -2,7 +2,7 @@
 
 namespace mytho::utils {
     enum class GeneratorType : uint8_t {
-        COMPONENT_GENOR,
+        COMPONENT_GENOR = 0,
         RESOURCE_GENOR,
         EVENT_GENOR
     };
