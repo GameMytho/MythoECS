@@ -54,8 +54,9 @@ namespace mytho::container {
             // alloc_traits::construct(allocator, _cdata[idx], std::forward<Ts>(ts)...);
             new (_cdata[idx]) component_type{ std::forward<Ts>(ts)... };
 
+            // component added, is_added case is considered in is_changed case
             _ticks.set_added_tick(idx, tick);
-            _ticks.set_changed_tick(idx, 0);
+            _ticks.set_changed_tick(idx, tick);
         }
 
         void remove(const entity_type& e) noexcept {

@@ -43,7 +43,9 @@ namespace mytho::container {
             // alloc_traits::construct(allocator, static_cast<T*>(_pool[id]), std::forward<Rs>(rs)...);
             new (static_cast<T*>(_pool[id])) T{ std::forward<Rs>(rs)... };
 
+            // resource init means resource added and changed, is_added case is considered in is_changed case
             _ticks.set_added_tick(id, tick);
+            _ticks.set_changed_tick(id, tick);
 
             _destroy_funcs[id] = [](void* ptr){
                 AllocatorT<T> allocator;
@@ -65,9 +67,7 @@ namespace mytho::container {
             _destroy_funcs[id](_pool[id]);
             _pool[id] = nullptr;
 
-            // reset changed tick to avoid the case: `init -> deinit -> init`
-            // only need to reset changed tick, because added tick will be set when resource init
-            _ticks.set_changed_tick(id, 0);
+            // we do not need to reset added/changed tick
         }
 
         template<mytho::utils::PureValueType T>

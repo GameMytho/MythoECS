@@ -68,8 +68,6 @@ namespace mytho::container {
 
         const_iterator begin() const noexcept { if(!_data) return const_iterator{}; return const_iterator(_data->begin()); }
         const_iterator end() const noexcept { if(!_data) return const_iterator{}; return const_iterator(_data->end()); }
-        const_iterator cbegin() const noexcept { if(!_data) return const_iterator{}; return const_iterator(_data->cbegin()); }
-        const_iterator cend() const noexcept { if(!_data) return const_iterator{}; return const_iterator(_data->cend()); }
 
         size_type size() const noexcept { if(!_data) return 0; return _data->size(); }
 
