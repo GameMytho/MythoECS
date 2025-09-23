@@ -7,7 +7,6 @@ project(MythoECS VERSION 0.1.0 LANGUAGES CXX)
 # This option is used to enable or disable the building of tests
 # for the MythoECS library. By default, it is set to ON, meaning that tests will be built.
 option(BUILD_TESTS "Build tests for MythoECS" ON)
-option(MYTHO_ASSERTS_ENABLED "Enable asserts for MythoECS" ON)
 
 # add subdirectory for src
 add_subdirectory(src)
