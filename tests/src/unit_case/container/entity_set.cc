@@ -33,7 +33,7 @@ using namespace mytho::container;
 using namespace mytho::ecs;
 
 /*
- * =============================== Helper Types ===============================
+ * =============================== Helper Structures/Functions ===============================
  */
 
 using entity = basic_entity<uint32_t, uint16_t>;
@@ -44,8 +44,17 @@ struct test_entity_set : entity_set {
     using entity_set::version_next;
 };
 
+enum class Operation {
+    ADD = 0,
+    REMOVE = 1,
+    VERSION_INC = 2,
+    SWAP = 3,
+    VERIFY = 4,
+    MAX_OPERATIONS
+};
+
 /*
- * =============================== Test Cases ===============================
+ * ======================================== Test Cases ========================================
  */
 
 // Test basic entity operations and lifecycle
@@ -292,17 +301,17 @@ TEST(EntitySetTest, RandomOperations) {
     std::mt19937 gen(rd());
     std::uniform_int_distribution<uint32_t> id_dist(1, 1000);
     std::uniform_int_distribution<size_t> size_dist(1, 50);
-    std::uniform_int_distribution<int> operation_dist(0, 4);
+    std::uniform_int_distribution<int> operation_dist(0, static_cast<int>(Operation::MAX_OPERATIONS) - 1);
 
     std::vector<entity> entities;
     entities.reserve(100); // Reserve space to avoid reallocation
 
     for (int round = 0; round < 100; ++round) {
-        int operation = operation_dist(gen);
+        Operation operation = static_cast<Operation>(operation_dist(gen));
         size_t num_entities = size_dist(gen);
 
         switch (operation) {
-            case 0: { // Add operation
+            case Operation::ADD: { // Add operation
                 for (size_t i = 0; i < num_entities; ++i) {
                     uint32_t id = id_dist(gen);
                     entity e(id, 0);
@@ -314,7 +323,8 @@ TEST(EntitySetTest, RandomOperations) {
                 }
                 break;
             }
-            case 1: { // Remove operation
+
+            case Operation::REMOVE: { // Remove operation
                 if (!entities.empty()) {
                     size_t random_index = gen() % entities.size();
                     entity entity_to_remove = entities[random_index];
@@ -325,7 +335,8 @@ TEST(EntitySetTest, RandomOperations) {
                 }
                 break;
             }
-            case 2: { // Version increment operation
+
+            case Operation::VERSION_INC: { // Version increment operation
                 if (!entities.empty()) {
                     size_t random_index = gen() % entities.size();
                     entity entity_to_increment = entities[random_index];
@@ -336,7 +347,8 @@ TEST(EntitySetTest, RandomOperations) {
                 }
                 break;
             }
-            case 3: { // Swap operation
+
+            case Operation::SWAP: { // Swap operation
                 if (entities.size() >= 2) {
                     size_t index1 = gen() % entities.size();
                     size_t index2 = gen() % entities.size();
@@ -347,7 +359,8 @@ TEST(EntitySetTest, RandomOperations) {
                 }
                 break;
             }
-            case 4: { // Verification operation
+
+            case Operation::VERIFY: { // Verification operation
                 EXPECT_EQ(es.size(), entities.size());
                 
                 for (const auto& e : entities) {
@@ -365,6 +378,9 @@ TEST(EntitySetTest, RandomOperations) {
                 }
                 break;
             }
+
+            default:
+                break;
         }
     }
 

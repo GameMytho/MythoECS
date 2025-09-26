@@ -66,6 +66,13 @@ struct ComplexEvent {
     }
 };
 
+enum class Operation {
+    WRITE = 0,
+    READ = 1,
+    MUTATE = 2,
+    MAX_OPERATIONS
+};
+
 /*
  * ======================================== Test Cases ========================================
  */
@@ -290,18 +297,18 @@ TEST(EventStorageTest, RandomOperations) {
     std::uniform_int_distribution<int> id_dist(1, 100);
     std::uniform_real_distribution<float> value_dist(0.0f, 100.0f);
     std::uniform_int_distribution<int> type_dist(0, 2);
-    std::uniform_int_distribution<int> operation_dist(0, 2);
+    std::uniform_int_distribution<int> operation_dist(0, static_cast<int>(Operation::MAX_OPERATIONS) - 1);
 
     std::vector<TestEvent> expected_test_events;
     std::vector<AnotherEvent> expected_another_events;
     std::vector<ComplexEvent> expected_complex_events;
 
     for (int round = 0; round < 100; ++round) {
-        int operation = operation_dist(gen);
+        Operation operation = static_cast<Operation>(operation_dist(gen));
         int event_type = type_dist(gen);
 
         switch (operation) {
-            case 0: { // Write operation
+            case Operation::WRITE: { // Write operation
                 switch (event_type) {
                     case 0: {
                         int id = id_dist(gen);
@@ -327,7 +334,8 @@ TEST(EventStorageTest, RandomOperations) {
                 }
                 break;
             }
-            case 1: { // Read operation
+
+            case Operation::READ: { // Read operation
                 {
                     auto test_event_set = event_storage.read<TestEvent>();
                     EXPECT_EQ(test_event_set.size(), expected_test_events.size());
@@ -354,7 +362,8 @@ TEST(EventStorageTest, RandomOperations) {
 
                 break;
             }
-            case 2: { // Mutate operation
+
+            case Operation::MUTATE: { // Mutate operation
                 {
                     auto test_event_set = event_storage.mutate<TestEvent>();
                     EXPECT_EQ(test_event_set.size(), expected_test_events.size());
@@ -381,6 +390,9 @@ TEST(EventStorageTest, RandomOperations) {
 
                 break;
             }
+
+            default:
+                break;
         }
     }
 

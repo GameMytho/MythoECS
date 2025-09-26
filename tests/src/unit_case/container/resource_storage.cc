@@ -69,6 +69,14 @@ struct ComplexResource {
     }
 };
 
+enum class Operation {
+    INIT = 0,
+    DEINIT = 1,
+    GET = 2,
+    TICK = 3,
+    MAX_OPERATIONS
+};
+
 /*
  * =============================== Test Cases ===============================
  */
@@ -227,14 +235,14 @@ TEST(ResourceStorageTest, RandomOperations) {
     std::uniform_real_distribution<float> float_dist(0.0f, 100.0f);
     std::uniform_int_distribution<uint64_t> tick_dist(1, 100);
     std::uniform_int_distribution<int> type_dist(0, 2);
-    std::uniform_int_distribution<int> operation_dist(0, 3);
+    std::uniform_int_distribution<int> operation_dist(0, static_cast<int>(Operation::MAX_OPERATIONS) - 1);
 
     for (int round = 0; round < 50; ++round) {
-        int operation = operation_dist(gen);
+        Operation operation = static_cast<Operation>(operation_dist(gen));
         int resource_type = type_dist(gen);
 
         switch (operation) {
-            case 0: { // Init operation
+            case Operation::INIT: { // Init operation
                 switch (resource_type) {
                     case 0: {
                         int value = value_dist(gen);
@@ -260,7 +268,8 @@ TEST(ResourceStorageTest, RandomOperations) {
                 }
                 break;
             }
-            case 1: { // Deinit operation
+
+            case Operation::DEINIT: { // Deinit operation
                 switch (resource_type) {
                     case 0:
                         if (resource_storage.contain<TestResource>()) {
@@ -280,7 +289,8 @@ TEST(ResourceStorageTest, RandomOperations) {
                 }
                 break;
             }
-            case 2: { // Get operation
+
+            case Operation::GET: { // Get operation
                 switch (resource_type) {
                     case 0:
                         if (resource_storage.contain<TestResource>()) {
@@ -305,7 +315,8 @@ TEST(ResourceStorageTest, RandomOperations) {
                 }
                 break;
             }
-            case 3: { // Tick operations
+
+            case Operation::TICK: { // Tick operations
                 switch (resource_type) {
                     case 0:
                         if (resource_storage.contain<TestResource>()) {
@@ -328,9 +339,14 @@ TEST(ResourceStorageTest, RandomOperations) {
                             EXPECT_TRUE(resource_storage.is_changed<ComplexResource>(tick));
                         }
                         break;
+                    default:
+                        break;
                 }
                 break;
             }
+
+            default:
+                break;
         }
     }
 }

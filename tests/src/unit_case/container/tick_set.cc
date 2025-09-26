@@ -24,6 +24,18 @@
 using namespace mytho::container;
 
 /*
+ * =============================== Helper Structures/Functions ===============================
+ */
+
+enum class Operation {
+    RESIZE = 0,
+    SET = 1,
+    REF_MODIFY = 2,
+    CLEAR = 3,
+    MAX_OPERATIONS
+};
+
+/*
  * ======================================== Test Cases ========================================
  */
 
@@ -149,13 +161,13 @@ TEST(TickSetTest, RandomOperations) {
     std::mt19937 gen(rd());
     std::uniform_int_distribution<size_t> size_dist(1, 100);
     std::uniform_int_distribution<uint64_t> value_dist(0, 10000);
-    std::uniform_int_distribution<int> operation_dist(0, 3);
+    std::uniform_int_distribution<int> operation_dist(0, static_cast<int>(Operation::MAX_OPERATIONS) - 1);
 
     for (int round = 0; round < 100; ++round) {
-        int operation = operation_dist(gen);
+        Operation operation = static_cast<Operation>(operation_dist(gen));
 
         switch (operation) {
-            case 0: { // Resize operation
+            case Operation::RESIZE: { // Resize operation
                 size_t old_size = tick_set.size();
                 size_t new_size = size_dist(gen);
                 uint64_t default_value = value_dist(gen);
@@ -173,7 +185,8 @@ TEST(TickSetTest, RandomOperations) {
                 }
                 break;
             }
-            case 1: { // Set operations
+
+            case Operation::SET: { // Set operations
                 if (tick_set.size() > 0) {
                     size_t index = size_dist(gen) % tick_set.size();
                     uint64_t added_value = value_dist(gen);
@@ -187,7 +200,8 @@ TEST(TickSetTest, RandomOperations) {
                 }
                 break;
             }
-            case 2: { // Reference modification
+
+            case Operation::REF_MODIFY: { // Reference modification
                 if (tick_set.size() > 0) {
                     size_t index = size_dist(gen) % tick_set.size();
                     uint64_t added_value = value_dist(gen);
@@ -201,12 +215,16 @@ TEST(TickSetTest, RandomOperations) {
                 }
                 break;
             }
-            case 3: { // Clear operation
+
+            case Operation::CLEAR: { // Clear operation
                 tick_set.clear();
                 EXPECT_EQ(tick_set.size(), 0);
                 EXPECT_TRUE(tick_set.empty());
                 break;
             }
+
+            default:
+                break;
         }
     }
 

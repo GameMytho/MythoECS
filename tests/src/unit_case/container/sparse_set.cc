@@ -30,6 +30,17 @@
 using namespace mytho::container;
 
 /*
+ * =============================== Helper Structures/Functions ===============================
+ */
+
+enum class Operation {
+    ADD = 0,
+    REMOVE = 1,
+    SWAP = 2,
+    MAX_OPERATIONS
+};
+
+/*
  * ======================================== Test Cases ========================================
  */
 
@@ -279,14 +290,14 @@ TEST(SparseSetTest, RandomOperations) {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<uint32_t> value_dist(1, 1000);
-    std::uniform_int_distribution<int> operation_dist(0, 2);
+    std::uniform_int_distribution<int> operation_dist(0, static_cast<int>(Operation::MAX_OPERATIONS) - 1);
     std::vector<uint32_t> added_values;
 
     for (int round = 0; round < 200; ++round) {
-        int operation = operation_dist(gen);
+        Operation operation = static_cast<Operation>(operation_dist(gen));
 
         switch (operation) {
-            case 0: { // Add operation
+            case Operation::ADD: { // Add operation
                 uint32_t value = value_dist(gen);
                 if (!sparse_set.contain(value)) {
                     sparse_set.add(value);
@@ -294,7 +305,8 @@ TEST(SparseSetTest, RandomOperations) {
                 }
                 break;
             }
-            case 1: { // Remove operation
+
+            case Operation::REMOVE: { // Remove operation
                 if (!added_values.empty()) {
                     size_t index = value_dist(gen) % added_values.size();
                     uint32_t value = added_values[index];
@@ -306,7 +318,8 @@ TEST(SparseSetTest, RandomOperations) {
                 }
                 break;
             }
-            case 2: { // Swap operation
+
+            case Operation::SWAP: { // Swap operation
                 if (added_values.size() >= 2) {
                     size_t index1 = value_dist(gen) % added_values.size();
                     size_t index2 = value_dist(gen) % added_values.size();
@@ -319,6 +332,9 @@ TEST(SparseSetTest, RandomOperations) {
                 }
                 break;
             }
+
+            default:
+                break;
         }
 
         EXPECT_EQ(sparse_set.size(), added_values.size());
