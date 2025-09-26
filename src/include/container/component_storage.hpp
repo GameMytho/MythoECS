@@ -18,6 +18,7 @@ namespace mytho::container {
         using component_pool_type = std::vector<std::unique_ptr<component_set_base_type>>;
         using size_type = typename component_pool_type::size_type;
         using component_id_generator = mytho::utils::basic_id_generator<mytho::utils::GeneratorType::COMPONENT_GENOR, component_id_type>;
+        using entity_remove_functions_type = std::vector<void(*)(void*, const entity_type&)>;
 
     public:
         template<mytho::utils::PureValueType... Ts>
@@ -91,6 +92,7 @@ namespace mytho::container {
 
     private:
         component_pool_type _pool;
+        entity_remove_functions_type _remove_funcs;
 
     private:
         template<typename T>
@@ -102,8 +104,10 @@ namespace mytho::container {
         }
 
         void _remove_entity(const entity_type& e) noexcept {
-            for (auto& s : _pool) {
-                if (s && s->contain(e)) s->remove(e);
+            for (size_type i = 0; i < _pool.size(); i++) {
+                if (_pool[i] && _pool[i]->contain(e)) {
+                    _remove_funcs[i](_pool[i].get(), e);
+                }
             }
         }
 
@@ -147,7 +151,7 @@ namespace mytho::container {
             using component_set_type = basic_component_set<entity_type, T, std::allocator<T>, PageSize>;
 
             auto id = component_id_generator::template gen<T>();
-            return id < _pool.size() && static_cast<component_set_type&>(*_pool[id]).is_added(e, tick);
+            return id < _pool.size() && static_cast<component_set_type&>(*_pool[id]).contain(e) && static_cast<component_set_type&>(*_pool[id]).is_added(e, tick);
         }
 
         template<typename T>
@@ -155,7 +159,7 @@ namespace mytho::container {
             using component_set_type = basic_component_set<entity_type, T, std::allocator<T>, PageSize>;
 
             auto id = component_id_generator::template gen<T>();
-            return id < _pool.size() && static_cast<component_set_type&>(*_pool[id]).is_changed(e, tick);
+            return id < _pool.size() && static_cast<component_set_type&>(*_pool[id]).contain(e) && static_cast<component_set_type&>(*_pool[id]).is_changed(e, tick);
         }
 
     private:
@@ -166,10 +170,14 @@ namespace mytho::container {
 
             if (id >= _pool.size()) {
                 _pool.resize(id + 1);
+                _remove_funcs.resize(id + 1, nullptr);
             }
 
             if (_pool[id] == nullptr) {
                 _pool[id] = std::make_unique<component_set_type>();
+                _remove_funcs[id] = [](void* ptr, const entity_type& e){
+                    static_cast<component_set_type*>(ptr)->remove(e);
+                };
             }
 
             return static_cast<component_set_type&>(*_pool[id]);
