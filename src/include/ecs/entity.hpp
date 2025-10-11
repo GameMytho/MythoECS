@@ -15,8 +15,12 @@ namespace mytho::ecs {
         basic_entity(id_type id, version_type ver = 0) : _id(id), _ver(ver) { }
 
         id_type id() const noexcept { return _id; }
-        
+
         version_type version() const noexcept { return _ver; }
+
+        friend bool operator==(const self_type& l, const self_type& r) noexcept { return l._id == r._id && l._ver == r._ver; }
+
+        friend bool operator!=(const self_type& l, const self_type& r) noexcept { return !(l == r); }
 
     private:
         id_type _id;
