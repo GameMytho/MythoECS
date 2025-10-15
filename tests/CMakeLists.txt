@@ -21,9 +21,11 @@ function(add_unit_test SRC_DIR LABEL)
         set(TARGET "MythoECS_${LABEL}Tests")
     endif()
 
-    file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS ${SRC_DIR}/*.cc)
+    file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS ${SRC_DIR}/src/*.cc)
 
     add_executable(${TARGET} ${TEST_SOURCES})
+
+    target_include_directories(${TARGET} PRIVATE ${SRC_DIR}/include)
 
     target_link_libraries(${TARGET} PRIVATE MythoECS GTest::gtest GTest::gtest_main)
 

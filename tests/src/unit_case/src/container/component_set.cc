@@ -23,12 +23,12 @@
  */
 
 #include <gtest/gtest.h>
-#include "container/component_set.hpp"
-#include "ecs/entity.hpp"
 #include <random>
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <container/component_set.hpp>
+#include <ecs/entity.hpp>
 
 using namespace mytho::container;
 using namespace mytho::ecs;
@@ -36,24 +36,11 @@ using namespace mytho::ecs;
 /*
  * =============================== Helper Structures/Functions ===============================
  */
+#include "components.hpp"
 
 using entity = basic_entity<uint32_t, uint16_t>;
 using component_set = basic_component_set<entity, int, std::allocator<int>>;
-
-// Test component type for more complex testing
-struct TestComponent {
-    int value;
-    std::string name;
-    
-    TestComponent() : value(0), name("default") {}
-    TestComponent(int v, const std::string& n) : value(v), name(n) {}
-    
-    bool operator==(const TestComponent& other) const {
-        return value == other.value && name == other.name;
-    }
-};
-
-using complex_component_set = basic_component_set<entity, TestComponent, std::allocator<TestComponent>>;
+using complex_component_set = basic_component_set<entity, PlayerAttribute, std::allocator<PlayerAttribute>>;
 
 enum class Operation {
     ADD = 0,
@@ -206,16 +193,16 @@ TEST(ComponentSetTest, ComplexComponentTypes) {
     ccs.add(e1, 100, 42, "entity1");
     ccs.add(e2, 200, 84, "entity2");
 
-    EXPECT_EQ(ccs.get(e1), TestComponent(42, "entity1"));
-    EXPECT_EQ(ccs.get(e2), TestComponent(84, "entity2"));
+    EXPECT_EQ(ccs.get(e1), PlayerAttribute(42, "entity1"));
+    EXPECT_EQ(ccs.get(e2), PlayerAttribute(84, "entity2"));
 
     ccs.get(e1).value = 100;
     ccs.get(e1).name = "updated_entity1";
 
-    EXPECT_EQ(ccs.get(e1), TestComponent(100, "updated_entity1"));
+    EXPECT_EQ(ccs.get(e1), PlayerAttribute(100, "updated_entity1"));
 
     ccs.replace(e2, 300, 200, "replaced_entity2");
-    EXPECT_EQ(ccs.get(e2), TestComponent(200, "replaced_entity2"));
+    EXPECT_EQ(ccs.get(e2), PlayerAttribute(200, "replaced_entity2"));
 }
 
 // Test random operations and data integrity

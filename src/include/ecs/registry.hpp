@@ -67,10 +67,22 @@ namespace mytho::ecs {
             _entities.pop(e);
         }
 
+        bool alive(const entity_type& e) const noexcept {
+            return _entities.contain(e);
+        }
+
+        const auto& entities() const noexcept {
+            return _entities;
+        }
+
     public:
         template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void insert(const entity_type& e, Ts&&... ts) noexcept {
+            if (contain<Ts...>(e)) {
+                return;
+            }
+
             _entities.template add<Ts...>(e);
             _components.add(e, _current_tick, std::forward<Ts>(ts)...);
         }
@@ -78,6 +90,10 @@ namespace mytho::ecs {
         template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void remove(const entity_type& e) noexcept {
+            if (!contain<Ts...>(e)) {
+                return;
+            }
+
             _entities.template remove<Ts...>(e);
             _components.template remove<Ts...>(e);
         }
@@ -91,6 +107,10 @@ namespace mytho::ecs {
         template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void replace(const entity_type& e, Ts&&... ts) noexcept {
+            if (!contain<Ts...>(e)) {
+                return;
+            }
+
             _components.replace(e, _current_tick, std::forward<Ts>(ts)...);
         }
 

@@ -17,9 +17,9 @@
  */
 
 #include <gtest/gtest.h>
-#include <container/tick_set.hpp>
 #include <random>
 #include <vector>
+#include <container/tick_set.hpp>
 
 using namespace mytho::container;
 

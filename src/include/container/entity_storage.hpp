@@ -96,6 +96,12 @@ namespace mytho::container {
         }
 
     public:
+        auto begin() noexcept { return base_type::begin(); }
+        auto begin() const noexcept { return base_type::begin(); }
+
+        auto end() noexcept { return base_type::end(); }
+        auto end() const noexcept { return base_type::end(); }
+
         size_type size() const noexcept { return _length; }
 
         bool empty() const noexcept { return _length == 0; }

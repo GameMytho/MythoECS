@@ -23,8 +23,9 @@
  */
 
 #include <gtest/gtest.h>
-#include <utils/type_list.hpp>
 #include <type_traits>
+
+#include "utils/type_list.hpp"
 
 using namespace mytho::utils;
 

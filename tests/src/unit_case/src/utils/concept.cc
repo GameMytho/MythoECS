@@ -17,7 +17,8 @@
 
 #include <gtest/gtest.h>
 #include <type_traits>
-#include <utils/concept.hpp>
+
+#include "utils/concept.hpp"
 
 using namespace mytho::utils;
 

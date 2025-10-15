@@ -22,12 +22,12 @@
  */
 
 #include <gtest/gtest.h>
-#include "container/entity_storage.hpp"
-#include "ecs/entity.hpp"
 #include <random>
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <container/entity_storage.hpp>
+#include <ecs/entity.hpp>
 
 using namespace mytho::container;
 using namespace mytho::ecs;
@@ -35,42 +35,10 @@ using namespace mytho::ecs;
 /*
  * =============================== Helper Structures/Functions ===============================
  */
+#include "components.hpp"
 
 using entity = basic_entity<uint32_t, uint16_t>;
 using entity_storage = basic_entity_storage<entity>;
-
-struct Position {
-    int x, y;
-
-    Position() : x(0), y(0) {}
-    Position(int x, int y) : x(x), y(y) {}
-
-    bool operator==(const Position& other) const {
-        return x == other.x && y == other.y;
-    }
-};
-
-struct Velocity {
-    int vx, vy;
-
-    Velocity() : vx(0), vy(0) {}
-    Velocity(int vx, int vy) : vx(vx), vy(vy) {}
-
-    bool operator==(const Velocity& other) const {
-        return vx == other.vx && vy == other.vy;
-    }
-};
-
-struct Health {
-    int current, max;
-
-    Health() : current(0), max(0) {}
-    Health(int current, int max) : current(current), max(max) {}
-
-    bool operator==(const Health& other) const {
-        return current == other.current && max == other.max;
-    }
-};
 
 enum class Operation {
     EMPLACE_NO_COMPONENTS = 0,

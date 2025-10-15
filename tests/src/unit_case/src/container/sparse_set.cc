@@ -22,10 +22,10 @@
  */
 
 #include <gtest/gtest.h>
-#include <container/sparse_set.hpp>
 #include <random>
 #include <vector>
 #include <algorithm>
+#include <container/sparse_set.hpp>
 
 using namespace mytho::container;
 

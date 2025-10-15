@@ -16,38 +16,17 @@
  */
 
 #include <gtest/gtest.h>
-#include <container/event_set.hpp>
 #include <random>
 #include <vector>
 #include <algorithm>
+#include <container/event_set.hpp>
 
 using namespace mytho::container;
 
 /*
  * =============================== Helper Structures/Functions ===============================
  */
-
-struct TestEvent {
-    int id;
-    float value;
-
-    TestEvent(int i = 0, float v = 0.0f) : id(i), value(v) {}
-
-    bool operator==(const TestEvent& other) const {
-        return id == other.id && value == other.value;
-    }
-};
-
-struct AnotherEvent {
-    std::string name;
-    bool active;
-
-    AnotherEvent(const std::string& n = "", bool a = false) : name(n), active(a) {}
-
-    bool operator==(const AnotherEvent& other) const {
-        return name == other.name && active == other.active;
-    }
-};
+#include "events.hpp"
 
 /*
  * ======================================== Test Cases ========================================
@@ -55,15 +34,15 @@ struct AnotherEvent {
 
 // Test basic event set operations and state
 TEST(EventSetTest, BasicOperations) {
-    basic_event_set<TestEvent>::events_data_type data;
-    basic_event_set<TestEvent> event_set(data);
+    basic_event_set<DamageEvent>::events_data_type data;
+    basic_event_set<DamageEvent> event_set(data);
 
     EXPECT_EQ(event_set.size(), 0);
     EXPECT_TRUE(event_set.empty());
 
-    TestEvent event1(1, 10.5f);
-    TestEvent event2(2, 20.5f);
-    TestEvent event3(3, 30.5f);
+    DamageEvent event1(1, 10.5f);
+    DamageEvent event2(2, 20.5f);
+    DamageEvent event3(3, 30.5f);
 
     data.push_back(static_cast<void*>(&event1));
     data.push_back(static_cast<void*>(&event2));
@@ -72,13 +51,13 @@ TEST(EventSetTest, BasicOperations) {
     EXPECT_EQ(event_set.size(), 3);
     EXPECT_FALSE(event_set.empty());
 
-    basic_event_set<AnotherEvent>::events_data_type another_data;
-    basic_event_set<AnotherEvent> another_event_set(another_data);
+    basic_event_set<StatusEvent>::events_data_type another_data;
+    basic_event_set<StatusEvent> another_event_set(another_data);
 
     EXPECT_EQ(another_event_set.size(), 0);
     EXPECT_TRUE(another_event_set.empty());
 
-    AnotherEvent another_event("test", true);
+    StatusEvent another_event("test", true);
     another_data.push_back(static_cast<void*>(&another_event));
 
     EXPECT_EQ(another_event_set.size(), 1);
@@ -87,15 +66,15 @@ TEST(EventSetTest, BasicOperations) {
 
 // Test iterator functionality and operations
 TEST(EventSetTest, IteratorOperations) {
-    basic_event_set<TestEvent>::events_data_type data;
-    basic_event_set<TestEvent> event_set(data);
+    basic_event_set<DamageEvent>::events_data_type data;
+    basic_event_set<DamageEvent> event_set(data);
 
     EXPECT_EQ(event_set.begin(), event_set.end());
 
-    TestEvent events[3] = {
-        TestEvent(1, 10.5f),
-        TestEvent(2, 20.5f),
-        TestEvent(3, 30.5f)
+    DamageEvent events[3] = {
+        DamageEvent(1, 10.5f),
+        DamageEvent(2, 20.5f),
+        DamageEvent(3, 30.5f)
     };
 
     for (int i = 0; i < 3; ++i) {
@@ -151,7 +130,7 @@ TEST(EventSetTest, IteratorOperations) {
     EXPECT_EQ(event_set.begin()[1].id, 2);
     EXPECT_EQ(event_set.begin()[2].id, 3);
 
-    std::vector<TestEvent> collected_events;
+    std::vector<DamageEvent> collected_events;
     for (const auto& event : event_set) {
         collected_events.push_back(event);
     }
@@ -163,20 +142,20 @@ TEST(EventSetTest, IteratorOperations) {
 
 // Test const iterator and const methods
 TEST(EventSetTest, ConstIteratorOperations) {
-    basic_event_set<TestEvent>::events_data_type data;
-    const basic_event_set<TestEvent> event_set(data);
+    basic_event_set<DamageEvent>::events_data_type data;
+    const basic_event_set<DamageEvent> event_set(data);
 
     EXPECT_EQ(event_set.begin(), event_set.end());
 
-    TestEvent events[2] = {
-        TestEvent(1, 10.5f),
-        TestEvent(2, 20.5f)
+    DamageEvent events[2] = {
+        DamageEvent(1, 10.5f),
+        DamageEvent(2, 20.5f)
     };
 
     data.push_back(static_cast<void*>(&events[0]));
     data.push_back(static_cast<void*>(&events[1]));
 
-    std::vector<TestEvent> collected_events;
+    std::vector<DamageEvent> collected_events;
     for (const auto& event : event_set) {
         collected_events.push_back(event);
     }
@@ -191,7 +170,7 @@ TEST(EventSetTest, ConstIteratorOperations) {
 // Test edge cases and boundary conditions
 TEST(EventSetTest, EdgeCases) {
     {
-        basic_event_set<TestEvent> empty_event_set;
+        basic_event_set<DamageEvent> empty_event_set;
 
         EXPECT_EQ(empty_event_set.size(), 0);
         EXPECT_TRUE(empty_event_set.empty());
@@ -199,10 +178,10 @@ TEST(EventSetTest, EdgeCases) {
     }
 
     {
-        basic_event_set<TestEvent>::events_data_type single_data;
-        basic_event_set<TestEvent> single_event_set(single_data);
+        basic_event_set<DamageEvent>::events_data_type single_data;
+        basic_event_set<DamageEvent> single_event_set(single_data);
 
-        TestEvent single_event(42, 99.9f);
+        DamageEvent single_event(42, 99.9f);
         single_data.push_back(static_cast<void*>(&single_event));
 
         EXPECT_EQ(single_event_set.size(), 1);
@@ -225,9 +204,9 @@ TEST(EventSetTest, EdgeCases) {
 
 // Test random operations and data integrity
 TEST(EventSetTest, RandomOperations) {
-    std::vector<TestEvent> events;
-    basic_event_set<TestEvent>::events_data_type data;
-    basic_event_set<TestEvent> event_set(data);
+    std::vector<DamageEvent> events;
+    basic_event_set<DamageEvent>::events_data_type data;
+    basic_event_set<DamageEvent> event_set(data);
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -262,7 +241,7 @@ TEST(EventSetTest, RandomOperations) {
                 EXPECT_EQ(it[random_index].value, events[random_index].value);
             }
 
-            std::vector<TestEvent> collected_events;
+            std::vector<DamageEvent> collected_events;
             for (const auto& event : event_set) {
                 collected_events.push_back(event);
             }

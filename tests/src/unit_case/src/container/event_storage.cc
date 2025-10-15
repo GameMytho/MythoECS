@@ -20,51 +20,18 @@
  */
 
 #include <gtest/gtest.h>
-#include <container/event_storage.hpp>
 #include <random>
 #include <vector>
 #include <algorithm>
 #include <memory>
+#include <container/event_storage.hpp>
 
 using namespace mytho::container;
 
 /*
  * =============================== Helper Structures/Functions ===============================
  */
-
-struct TestEvent {
-    int id;
-    float value;
-    
-    TestEvent(int i = 0, float v = 0.0f) : id(i), value(v) {}
-    
-    bool operator==(const TestEvent& other) const {
-        return id == other.id && value == other.value;
-    }
-};
-
-struct AnotherEvent {
-    std::string name;
-    bool active;
-    
-    AnotherEvent(const std::string& n = "", bool a = false) : name(n), active(a) {}
-    
-    bool operator==(const AnotherEvent& other) const {
-        return name == other.name && active == other.active;
-    }
-};
-
-struct ComplexEvent {
-    std::vector<int> data;
-    std::string description;
-    
-    ComplexEvent(const std::vector<int>& d = {}, const std::string& desc = "") 
-        : data(d), description(desc) {}
-    
-    bool operator==(const ComplexEvent& other) const {
-        return data == other.data && description == other.description;
-    }
-};
+#include "events.hpp"
 
 enum class Operation {
     WRITE = 0,
@@ -83,11 +50,11 @@ TEST(EventStorageTest, BasicOperations) {
     EXPECT_EQ(event_storage.size(), 0);
     EXPECT_TRUE(event_storage.empty());
 
-    event_storage.write<TestEvent>(1, 10.5f);
+    event_storage.write<DamageEvent>(1, 10.5f);
     EXPECT_EQ(event_storage.size(), 1); // Only one type, so size is 1
     EXPECT_FALSE(event_storage.empty());
 
-    event_storage.write<AnotherEvent>("test", true);
+    event_storage.write<StatusEvent>("test", true);
     EXPECT_EQ(event_storage.size(), 2); // Two types now
     EXPECT_EQ(event_storage.pool().size(), 2);
     EXPECT_EQ(event_storage.destroy_funcs().size(), 2);
@@ -97,44 +64,44 @@ TEST(EventStorageTest, BasicOperations) {
 TEST(EventStorageTest, WriteAndRead) {
     basic_event_storage<> event_storage;
 
-    event_storage.write<TestEvent>(1, 10.5f);
-    event_storage.write<TestEvent>(2, 20.5f);
-    event_storage.write<TestEvent>(3, 30.5f);
+    event_storage.write<DamageEvent>(1, 10.5f);
+    event_storage.write<DamageEvent>(2, 20.5f);
+    event_storage.write<DamageEvent>(3, 30.5f);
 
-    event_storage.write<AnotherEvent>("first", true);
-    event_storage.write<AnotherEvent>("second", false);
+    event_storage.write<StatusEvent>("first", true);
+    event_storage.write<StatusEvent>("second", false);
 
     {
-        auto test_event_set = event_storage.read<TestEvent>();
+        auto test_event_set = event_storage.read<DamageEvent>();
         EXPECT_EQ(test_event_set.size(), 3);
 
-        std::vector<TestEvent> test_events;
+        std::vector<DamageEvent> test_events;
         for (const auto& event : test_event_set) {
             test_events.push_back(event);
         }
 
         EXPECT_EQ(test_events.size(), 3);
-        EXPECT_TRUE(std::find(test_events.begin(), test_events.end(), TestEvent(1, 10.5f)) != test_events.end());
-        EXPECT_TRUE(std::find(test_events.begin(), test_events.end(), TestEvent(2, 20.5f)) != test_events.end());
-        EXPECT_TRUE(std::find(test_events.begin(), test_events.end(), TestEvent(3, 30.5f)) != test_events.end());    
+        EXPECT_TRUE(std::find(test_events.begin(), test_events.end(), DamageEvent(1, 10.5f)) != test_events.end());
+        EXPECT_TRUE(std::find(test_events.begin(), test_events.end(), DamageEvent(2, 20.5f)) != test_events.end());
+        EXPECT_TRUE(std::find(test_events.begin(), test_events.end(), DamageEvent(3, 30.5f)) != test_events.end());    
     }
     
     {
-        auto another_event_set = event_storage.read<AnotherEvent>();
+        auto another_event_set = event_storage.read<StatusEvent>();
         EXPECT_EQ(another_event_set.size(), 2);
 
-        std::vector<AnotherEvent> another_events;
+        std::vector<StatusEvent> another_events;
         for (const auto& event : another_event_set) {
             another_events.push_back(event);
         }
 
         EXPECT_EQ(another_events.size(), 2);
-        EXPECT_TRUE(std::find(another_events.begin(), another_events.end(), AnotherEvent("first", true)) != another_events.end());
-        EXPECT_TRUE(std::find(another_events.begin(), another_events.end(), AnotherEvent("second", false)) != another_events.end());
+        EXPECT_TRUE(std::find(another_events.begin(), another_events.end(), StatusEvent("first", true)) != another_events.end());
+        EXPECT_TRUE(std::find(another_events.begin(), another_events.end(), StatusEvent("second", false)) != another_events.end());
     }
 
     {
-        auto empty_event_set = event_storage.read<ComplexEvent>();
+        auto empty_event_set = event_storage.read<BulkEvent>();
         EXPECT_EQ(empty_event_set.size(), 0);
         EXPECT_TRUE(empty_event_set.empty());
     }
@@ -144,26 +111,26 @@ TEST(EventStorageTest, WriteAndRead) {
 TEST(EventStorageTest, MutateOperations) {
     basic_event_storage<> event_storage;
 
-    event_storage.write<TestEvent>(1, 10.5f);
-    event_storage.write<TestEvent>(2, 20.5f);
+    event_storage.write<DamageEvent>(1, 10.5f);
+    event_storage.write<DamageEvent>(2, 20.5f);
 
     {
-        auto mutable_event_set = event_storage.mutate<TestEvent>();
+        auto mutable_event_set = event_storage.mutate<DamageEvent>();
         EXPECT_EQ(mutable_event_set.size(), 2);
 
-        std::vector<TestEvent> events;
+        std::vector<DamageEvent> events;
         for (const auto& event : mutable_event_set) {
             events.push_back(event);
         }
 
         EXPECT_EQ(events.size(), 2);
-        EXPECT_TRUE(std::find(events.begin(), events.end(), TestEvent(1, 10.5f)) != events.end());
-        EXPECT_TRUE(std::find(events.begin(), events.end(), TestEvent(2, 20.5f)) != events.end());
+        EXPECT_TRUE(std::find(events.begin(), events.end(), DamageEvent(1, 10.5f)) != events.end());
+        EXPECT_TRUE(std::find(events.begin(), events.end(), DamageEvent(2, 20.5f)) != events.end());
     
     }
 
     {
-        auto empty_mutable_set = event_storage.mutate<ComplexEvent>();
+        auto empty_mutable_set = event_storage.mutate<BulkEvent>();
         EXPECT_EQ(empty_mutable_set.size(), 0);
         EXPECT_TRUE(empty_mutable_set.empty());
     }
@@ -173,37 +140,37 @@ TEST(EventStorageTest, MutateOperations) {
 TEST(EventStorageTest, MemoryManagement) {
     basic_event_storage<> event_storage;
 
-    event_storage.write<ComplexEvent>(std::vector<int>{1, 2, 3}, "test1");
-    event_storage.write<ComplexEvent>(std::vector<int>{4, 5, 6}, "test2");
-    event_storage.write<TestEvent>(42, 99.9f);
+    event_storage.write<BulkEvent>(std::vector<int>{1, 2, 3}, "test1");
+    event_storage.write<BulkEvent>(std::vector<int>{4, 5, 6}, "test2");
+    event_storage.write<DamageEvent>(42, 99.9f);
 
-    EXPECT_EQ(event_storage.size(), 3); // Two different types, but ComplexEvent's id is 3, so size is 3
+    EXPECT_EQ(event_storage.size(), 3); // Two different types, but BulkEvent's id is 3, so size is 3
 
     {
-        auto complex_event_set = event_storage.read<ComplexEvent>();
+        auto complex_event_set = event_storage.read<BulkEvent>();
         EXPECT_EQ(complex_event_set.size(), 2);
 
-        std::vector<ComplexEvent> complex_events;
+        std::vector<BulkEvent> complex_events;
         for (const auto& event : complex_event_set) {
             complex_events.push_back(event);
         }
     
         EXPECT_EQ(complex_events.size(), 2);
-        EXPECT_TRUE(std::find(complex_events.begin(), complex_events.end(), ComplexEvent({1, 2, 3}, "test1")) != complex_events.end());
-        EXPECT_TRUE(std::find(complex_events.begin(), complex_events.end(), ComplexEvent({4, 5, 6}, "test2")) != complex_events.end());
+        EXPECT_TRUE(std::find(complex_events.begin(), complex_events.end(), BulkEvent({1, 2, 3}, "test1")) != complex_events.end());
+        EXPECT_TRUE(std::find(complex_events.begin(), complex_events.end(), BulkEvent({4, 5, 6}, "test2")) != complex_events.end());
     }
 
     {
-        auto test_event_set = event_storage.read<TestEvent>();
+        auto test_event_set = event_storage.read<DamageEvent>();
         EXPECT_EQ(test_event_set.size(), 1);
 
-        std::vector<TestEvent> test_events;
+        std::vector<DamageEvent> test_events;
         for (const auto& event : test_event_set) {
             test_events.push_back(event);
         }
     
         EXPECT_EQ(test_events.size(), 1);
-        EXPECT_TRUE(std::find(test_events.begin(), test_events.end(), TestEvent(42, 99.9f)) != test_events.end());
+        EXPECT_TRUE(std::find(test_events.begin(), test_events.end(), DamageEvent(42, 99.9f)) != test_events.end());
     }
 }
 
@@ -212,15 +179,15 @@ TEST(EventStorageTest, SwapAndClear) {
     basic_event_storage<> event_storage1;
     basic_event_storage<> event_storage2;
 
-    event_storage1.write<TestEvent>(1, 10.5f);
-    event_storage1.write<TestEvent>(2, 20.5f);
-    event_storage1.write<AnotherEvent>("test1", true);
+    event_storage1.write<DamageEvent>(1, 10.5f);
+    event_storage1.write<DamageEvent>(2, 20.5f);
+    event_storage1.write<StatusEvent>("test1", true);
     EXPECT_EQ(event_storage1.size(), 2);
     EXPECT_FALSE(event_storage1.empty());
 
-    event_storage2.write<TestEvent>(3, 30.5f);
-    event_storage2.write<ComplexEvent>(std::vector<int>{1, 2, 3}, "test2");
-    EXPECT_EQ(event_storage2.size(), 3); // Two different types, but ComplexEvent's id is 3, so size is 3
+    event_storage2.write<DamageEvent>(3, 30.5f);
+    event_storage2.write<BulkEvent>(std::vector<int>{1, 2, 3}, "test2");
+    EXPECT_EQ(event_storage2.size(), 3); // Two different types, but BulkEvent's id is 3, so size is 3
     EXPECT_FALSE(event_storage2.empty());
 
     event_storage1.swap(event_storage2);
@@ -228,56 +195,56 @@ TEST(EventStorageTest, SwapAndClear) {
     EXPECT_EQ(event_storage2.size(), 2);
 
     {
-        auto test_event_set = event_storage1.read<TestEvent>();
+        auto test_event_set = event_storage1.read<DamageEvent>();
         EXPECT_EQ(test_event_set.size(), 1);
 
-        std::vector<TestEvent> test_events;
+        std::vector<DamageEvent> test_events;
         for (const auto& event : test_event_set) {
             test_events.push_back(event);
         }
 
         EXPECT_EQ(test_events.size(), 1);
-        EXPECT_TRUE(std::find(test_events.begin(), test_events.end(), TestEvent(3, 30.5f)) != test_events.end());
+        EXPECT_TRUE(std::find(test_events.begin(), test_events.end(), DamageEvent(3, 30.5f)) != test_events.end());
     }
 
     {
-        auto complex_event_set = event_storage1.read<ComplexEvent>();
+        auto complex_event_set = event_storage1.read<BulkEvent>();
         EXPECT_EQ(complex_event_set.size(), 1);
 
-        std::vector<ComplexEvent> complex_events;
+        std::vector<BulkEvent> complex_events;
         for (const auto& event : complex_event_set) {
             complex_events.push_back(event);
         }
 
         EXPECT_EQ(complex_events.size(), 1);
-        EXPECT_TRUE(std::find(complex_events.begin(), complex_events.end(), ComplexEvent({1, 2, 3}, "test2")) != complex_events.end());
+        EXPECT_TRUE(std::find(complex_events.begin(), complex_events.end(), BulkEvent({1, 2, 3}, "test2")) != complex_events.end());
     }
 
     {
-        auto test_event_set = event_storage2.read<TestEvent>();
+        auto test_event_set = event_storage2.read<DamageEvent>();
         EXPECT_EQ(test_event_set.size(), 2);
 
-        std::vector<TestEvent> test_events;
+        std::vector<DamageEvent> test_events;
         for (const auto& event : test_event_set) {
             test_events.push_back(event);
         }
 
         EXPECT_EQ(test_events.size(), 2);
-        EXPECT_TRUE(std::find(test_events.begin(), test_events.end(), TestEvent(1, 10.5f)) != test_events.end());
-        EXPECT_TRUE(std::find(test_events.begin(), test_events.end(), TestEvent(2, 20.5f)) != test_events.end());
+        EXPECT_TRUE(std::find(test_events.begin(), test_events.end(), DamageEvent(1, 10.5f)) != test_events.end());
+        EXPECT_TRUE(std::find(test_events.begin(), test_events.end(), DamageEvent(2, 20.5f)) != test_events.end());
     }
 
     {
-        auto another_event_set = event_storage2.read<AnotherEvent>();
+        auto another_event_set = event_storage2.read<StatusEvent>();
         EXPECT_EQ(another_event_set.size(), 1);
 
-        std::vector<AnotherEvent> another_events;
+        std::vector<StatusEvent> another_events;
         for (const auto& event : another_event_set) {
             another_events.push_back(event);
         }
 
         EXPECT_EQ(another_events.size(), 1);
-        EXPECT_TRUE(std::find(another_events.begin(), another_events.end(), AnotherEvent("test1", true)) != another_events.end());
+        EXPECT_TRUE(std::find(another_events.begin(), another_events.end(), StatusEvent("test1", true)) != another_events.end());
     }
 
     event_storage1.clear();
@@ -299,9 +266,9 @@ TEST(EventStorageTest, RandomOperations) {
     std::uniform_int_distribution<int> type_dist(0, 2);
     std::uniform_int_distribution<int> operation_dist(0, static_cast<int>(Operation::MAX_OPERATIONS) - 1);
 
-    std::vector<TestEvent> expected_test_events;
-    std::vector<AnotherEvent> expected_another_events;
-    std::vector<ComplexEvent> expected_complex_events;
+    std::vector<DamageEvent> expected_test_events;
+    std::vector<StatusEvent> expected_another_events;
+    std::vector<BulkEvent> expected_complex_events;
 
     for (int round = 0; round < 100; ++round) {
         Operation operation = static_cast<Operation>(operation_dist(gen));
@@ -313,21 +280,21 @@ TEST(EventStorageTest, RandomOperations) {
                     case 0: {
                         int id = id_dist(gen);
                         float value = value_dist(gen);
-                        event_storage.write<TestEvent>(id, value);
+                        event_storage.write<DamageEvent>(id, value);
                         expected_test_events.emplace_back(id, value);
                         break;
                     }
                     case 1: {
                         std::string name = "event_" + std::to_string(id_dist(gen));
                         bool active = (id_dist(gen) % 2) == 0;
-                        event_storage.write<AnotherEvent>(name, active);
+                        event_storage.write<StatusEvent>(name, active);
                         expected_another_events.emplace_back(name, active);
                         break;
                     }
                     case 2: {
                         std::vector<int> data = {id_dist(gen), id_dist(gen), id_dist(gen)};
                         std::string desc = "complex_" + std::to_string(id_dist(gen));
-                        event_storage.write<ComplexEvent>(data, desc);
+                        event_storage.write<BulkEvent>(data, desc);
                         expected_complex_events.emplace_back(data, desc);
                         break;
                     }
@@ -337,7 +304,7 @@ TEST(EventStorageTest, RandomOperations) {
 
             case Operation::READ: { // Read operation
                 {
-                    auto test_event_set = event_storage.read<TestEvent>();
+                    auto test_event_set = event_storage.read<DamageEvent>();
                     EXPECT_EQ(test_event_set.size(), expected_test_events.size());
                     for (const auto& event : test_event_set) {
                         EXPECT_TRUE(std::find(expected_test_events.begin(), expected_test_events.end(), event) != expected_test_events.end());
@@ -345,7 +312,7 @@ TEST(EventStorageTest, RandomOperations) {
                 }
 
                 {
-                    auto another_event_set = event_storage.read<AnotherEvent>();
+                    auto another_event_set = event_storage.read<StatusEvent>();
                     EXPECT_EQ(another_event_set.size(), expected_another_events.size());
                     for (const auto& event : another_event_set) {
                         EXPECT_TRUE(std::find(expected_another_events.begin(), expected_another_events.end(), event) != expected_another_events.end());
@@ -353,7 +320,7 @@ TEST(EventStorageTest, RandomOperations) {
                 }
 
                 {
-                    auto complex_event_set = event_storage.read<ComplexEvent>();
+                    auto complex_event_set = event_storage.read<BulkEvent>();
                     EXPECT_EQ(complex_event_set.size(), expected_complex_events.size());
                     for (const auto& event : complex_event_set) {
                         EXPECT_TRUE(std::find(expected_complex_events.begin(), expected_complex_events.end(), event) != expected_complex_events.end());
@@ -365,7 +332,7 @@ TEST(EventStorageTest, RandomOperations) {
 
             case Operation::MUTATE: { // Mutate operation
                 {
-                    auto test_event_set = event_storage.mutate<TestEvent>();
+                    auto test_event_set = event_storage.mutate<DamageEvent>();
                     EXPECT_EQ(test_event_set.size(), expected_test_events.size());
                     for (const auto& event : test_event_set) {
                         EXPECT_TRUE(std::find(expected_test_events.begin(), expected_test_events.end(), event) != expected_test_events.end());
@@ -373,7 +340,7 @@ TEST(EventStorageTest, RandomOperations) {
                 }
 
                 {
-                    auto another_event_set = event_storage.mutate<AnotherEvent>();
+                    auto another_event_set = event_storage.mutate<StatusEvent>();
                     EXPECT_EQ(another_event_set.size(), expected_another_events.size());
                     for (const auto& event : another_event_set) {
                         EXPECT_TRUE(std::find(expected_another_events.begin(), expected_another_events.end(), event) != expected_another_events.end());
@@ -381,7 +348,7 @@ TEST(EventStorageTest, RandomOperations) {
                 }
 
                 {
-                    auto complex_event_set = event_storage.mutate<ComplexEvent>();
+                    auto complex_event_set = event_storage.mutate<BulkEvent>();
                     EXPECT_EQ(complex_event_set.size(), expected_complex_events.size());
                     for (const auto& event : complex_event_set) {
                         EXPECT_TRUE(std::find(expected_complex_events.begin(), expected_complex_events.end(), event) != expected_complex_events.end());
@@ -399,7 +366,7 @@ TEST(EventStorageTest, RandomOperations) {
     EXPECT_EQ(event_storage.size(), 3); // Three different types
 
     {
-        auto final_test_event_set = event_storage.read<TestEvent>();
+        auto final_test_event_set = event_storage.read<DamageEvent>();
         EXPECT_EQ(final_test_event_set.size(), expected_test_events.size());
         for (const auto& event : final_test_event_set) {
             EXPECT_TRUE(std::find(expected_test_events.begin(), expected_test_events.end(), event) != expected_test_events.end());
@@ -407,7 +374,7 @@ TEST(EventStorageTest, RandomOperations) {
     }
 
     {
-        auto final_another_event_set = event_storage.read<AnotherEvent>();
+        auto final_another_event_set = event_storage.read<StatusEvent>();
         EXPECT_EQ(final_another_event_set.size(), expected_another_events.size());
         for (const auto& event : final_another_event_set) {
             EXPECT_TRUE(std::find(expected_another_events.begin(), expected_another_events.end(), event) != expected_another_events.end());
@@ -415,7 +382,7 @@ TEST(EventStorageTest, RandomOperations) {
     }
 
     {
-        auto final_complex_event_set = event_storage.read<ComplexEvent>();
+        auto final_complex_event_set = event_storage.read<BulkEvent>();
         EXPECT_EQ(final_complex_event_set.size(), expected_complex_events.size());
         for (const auto& event : final_complex_event_set) {
             EXPECT_TRUE(std::find(expected_complex_events.begin(), expected_complex_events.end(), event) != expected_complex_events.end());

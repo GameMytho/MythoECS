@@ -23,11 +23,11 @@
  */
 
 #include <gtest/gtest.h>
-#include "container/entity_set.hpp"
-#include "ecs/entity.hpp"
 #include <random>
 #include <vector>
 #include <algorithm>
+#include <container/entity_set.hpp>
+#include <ecs/entity.hpp>
 
 using namespace mytho::container;
 using namespace mytho::ecs;
