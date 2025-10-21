@@ -9,6 +9,17 @@
  * - Resources: init/resources/resources_mut/remove + tick semantics
  * - Events: event_write/event_read/event_mutate and swap on update
  * - Systems: add_*_system (Func/Config), ready/startup/update/shutdown execution order
+ * - Removed entities: removed_entities() access and update() clearing behavior
+ * 
+ * Registry Test Cases:
+ * 1. BasicEntityLifecycle - Verify entity lifecycle operations
+ * 2. ComponentsInsertReplaceRemoveGet - Verify components insert, replace, remove, and get operations
+ * 3. ComponentsDetection - Verify components added, changed, removed operations and removed entities tracking
+ * 4. CountWithFilters - Verify count operations with filters
+ * 5. ResourcesLifecycleAndTicks - Verify resources lifecycle operations with ticks
+ * 6. EventsWriteReadMutateAndSwap - Verify events write, read, mutate, and swap operations
+ * 7. AddAndRunSystemsWithFunc - Verify add and run systems with functions
+ * 8. AddAndRunSystemsWithConfig - Verify add and run systems with configurations
  */
 
 #include <gtest/gtest.h>
@@ -74,20 +85,40 @@ TEST(RegistryTest, ComponentsInsertReplaceRemoveGet) {
     EXPECT_FALSE(reg.contain<Position>(e));
 }
 
-TEST(RegistryTest, ComponentsAddedAndChangedTicks) {
+TEST(RegistryTest, ComponentsDetection) {
     registry reg;
 
     auto e = reg.spawn(Position{0, 0}); // added/changed at tick=1
-
-    EXPECT_TRUE((reg.components_added<Position>(1)));
-    EXPECT_TRUE((reg.components_changed<Position>(1)));
+    EXPECT_TRUE(reg.contain<Position>(e));
+    EXPECT_TRUE(reg.components_added<Position>(1));
+    EXPECT_TRUE(reg.components_changed<Position>(1));
+    EXPECT_FALSE(reg.components_removed<Position>());
+    EXPECT_TRUE(reg.removed_entities<Position>().empty()); // Initially no removed entities
 
     reg.update(); // current tick -> 2
-    // replace at tick=2 -> changed
     reg.replace(e, Position{1, 1});
+    EXPECT_TRUE(reg.contain<Position>(e));
+    EXPECT_FALSE(reg.components_added<Position>(2));
+    EXPECT_TRUE(reg.components_changed<Position>(2));
+    EXPECT_FALSE(reg.components_added<Position>(3));
+    EXPECT_FALSE(reg.components_changed<Position>(3));
+    EXPECT_FALSE(reg.components_removed<Position>());
+    EXPECT_TRUE(reg.removed_entities<Position>().empty()); // Still no removed entities
 
-    EXPECT_TRUE((reg.components_changed<Position>(2)));
-    EXPECT_FALSE((reg.components_changed<Position>(3)));
+    reg.remove<Position>(e);
+    EXPECT_FALSE(reg.contain<Position>(e));
+    EXPECT_FALSE(reg.components_added<Position>(2));
+    EXPECT_FALSE(reg.components_changed<Position>(2));
+    EXPECT_TRUE(reg.components_removed<Position>());
+    EXPECT_EQ(reg.removed_entities<Position>().size(), 1); // Now has removed entity
+    EXPECT_EQ(reg.removed_entities<Position>()[0], e);
+
+    reg.update();
+    EXPECT_FALSE(reg.contain<Position>(e));
+    EXPECT_FALSE(reg.components_added<Position>(3));
+    EXPECT_FALSE(reg.components_changed<Position>(3));
+    EXPECT_FALSE(reg.components_removed<Position>());
+    EXPECT_TRUE(reg.removed_entities<Position>().empty()); // Cleared after update
 }
 
 TEST(RegistryTest, CountWithFilters) {
@@ -154,10 +185,6 @@ TEST(RegistryTest, EventsWriteReadMutateAndSwap) {
     ASSERT_EQ(r3.size(), 1);
 }
 
-/*
- * ======================================== Registry Systems Test Cases ============================
- */
-
 TEST(RegistryTest, AddAndRunSystemsWithFunc) {
     gSysOrder.clear();
     registry reg;
@@ -199,5 +226,6 @@ TEST(RegistryTest, AddAndRunSystemsWithConfig) {
     EXPECT_EQ(gSysOrder[1], 20);
     EXPECT_EQ(gSysOrder[2], 30);
 }
+
 
 

@@ -37,6 +37,12 @@ namespace mytho::ecs {
             return _reg.template components_changed<Ts...>(_last_run_tick);
         }
 
+        template<mytho::utils::PureComponentType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool components_removed() noexcept {
+            return _reg.template components_removed<Ts...>();
+        }
+
         template<mytho::utils::QueryValueType... Ts>
         requires (sizeof...(Ts) > 0)
         size_type count() const noexcept {

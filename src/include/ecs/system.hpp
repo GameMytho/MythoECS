@@ -108,6 +108,13 @@ namespace mytho::ecs::internal {
         }
     };
 
+    template<typename RegistryT, typename T>
+    struct argument_constructor<RegistryT, basic_removed_entities<RegistryT, T>> {
+        auto operator()(RegistryT& reg) const noexcept {
+            return basic_removed_entities<RegistryT, T>(reg.template removed_entities<T>());
+        }
+    };
+
     // argument construct functions
     template<typename RegistryT>
     auto construct_registrar(RegistryT& reg, uint64_t tick) {
@@ -149,6 +156,11 @@ namespace mytho::ecs::internal {
         return argument_constructor<RegistryT, EventReaderT>{}(reg);
     }
 
+    template<typename RegistryT, typename RemovedEntitiesT>
+    auto construct_removed_entities(RegistryT& reg) {
+        return argument_constructor<RegistryT, RemovedEntitiesT>{}(reg);
+    }
+
     template<typename RegistryT, typename T>
     auto construct(RegistryT& reg, uint64_t tick) {
         if constexpr (mytho::utils::is_registrar_v<T>) {
@@ -167,6 +179,8 @@ namespace mytho::ecs::internal {
             return construct_event_mutator<RegistryT, T>(reg);
         } else if constexpr (mytho::utils::is_event_reader_v<T>) {
             return construct_event_reader<RegistryT, T>(reg);
+        } else if constexpr (mytho::utils::is_removed_entities_v<T>) {
+            return construct_removed_entities<RegistryT, T>(reg);
         } else {
             ASSURE(false, "Unsupport type, please check the args of systems!");
         }

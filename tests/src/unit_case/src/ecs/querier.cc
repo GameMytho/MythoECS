@@ -3,6 +3,7 @@
  * 
  * This test suite validates:
  * - basic_querier: iteration, tuple binding, types mapping (entity, const/mut)
+ * - basic_removed_entities: iteration, size, empty state, const iteration
  * - helpers: traits/concepts/type transforms and internal meta composition
  * 
  * Querier Helpers Test Cases:
@@ -18,8 +19,18 @@
  * 2. QuerierDataTypeMapping - Verify component_bundle_type static mapping
  * 3. EmptyContainer - Verify empty container behavior
  * 
+ * Removed Entities Test Cases:
+ * 1. BasicOperations - Verify basic operations (size, empty, iteration)
+ * 2. EmptyContainer - Verify empty container behavior
+ * 3. ConstIteration - Verify const iteration functionality
+ * 4. ModificationThroughReference - Verify modification through underlying vector
+ * 5. TypeTraits - Verify type aliases and traits
+ * 
  * Querier Trait Test Cases:
  * 1. IsQuerierTrait - Verify is_querier_v trait
+ * 
+ * Removed Entities Trait Test Cases:
+ * 1. IsRemovedEntitiesTrait - Verify is_removed_entities_v trait
  */
 
 #include <gtest/gtest.h>
@@ -266,4 +277,132 @@ TEST(QuerierTraitTest, IsQuerierTrait) {
     static_assert(mytho::utils::is_querier_v<basic_querier<registry, without<Position>>>);
     static_assert(mytho::utils::is_querier_v<basic_querier<registry, added<Position>>>);
     static_assert(mytho::utils::is_querier_v<basic_querier<registry, changed<Position>>>);
+}
+
+/*
+ * ======================================== Removed Entities Test Cases ====================================
+ */
+
+TEST(RemovedEntitiesTest, BasicOperations) {
+    using RemovedEntities = basic_removed_entities<registry, Position>;
+    using EntitiesType = typename RemovedEntities::entities_type;
+
+    entity e1(1, 10);
+    entity e2(2, 20);
+    entity e3(3, 30);
+
+    EntitiesType entities = {e1, e2, e3};
+
+    RemovedEntities removed_entities(entities);
+
+    EXPECT_EQ(removed_entities.size(), 3);
+    EXPECT_FALSE(removed_entities.empty());
+
+    auto it = removed_entities.begin();
+    EXPECT_EQ(*it, e1);
+    ++it;
+    EXPECT_EQ(*it, e2);
+    ++it;
+    EXPECT_EQ(*it, e3);
+    ++it;
+    EXPECT_EQ(it, removed_entities.end());
+
+    int count = 0;
+    for (const auto& entity : removed_entities) {
+        if (count == 0) {
+            EXPECT_EQ(entity, e1);
+        } else if (count == 1) {
+            EXPECT_EQ(entity, e2);
+        } else if (count == 2) {
+            EXPECT_EQ(entity, e3);
+        }
+        count++;
+    }
+    EXPECT_EQ(count, 3);
+}
+
+TEST(RemovedEntitiesTest, EmptyContainer) {
+    using RemovedEntities = basic_removed_entities<registry, Position>;
+    using EntitiesType = typename RemovedEntities::entities_type;
+
+    EntitiesType entities;
+
+    RemovedEntities removed_entities(entities);
+
+    EXPECT_EQ(removed_entities.size(), 0);
+    EXPECT_TRUE(removed_entities.empty());
+
+    EXPECT_EQ(removed_entities.begin(), removed_entities.end());
+
+    int count = 0;
+    for (const auto& entity : removed_entities) {
+        count++;
+    }
+    EXPECT_EQ(count, 0);
+}
+
+TEST(RemovedEntitiesTest, ConstIteration) {
+    using RemovedEntities = basic_removed_entities<registry, Position>;
+    using EntitiesType = typename RemovedEntities::entities_type;
+
+    entity e1(1, 10);
+    entity e2(2, 20);
+
+    EntitiesType entities = {e1, e2};
+
+    const RemovedEntities removed_entities(entities);
+
+    auto it = removed_entities.begin();
+    EXPECT_EQ(*it, e1);
+    ++it;
+    EXPECT_EQ(*it, e2);
+    ++it;
+    EXPECT_EQ(it, removed_entities.end());
+
+    int count = 0;
+    for (const auto& entity : removed_entities) {
+        if (count == 0) {
+            EXPECT_EQ(entity, e1);
+        } else if (count == 1) {
+            EXPECT_EQ(entity, e2);
+        }
+        count++;
+    }
+    EXPECT_EQ(count, 2);
+}
+
+TEST(RemovedEntitiesTest, ModificationThroughReference) {
+    using RemovedEntities = basic_removed_entities<registry, Position>;
+    using EntitiesType = typename RemovedEntities::entities_type;
+
+    entity e1(1, 10);
+    entity e2(2, 20);
+
+    EntitiesType entities = {e1, e2};
+    RemovedEntities removed_entities(entities);
+
+    EXPECT_EQ(removed_entities.size(), 2);
+
+    entities.push_back(entity(3, 30));
+
+    EXPECT_EQ(removed_entities.size(), 3);
+
+    int count = 0;
+    for (const auto& entity : removed_entities) {
+        count++;
+    }
+    EXPECT_EQ(count, 3);
+}
+
+/*
+ * ======================================== Removed Entities Trait Test Cases ===============================
+ */
+
+TEST(RemovedEntitiesTraitTest, IsRemovedEntitiesTrait) {
+    using RemovedEntities = basic_removed_entities<registry, Position>;
+
+    static_assert(mytho::utils::is_removed_entities_v<RemovedEntities>);
+    static_assert(!mytho::utils::is_removed_entities_v<basic_querier<registry, Position>>);
+    static_assert(!mytho::utils::is_removed_entities_v<entity>);
+    static_assert(!mytho::utils::is_removed_entities_v<int>);
 }

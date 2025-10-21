@@ -43,6 +43,9 @@ namespace {
     template<typename T>
     using event_reader = mytho::ecs::basic_event_reader<T>;
 
+    template<typename T>
+    using removed_entities = mytho::ecs::basic_removed_entities<registry, T>;
+
     template<mytho::utils::FunctionType Func>
     auto system(Func&& func) {
         return registry::system(std::forward<Func>(func));
@@ -56,6 +59,11 @@ namespace {
     template<mytho::utils::PureComponentType T, mytho::utils::PureComponentType... Rs>
     bool components_changed(registrar reg) {
         return reg.template components_changed<T, Rs...>();
+    }
+
+    template<mytho::utils::PureComponentType T, mytho::utils::PureComponentType... Rs>
+    bool components_removed(registrar reg) {
+        return reg.template components_removed<T, Rs...>();
     }
 
     template<mytho::utils::PureResourceType... Ts>

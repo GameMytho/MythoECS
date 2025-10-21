@@ -181,9 +181,38 @@ namespace mytho::ecs {
     private:
         component_bundle_container_type _component_bundles;
     };
+
+    template<typename RegistryT, mytho::utils::PureComponentType T>
+    class basic_removed_entities final {
+    public:
+        using registry_type = RegistryT;
+        using entities_type = std::vector<typename registry_type::entity_type>;
+        using size_type = typename entities_type::size_type;
+        using iterator = typename entities_type::iterator;
+        using const_iterator = typename entities_type::const_iterator;
+
+        basic_removed_entities(entities_type& entities) noexcept : _entities(entities) {}
+
+    public:
+        iterator begin() noexcept { return _entities.begin(); }
+        iterator end() noexcept { return _entities.end(); }
+
+        const_iterator begin() const noexcept { return _entities.begin(); }
+        const_iterator end() const noexcept { return _entities.end(); }
+
+        size_type size() const noexcept { return _entities.size(); }
+
+        bool empty() const noexcept { return size() == 0; }
+
+    private:
+        entities_type& _entities;
+    };
 }
 
 namespace mytho::utils {
     template<typename T>
     inline constexpr bool is_querier_v = internal::is_template_v<T, mytho::ecs::basic_querier>;
+
+    template<typename T>
+    inline constexpr bool is_removed_entities_v = internal::is_template_v<T, mytho::ecs::basic_removed_entities>;
 }

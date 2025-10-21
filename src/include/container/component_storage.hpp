@@ -19,6 +19,7 @@ namespace mytho::container {
         using size_type = typename component_pool_type::size_type;
         using component_id_generator = mytho::utils::basic_id_generator<mytho::utils::GeneratorType::COMPONENT_GENOR, component_id_type>;
         using entity_remove_functions_type = std::vector<void(*)(void*, const entity_type&)>;
+        using removed_entities_type = std::vector<std::vector<entity_type>>;
 
     public:
         template<mytho::utils::PureValueType... Ts>
@@ -79,8 +80,28 @@ namespace mytho::container {
             return (_is_changed<Ts>(e, tick) && ...);
         }
 
+        template<mytho::utils::PureValueType T>
+        auto& removed_entities() noexcept {
+            auto id = component_id_generator::template gen<T>();
+
+            if (id >= _entities.size()) {
+                _entities.resize(id + 1, std::vector<entity_type>());
+            }
+
+            return _entities[id];
+        }
+
         void clear() noexcept {
             _pool.clear();
+            _remove_funcs.clear();
+            _entities.clear();
+        }
+
+        void removed_entities_clear() noexcept {
+            // we do not need to clear whole container, just clear the sub vector to avoid repetitive memory allocation
+            for (auto& entity : _entities) {
+                entity.clear();
+            }
         }
 
     public:
@@ -93,6 +114,7 @@ namespace mytho::container {
     private:
         component_pool_type _pool;
         entity_remove_functions_type _remove_funcs;
+        removed_entities_type _entities;
 
     private:
         template<typename T>
@@ -101,12 +123,24 @@ namespace mytho::container {
 
             auto id = component_id_generator::template gen<T>();
             static_cast<component_set_type&>(*_pool[id]).remove(e);
+
+            // record the removed entity
+            if (id >= _entities.size()) {
+                _entities.resize(id + 1, std::vector<entity_type>());
+            }
+            _entities[id].push_back(e);
         }
 
         void _remove_entity(const entity_type& e) noexcept {
             for (size_type i = 0; i < _pool.size(); i++) {
                 if (_pool[i] && _pool[i]->contain(e)) {
                     _remove_funcs[i](_pool[i].get(), e);
+
+                    // record the removed entity
+                    if (i >= _entities.size()) {
+                        _entities.resize(i + 1, std::vector<entity_type>());
+                    }
+                    _entities[i].push_back(e);
                 }
             }
         }

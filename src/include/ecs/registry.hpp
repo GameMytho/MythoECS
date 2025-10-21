@@ -152,6 +152,17 @@ namespace mytho::ecs {
             return false;
         }
 
+        template<mytho::utils::PureComponentType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool components_removed() noexcept {
+            return (!_components.template removed_entities<Ts>().empty() && ...);
+        }
+
+        template<mytho::utils::PureComponentType T>
+        auto& removed_entities() noexcept {
+            return _components.template removed_entities<T>();
+        }
+
         template<mytho::utils::QueryValueType... Ts>
         requires (sizeof...(Ts) > 0)
         querier_type<Ts...> query() noexcept {
@@ -363,6 +374,7 @@ namespace mytho::ecs {
             _current_tick++;
             apply_commands();
 
+            _components.removed_entities_clear();
             _events.swap();
         }
 

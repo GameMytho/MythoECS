@@ -10,7 +10,9 @@
  * - not_contain: Check if entity doesn't have specific components
  * - is_added: Check if components were added after or at specific tick
  * - is_changed: Check if components were changed after or at specific tick
+ * - removed_entities: Get list of entities that had specific component type removed
  * - clear: Clear all components
+ * - removed_entities_clear: Clear all removed entities lists
  * - size/empty: Get size and check empty state
  * 
  * Test Cases:
@@ -20,7 +22,8 @@
  * 4. TickManagement - Tests tick-based component tracking
  * 5. ReplaceOperations - Tests component replacement functionality
  * 6. ComplexComponentTypes - Tests complex component types
- * 7. RandomOperations - Tests random operations and data integrity
+ * 7. RemovedEntities - Tests removed entities functionality and clear operations
+ * 8. RandomOperations - Tests random operations and data integrity
  */
 
 #include <gtest/gtest.h>
@@ -206,6 +209,37 @@ TEST(ComponentStorageTest, ComplexComponentTypes) {
     auto [str1_modified, int_val1_modified] = cs.get<std::string, int>(e1);
     EXPECT_EQ(str1_modified, "modified_entity1");
     EXPECT_EQ(int_val1_modified, 100);
+}
+
+// Test removed entities functionality
+TEST(ComponentStorageTest, RemovedEntities) {
+    component_storage cs;
+
+    entity e1(1, 10);
+    entity e2(2, 20);
+
+    EXPECT_TRUE(cs.removed_entities<Position>().empty());
+
+    cs.add<Position, Velocity>(e1, 100, Position(10, 20), Velocity(5, -2));
+    cs.add<Position>(e2, 200, Position(30, 40));
+
+    cs.remove<Position>(e1);
+    cs.remove<Velocity>(e1);
+
+    EXPECT_EQ(cs.removed_entities<Position>().size(), 1);
+    EXPECT_EQ(cs.removed_entities<Position>()[0], e1);
+    EXPECT_EQ(cs.removed_entities<Velocity>().size(), 1);
+    EXPECT_EQ(cs.removed_entities<Velocity>()[0], e1);
+
+    cs.removed_entities_clear();
+    EXPECT_TRUE(cs.removed_entities<Position>().empty());
+    EXPECT_TRUE(cs.removed_entities<Velocity>().empty());
+
+    cs.add<Position, Velocity>(e1, 300, Position(1, 2), Velocity(3, 4));
+    cs.remove<>(e1);
+
+    EXPECT_EQ(cs.removed_entities<Position>().size(), 1);
+    EXPECT_EQ(cs.removed_entities<Velocity>().size(), 1);
 }
 
 // Test random operations and data integrity

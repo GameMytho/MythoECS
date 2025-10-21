@@ -9,6 +9,7 @@
  * - system execution: basic_system should_run and run-if behavior with tick propagation
  * - system config: basic_system_config after/before/runif chaining and accessors
  * - system storage: basic_system_storage add/ready (Kahn topological order), and before->after conversion
+ * - removed entities: basic_removed_entities argument construction and system integration
  * 
  * Utils/Trait Test Cases:
  * 1. FunctionAndSystemTraitsCompileAndConcept - Tests function and system traits compile and concept
@@ -115,7 +116,8 @@ TEST(SystemHeaderTest, ArgumentConstructorsAndConstructWork) {
                     basic_resources_mut<GameConfig> rsm,
                     basic_event_writer<registry, DamageEvent> ew,
                     basic_event_mutator<DamageEvent> em,
-                    basic_event_reader<DamageEvent> er) {
+                    basic_event_reader<DamageEvent> er,
+                    basic_removed_entities<registry, Position> removed_pos) {
         // avoid unused warnings for constructed args
         (void)r; (void)cmd;
 
@@ -143,6 +145,11 @@ TEST(SystemHeaderTest, ArgumentConstructorsAndConstructWork) {
             }
             (void)em.mutate();
             ew.write(10, 1.0f); // will appear after next update
+        }
+
+        // removed entities
+        {
+            EXPECT_TRUE(removed_pos.empty()); // Initially empty
         }
     };
 
