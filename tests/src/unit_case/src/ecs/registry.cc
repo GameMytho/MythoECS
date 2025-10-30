@@ -40,6 +40,20 @@ using entity = basic_entity<uint32_t, uint16_t>;
 using registry = basic_registry<entity, uint8_t, uint8_t, uint8_t, 1024>;
 static std::vector<int> gSysOrder;
 
+using StartupStage = mytho::ecs::startup_stage;
+using CoreStage = mytho::ecs::core_stage;
+
+enum class CustomStartupStage {
+    PreStartup,
+    PostStartup,
+};
+
+enum class CustomCoreStage {
+    PreRender,
+    Render,
+    PostRender
+};
+
 /*
  * ======================================== Registry Test Cases ===================================
  */
@@ -187,45 +201,123 @@ TEST(RegistryTest, EventsWriteReadMutateAndSwap) {
 
 TEST(RegistryTest, AddAndRunSystemsWithFunc) {
     gSysOrder.clear();
+
     registry reg;
 
-    reg.add_startup_system(+[](){ gSysOrder.push_back(1); });
-    reg.add_update_system(+[](){ gSysOrder.push_back(2); });
-    reg.add_shutdown_system(+[](){ gSysOrder.push_back(3); });
+    reg.add_startup_system(+[](){ gSysOrder.push_back(1); })
+        .add_update_system(+[](){ gSysOrder.push_back(2); });
 
     reg.ready();
     reg.startup();
-    reg.update();
-    reg.shutdown();
 
-    ASSERT_EQ(gSysOrder.size(), 3u);
+    reg.update();
+
+    ASSERT_EQ(gSysOrder.size(), 2u);
     EXPECT_EQ(gSysOrder[0], 1);
     EXPECT_EQ(gSysOrder[1], 2);
-    EXPECT_EQ(gSysOrder[2], 3);
 }
 
 TEST(RegistryTest, AddAndRunSystemsWithConfig) {
     gSysOrder.clear();
+
+    registry reg;
+
+    auto s1 = registry::system(+[](){ gSysOrder.push_back(10); });
+    auto s2 = registry::system(+[](){ gSysOrder.push_back(20); });
+
+    reg.add_startup_system(s1)
+        .add_update_system(s2);
+
+    reg.ready();
+    reg.startup();
+
+    reg.update();
+
+    ASSERT_EQ(gSysOrder.size(), 2u);
+    EXPECT_EQ(gSysOrder[0], 10);
+    EXPECT_EQ(gSysOrder[1], 20);
+}
+
+TEST(RegistryTest, AddAndRunSystemWithSpecifiedStage) {
+    gSysOrder.clear();
+
     registry reg;
 
     auto s1 = registry::system(+[](){ gSysOrder.push_back(10); });
     auto s2 = registry::system(+[](){ gSysOrder.push_back(20); });
     auto s3 = registry::system(+[](){ gSysOrder.push_back(30); });
+    auto s4 = registry::system(+[](){ gSysOrder.push_back(40); });
+    auto s5 = registry::system(+[](){ gSysOrder.push_back(50); });
+    auto s6 = registry::system(+[](){ gSysOrder.push_back(60); });
 
-    reg.add_startup_system(s1);
-    reg.add_update_system(s2);
-    reg.add_shutdown_system(s3);
+    reg.add_startup_system<StartupStage::Startup>(s1)
+        .add_update_system<CoreStage::Update>(s5)
+        .add_update_system<CoreStage::First>(s6)
+        .add_update_system<CoreStage::Last>(s2)
+        .add_update_system<CoreStage::PreUpdate>(s3)
+        .add_update_system<CoreStage::PostUpdate>(s4);
 
     reg.ready();
     reg.startup();
-    reg.update();
-    reg.shutdown();
 
-    ASSERT_EQ(gSysOrder.size(), 3u);
+    reg.update();
+
+    ASSERT_EQ(gSysOrder.size(), 6u);
+    EXPECT_EQ(gSysOrder[0], 10);
+    EXPECT_EQ(gSysOrder[1], 60);
+    EXPECT_EQ(gSysOrder[2], 30);
+    EXPECT_EQ(gSysOrder[3], 50);
+    EXPECT_EQ(gSysOrder[4], 40);
+    EXPECT_EQ(gSysOrder[5], 20);
+}
+
+TEST(RegistryTest, AddAndRunSystemWithCustomStage) {
+    gSysOrder.clear();
+
+    registry reg;
+
+    auto s1 = registry::system(+[](){ gSysOrder.push_back(10); });
+    auto s2 = registry::system(+[](){ gSysOrder.push_back(20); });
+    auto s3 = registry::system(+[](){ gSysOrder.push_back(30); });
+    auto s4 = registry::system(+[](){ gSysOrder.push_back(40); });
+    auto s5 = registry::system(+[](){ gSysOrder.push_back(50); });
+    auto s6 = registry::system(+[](){ gSysOrder.push_back(60); });
+    auto s7 = registry::system(+[](){ gSysOrder.push_back(70); });
+    auto s8 = registry::system(+[](){ gSysOrder.push_back(80); });
+    auto s9 = registry::system(+[](){ gSysOrder.push_back(90); });
+    auto s10 = registry::system(+[](){ gSysOrder.push_back(100); });
+
+    reg.add_startup_stage_before<CustomStartupStage::PreStartup, StartupStage::Startup>()
+        .add_startup_stage_after<CustomStartupStage::PostStartup, StartupStage::Startup>()
+        .add_update_stage_after<CustomCoreStage::PreRender, CoreStage::PreUpdate>()
+        .add_update_stage_before<CustomCoreStage::PostRender, CoreStage::PostUpdate>()
+        .insert_update_stage<CustomCoreStage::Render, CoreStage::Update>();
+
+    reg.add_startup_system<CustomStartupStage::PreStartup>(s1)
+        .add_startup_system<StartupStage::Startup>(s2)
+        .add_startup_system<CustomStartupStage::PostStartup>(s3)
+        .add_update_system<CoreStage::First>(s4)
+        .add_update_system<CoreStage::PreUpdate>(s5)
+        .add_update_system<CustomCoreStage::PreRender>(s6)
+        .add_update_system<CustomCoreStage::Render>(s7)
+        .add_update_system<CustomCoreStage::PostRender>(s8)
+        .add_update_system<CoreStage::PostUpdate>(s9)
+        .add_update_system<CoreStage::Last>(s10);
+
+    reg.ready();
+    reg.startup();
+
+    reg.update();
+
+    ASSERT_EQ(gSysOrder.size(), 10u);
     EXPECT_EQ(gSysOrder[0], 10);
     EXPECT_EQ(gSysOrder[1], 20);
     EXPECT_EQ(gSysOrder[2], 30);
+    EXPECT_EQ(gSysOrder[3], 40);
+    EXPECT_EQ(gSysOrder[4], 50);
+    EXPECT_EQ(gSysOrder[5], 60);
+    EXPECT_EQ(gSysOrder[6], 70);
+    EXPECT_EQ(gSysOrder[7], 80);
+    EXPECT_EQ(gSysOrder[8], 90);
+    EXPECT_EQ(gSysOrder[9], 100);
 }
-
-
-

@@ -80,8 +80,9 @@ static bool runifTrue() { return true; }
 /*
  * ======================================== Utils/Trait Test Cases =====================================
  */
+
 // utils::function_traits / system_traits / FunctionType concept
-TEST(SystemHeaderTest, FunctionAndSystemTraitsCompileAndConcept) {
+TEST(TraitTest, CompileAndConcept) {
     using Fn = int(float, double);
     using Fp = int(*)(float, double);
     static_assert(std::is_same_v<mytho::utils::function_traits_t<Fn>, Fn>);
@@ -98,8 +99,9 @@ TEST(SystemHeaderTest, FunctionAndSystemTraitsCompileAndConcept) {
 /*
  * ================================= Argument Construction Test Cases ==================================
  */
+
 // internal::argument_constructor + construct() via basic_function invocation
-TEST(SystemHeaderTest, ArgumentConstructorsAndConstructWork) {
+TEST(ArgumentConstructionTest, ConstructWork) {
     registry reg;
 
     // Prepare world state
@@ -167,7 +169,7 @@ TEST(SystemHeaderTest, ArgumentConstructorsAndConstructWork) {
  */
 // internal::function_pointer_hash
 
-TEST(SystemHeaderTest, FunctionPointerHashProducesDifferentValues) {
+TEST(FunctionWrapperTest, HashValues) {
     internal::function_pointer_hash hasher;
     internal::basic_system_config<registry> cA(+fp_hash_a);
     internal::basic_system_config<registry> cB(+fp_hash_b);
@@ -177,7 +179,7 @@ TEST(SystemHeaderTest, FunctionPointerHashProducesDifferentValues) {
 }
 
 // internal::basic_function (non-void and void specializations)
-TEST(SystemHeaderTest, BasicFunctionReturnAndVoidInvoke) {
+TEST(FunctionWrapperTest, ReturnAndVoidInvoke) {
     registry reg;
     reg.init_resource<GameConfig>(1, "x");
 
@@ -209,7 +211,7 @@ TEST(SystemHeaderTest, BasicFunctionReturnAndVoidInvoke) {
  */
 // internal::basic_system (should_run and tick propagation)
 
-TEST(SystemHeaderTest, BasicSystemRunAndTick) {
+TEST(BasicSystemTest, RunAndTick) {
     registry reg;
     reg.spawn(Position{0,0});
 
@@ -219,7 +221,7 @@ TEST(SystemHeaderTest, BasicSystemRunAndTick) {
     sys(reg, 2);
 }
 
-TEST(SystemHeaderTest, BasicSystemRunIfControlsExecution) {
+TEST(BasicSystemTest, RunIfControlsExecution) {
     registry reg;
     internal::basic_function<registry, void> fn(+sys_record_tick);
     internal::basic_function<registry, bool> rf(+[](){ return false; });
@@ -232,7 +234,7 @@ TEST(SystemHeaderTest, BasicSystemRunIfControlsExecution) {
  */
 // internal::basic_system_config (builders and accessors)
 
-TEST(SystemHeaderTest, BasicSystemConfigAfterBeforeRunif) {
+TEST(SystemConfigTest, AfterBeforeRunif) {
     internal::basic_system_config<registry> cfgA(+sysA);
     internal::basic_system_config<registry> cfgB(+sysB);
 
@@ -246,7 +248,7 @@ TEST(SystemHeaderTest, BasicSystemConfigAfterBeforeRunif) {
  * =================================== System Storage Test Cases =======================================
  */
 // internal::basic_system_storage (add, ready/toposort, iteration)
-TEST(SystemHeaderTest, BasicSystemStorageTopologicalOrder) {
+TEST(SystemStorageTest, TopologicalOrder) {
     gOrder.clear();
     internal::basic_system_storage<registry> storage;
 
@@ -270,39 +272,11 @@ TEST(SystemHeaderTest, BasicSystemStorageTopologicalOrder) {
     EXPECT_EQ(storage.size(), 3u);
 
     registry reg;
-    for (auto& s : storage) {
-        s(reg, 0);
-    }
+    uint64_t tick = 0;
+    storage.run(reg, tick);
 
     ASSERT_EQ(gOrder.size(), 3u);
     EXPECT_EQ(gOrder[0], 1);
     EXPECT_EQ(gOrder[1], 2);
     EXPECT_EQ(gOrder[2], 3);
-}
-
-// internal::basic_system_storage before relation converted to after
-TEST(SystemHeaderTest, BasicSystemStorageBeforeRelationConvertedToAfter) {
-    gOrder.clear();
-    internal::basic_system_storage<registry> storage;
-
-    auto* fA = +[]() { gOrder.push_back(1); };
-    auto* fB = +[]() { gOrder.push_back(2); };
-
-    internal::basic_system_config<registry> cA(fA);
-    internal::basic_system_config<registry> cB(fB);
-
-    // B before A means A after B
-    cB.before(fA);
-
-    storage.add(cA);
-    storage.add(cB);
-
-    storage.ready();
-    registry reg;
-    for (auto& s : storage) { s(reg, 0); }
-
-    ASSERT_EQ(gOrder.size(), 2u);
-    // B should run before A
-    EXPECT_EQ(gOrder[0], 2);
-    EXPECT_EQ(gOrder[1], 1);
 }

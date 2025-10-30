@@ -10,9 +10,21 @@
 #include "container/entity_storage.hpp"
 #include "container/component_storage.hpp"
 #include "container/resource_storage.hpp"
-#include "ecs/system.hpp"
+#include "ecs/schedule.hpp"
 
 namespace mytho::ecs {
+    enum class startup_stage {
+        Startup
+    };
+
+    enum class core_stage {
+        First,
+        PreUpdate,
+        Update,
+        PostUpdate,
+        Last
+    };
+
     template<
         mytho::utils::EntityType EntityT,
         mytho::utils::UnsignedIntegralType ComponentIdT = size_t,
@@ -34,8 +46,8 @@ namespace mytho::ecs {
         using resource_storage_type = mytho::container::basic_resource_storage<resource_id_type, std::allocator>;
         using events_type = mytho::ecs::basic_events<event_id_type, std::allocator>;
         using command_queue_type = mytho::ecs::internal::basic_command_queue<self_type>;
-        using system_storage_type = internal::basic_system_storage<self_type>;
-        using system_config_type = typename system_storage_type::system_config_type;
+        using schedule_type = mytho::ecs::internal::basic_schedule<self_type, uint16_t>;
+        using system_config_type = typename schedule_type::system_config_type;
 
         template<typename... Ts>
         using querier_type = mytho::ecs::basic_querier<self_type, Ts...>;
@@ -49,7 +61,17 @@ namespace mytho::ecs {
         template<typename... Ts>
         using resources_mut_type = mytho::ecs::basic_resources_mut<Ts...>;
 
-    public:
+        basic_registry() {
+            _startup_schedule.template add_stage<startup_stage::Startup>();
+
+            _update_schedule.template add_stage<core_stage::First>()
+                            .template add_stage<core_stage::PreUpdate>()
+                            .template add_stage<core_stage::Update>()
+                            .template add_stage<core_stage::PostUpdate>()
+                            .template add_stage<core_stage::Last>();
+        }
+
+    public: // entity operations
         template<mytho::utils::PureComponentType... Ts>
         entity_type spawn(Ts&&... ts) noexcept {
             auto e = _entities.emplace();
@@ -75,7 +97,7 @@ namespace mytho::ecs {
             return _entities;
         }
 
-    public:
+    public: // component operations
         template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void insert(const entity_type& e, Ts&&... ts) noexcept {
@@ -231,7 +253,7 @@ namespace mytho::ecs {
             return count;
         }
 
-    public:
+    public: // resource operations
         template<mytho::utils::PureResourceType T, typename... Rs>
         self_type& init_resource(Rs&&... rs) noexcept {
             _resources.template init<T>(_current_tick, std::forward<Rs>(rs)...);
@@ -288,7 +310,7 @@ namespace mytho::ecs {
             return (_resources.template is_changed<Ts>(tick) && ...);
         }
 
-    public:
+    public: // event operations
         template<mytho::utils::PureEventType T, typename... Rs>
         void event_write(Rs&&... rs) noexcept {
             _events.template write<T>(std::forward<Rs>(rs)...);
@@ -304,7 +326,64 @@ namespace mytho::ecs {
             return _events.template read<T>();
         }
 
-    public:
+    public: // schedule operations
+        template<auto StageE>
+        self_type& add_startup_stage() noexcept {
+            _startup_schedule.template add_stage<StageE>();
+
+            return *this;
+        }
+
+        template<auto StageE, auto BeforeStageE>
+        self_type& add_startup_stage_before() noexcept {
+            _startup_schedule.template add_stage_before<StageE, BeforeStageE>();
+
+            return *this;
+        }
+
+        template<auto StageE, auto AfterStageE>
+        self_type& add_startup_stage_after() noexcept {
+            _startup_schedule.template add_stage_after<StageE, AfterStageE>();
+
+            return *this;
+        }
+
+        template<auto StageE, auto InsertStageE>
+        self_type& insert_startup_stage() noexcept {
+            _startup_schedule.template insert_stage<StageE, InsertStageE>();
+
+            return *this;
+        }
+
+        template<auto StageE>
+        self_type& add_update_stage() noexcept {
+            _update_schedule.template add_stage<StageE>();
+
+            return *this;
+        }
+
+        template<auto StageE, auto BeforeStageE>
+        self_type& add_update_stage_before() noexcept {
+            _update_schedule.template add_stage_before<StageE, BeforeStageE>();
+
+            return *this;
+        }
+
+        template<auto StageE, auto AfterStageE>
+        self_type& add_update_stage_after() noexcept {
+            _update_schedule.template add_stage_after<StageE, AfterStageE>();
+
+            return *this;
+        }
+
+        template<auto StageE, auto InsertStageE>
+        self_type& insert_update_stage() noexcept {
+            _update_schedule.template insert_stage<StageE, InsertStageE>();
+
+            return *this;
+        }
+
+    public: // system operations
         template<mytho::utils::FunctionType Func>
         static system_config_type system(Func&& func) noexcept {
             return system_config_type(std::forward<Func>(func));
@@ -312,64 +391,72 @@ namespace mytho::ecs {
 
         template<mytho::utils::FunctionType Func>
         self_type& add_startup_system(Func&& func) noexcept {
-            _startup_systems.add(std::forward<Func>(func));
+            _startup_schedule.template add_system<startup_stage::Startup>(std::forward<Func>(func));
 
             return *this;
         }
 
-        self_type& add_startup_system(const system_config_type& config) noexcept {
-            _startup_systems.add(config);
+        template<auto StageE, mytho::utils::FunctionType Func>
+        self_type& add_startup_system(Func&& func) noexcept {
+            _startup_schedule.template add_system<StageE>(std::forward<Func>(func));
+
+            return *this;
+        }
+
+        self_type& add_startup_system(system_config_type& config) noexcept {
+            _startup_schedule.template add_system<startup_stage::Startup>(config);
+
+            return *this;
+        }
+
+        template<auto StageE>
+        self_type& add_startup_system(system_config_type& config) noexcept {
+            _startup_schedule.template add_system<StageE>(config);
+
             return *this;
         }
 
         template<mytho::utils::FunctionType Func>
         self_type& add_update_system(Func&& func) noexcept {
-            _update_systems.add(std::forward<Func>(func));
+            _update_schedule.template add_system<core_stage::Update>(std::forward<Func>(func));
 
             return *this;
         }
 
-        self_type& add_update_system(const system_config_type& config) noexcept {
-            _update_systems.add(config);
+        template<auto StageE, mytho::utils::FunctionType Func>
+        self_type& add_update_system(Func&& func) noexcept {
+            _update_schedule.template add_system<StageE>(std::forward<Func>(func));
             return *this;
         }
 
-        template<mytho::utils::FunctionType Func>
-        self_type& add_shutdown_system(Func&& func) noexcept {
-            _shutdown_systems.add(std::forward<Func>(func));
+        self_type& add_update_system(system_config_type& config) noexcept {
+            _update_schedule.template add_system<core_stage::Update>(config);
 
             return *this;
         }
 
-        self_type& add_shutdown_system(const system_config_type& config) noexcept {
-            _shutdown_systems.add(config);
+        template<auto StageE>
+        self_type& add_update_system(system_config_type& config) noexcept {
+            _update_schedule.template add_system<StageE>(config);
+
             return *this;
         }
 
-    public:
+    public: // core operations
         void ready() noexcept {
-            _startup_systems.ready();
-            _update_systems.ready();
-            _shutdown_systems.ready();
+            _startup_schedule.ready();
+            _update_schedule.ready();
         }
 
         void startup() noexcept {
-            for (auto& sys : _startup_systems) {
-                if (sys.should_run(*this)) {
-                    sys(*this, ++_current_tick);
-                }
-            }
+            _startup_schedule.run(*this, _current_tick);
 
             _current_tick++;
             apply_commands();
         }
 
         void update() noexcept {
-            for (auto& sys : _update_systems) {
-                if (sys.should_run(*this)) {
-                    sys(*this, ++_current_tick);
-                }
-            }
+            _update_schedule.run(*this, _current_tick);
 
             _current_tick++;
             apply_commands();
@@ -378,18 +465,7 @@ namespace mytho::ecs {
             _events.swap();
         }
 
-        void shutdown() noexcept {
-            for (auto& sys : _shutdown_systems) {
-                if (sys.should_run(*this)) {
-                    sys(*this, ++_current_tick);
-                }
-            }
-
-            _current_tick++;
-            apply_commands();
-        }
-
-    public:
+    public: // command operations
         command_queue_type& command_queue() noexcept {
             return _command_queue;
         }
@@ -408,9 +484,8 @@ namespace mytho::ecs {
 
         // tick start from 1, and 0 is reserved for init
         uint64_t _current_tick = 1;
-        system_storage_type _startup_systems;
-        system_storage_type _update_systems;
-        system_storage_type _shutdown_systems;
+        schedule_type _startup_schedule;
+        schedule_type _update_schedule;
 
     private:
         template<typename T, typename... Rs>

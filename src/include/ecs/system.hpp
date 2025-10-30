@@ -374,6 +374,19 @@ namespace mytho::ecs::internal {
         using systems_type = std::vector<system_type>;
         using configs_type = std::unordered_map<void*, system_config_type, function_pointer_hash>;
 
+        basic_system_storage() = default;
+        basic_system_storage(basic_system_storage& ss) = delete;
+
+        basic_system_storage(basic_system_storage&& ss) noexcept
+            : _systems(std::move(ss.systems())), _configs(std::move(ss.configs())) {}
+
+        basic_system_storage& operator=(basic_system_storage&& ss) noexcept {
+            _systems = std::move(ss.systems());
+            _configs = std::move(ss.configs());
+
+            return *this;
+        }
+
     public:
         template<mytho::utils::FunctionType Func>
         void add(Func&& func) noexcept {
@@ -398,12 +411,24 @@ namespace mytho::ecs::internal {
             kahn();
         }
 
+        void run(registry_type& reg, uint64_t& tick) noexcept {
+            for (auto& system : _systems) {
+                if (system.should_run(reg)) {
+                    system(reg, ++tick);
+                }
+            }
+        }
+
     public:
         auto begin() noexcept { return _systems.begin(); }
 
         auto end() noexcept { return _systems.end(); }
 
         auto size() const noexcept { return _systems.size(); }
+
+        auto& systems() noexcept { return _systems; }
+
+        auto& configs() noexcept { return _configs; }
 
     private:
         systems_type _systems;
@@ -473,7 +498,6 @@ namespace mytho::ecs::internal {
                     }
                 }
             }
-
 
             ASSURE(count == sys_count, "Cycle detected in system dependencies!");
         }

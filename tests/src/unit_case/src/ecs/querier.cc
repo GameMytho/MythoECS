@@ -53,10 +53,6 @@ template<typename T>
 using data_wrapper = mytho::utils::internal::data_wrapper<T>;
 
 /*
- * ======================================== Querier Test Cases =====================================
- */
-
-/*
  * ======================================== Querier Helpers Test Cases ===============================
  */
 

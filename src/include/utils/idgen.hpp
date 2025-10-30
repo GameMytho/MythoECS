@@ -4,7 +4,8 @@ namespace mytho::utils {
     enum class GeneratorType : uint8_t {
         COMPONENT_GENOR = 0,
         RESOURCE_GENOR,
-        EVENT_GENOR
+        EVENT_GENOR,
+        STAGE_GENOR
     };
 
     template<GeneratorType GT, typename IdT>
@@ -12,6 +13,12 @@ namespace mytho::utils {
         using value_type = IdT;
 
         template<typename T>
+        static value_type gen() {
+            static value_type id = _cur_id++;
+            return id;
+        }
+
+        template<auto E>
         static value_type gen() {
             static value_type id = _cur_id++;
             return id;

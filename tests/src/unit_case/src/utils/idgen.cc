@@ -19,6 +19,12 @@
 using namespace mytho::utils;
 
 /*
+ * ======================================== Helper Structures/Functions ==================================
+ */
+
+enum class StageKind { A, B, C };
+
+/*
  * ======================================== Test Cases ========================================
  */
 
@@ -27,48 +33,65 @@ TEST(IdGeneratorTest, BasicGeneration) {
     using ComponentGen = basic_id_generator<GeneratorType::COMPONENT_GENOR, uint32_t>;
     using ResourceGen = basic_id_generator<GeneratorType::RESOURCE_GENOR, uint32_t>;
     using EventGen = basic_id_generator<GeneratorType::EVENT_GENOR, uint32_t>;
+    using StageGen = basic_id_generator<GeneratorType::STAGE_GENOR, uint32_t>;
 
     auto id1 = ComponentGen::gen<int>();
     auto id2 = ResourceGen::gen<int>();
     auto id3 = EventGen::gen<int>();
+    auto s_a = StageGen::gen<StageKind::A>();
 
     EXPECT_EQ(id1, 0);
     EXPECT_EQ(id2, 0);
     EXPECT_EQ(id3, 0);
+    EXPECT_EQ(s_a, 0u);
 }
 
 // Test sequential ID generation
 TEST(IdGeneratorTest, SequentialGeneration) {
     using ComponentGen = basic_id_generator<GeneratorType::COMPONENT_GENOR, uint32_t>;
+    using ResourceGen = basic_id_generator<GeneratorType::RESOURCE_GENOR, uint32_t>;
+    using EventGen = basic_id_generator<GeneratorType::EVENT_GENOR, uint32_t>;
+    using StageGen = basic_id_generator<GeneratorType::STAGE_GENOR, uint32_t>;
 
     auto id1 = ComponentGen::gen<int>();
     auto id2 = ComponentGen::gen<float>();
     auto id3 = ComponentGen::gen<double>();
 
+    auto r1 = ResourceGen::gen<int>();
+    auto r2 = ResourceGen::gen<float>();
+    auto r3 = ResourceGen::gen<double>();
+
+    auto e1 = EventGen::gen<int>();
+    auto e2 = EventGen::gen<float>();
+    auto e3 = EventGen::gen<double>();
+
+    auto s_a1 = StageGen::gen<StageKind::A>();
+    auto s_b1 = StageGen::gen<StageKind::B>();
+    auto s_a2 = StageGen::gen<StageKind::A>();
+
     EXPECT_EQ(id1, 0);
     EXPECT_EQ(id2, 1);
     EXPECT_EQ(id3, 2);
-}
-
-// Test independence of different generator types
-TEST(IdGeneratorTest, DifferentGeneratorTypes) {
-    using ComponentGen = basic_id_generator<GeneratorType::COMPONENT_GENOR, uint32_t>;
-    using ResourceGen = basic_id_generator<GeneratorType::RESOURCE_GENOR, uint32_t>;
-
-    auto comp_id1 = ComponentGen::gen<int>();
-    auto comp_id2 = ComponentGen::gen<int>();
-    auto res_id1 = ResourceGen::gen<int>();
-    auto res_id2 = ResourceGen::gen<int>();
-
-    EXPECT_EQ(comp_id1, comp_id2);
-    EXPECT_EQ(res_id1, res_id2);
-    EXPECT_EQ(comp_id1, 0);
-    EXPECT_EQ(res_id1, 0);
+    EXPECT_EQ(r1, 0u);
+    EXPECT_EQ(r2, 1u);
+    EXPECT_EQ(r3, 2u);
+    EXPECT_EQ(e1, 0u);
+    EXPECT_EQ(e2, 1u);
+    EXPECT_EQ(e3, 2u);
+    EXPECT_EQ(s_a1, 0u);
+    EXPECT_EQ(s_b1, 1u);
+    EXPECT_EQ(s_a1, s_a2);
 }
 
 // Test value_type definition
 TEST(IdGeneratorTest, ValueType) {
-    using ComponentGen = basic_id_generator<GeneratorType::COMPONENT_GENOR, uint32_t>;
+    using ComponentGen = basic_id_generator<GeneratorType::COMPONENT_GENOR, uint8_t>;
+    using ResourceGen = basic_id_generator<GeneratorType::RESOURCE_GENOR, uint16_t>;
+    using EventGen = basic_id_generator<GeneratorType::EVENT_GENOR, uint32_t>;
+    using StageGen = basic_id_generator<GeneratorType::STAGE_GENOR, uint64_t>;
 
-    EXPECT_TRUE((std::is_same_v<ComponentGen::value_type, uint32_t>));
+    EXPECT_TRUE((std::is_same_v<ComponentGen::value_type, uint8_t>));
+    EXPECT_TRUE((std::is_same_v<ResourceGen::value_type, uint16_t>));
+    EXPECT_TRUE((std::is_same_v<EventGen::value_type, uint32_t>));
+    EXPECT_TRUE((std::is_same_v<StageGen::value_type, uint64_t>));
 }

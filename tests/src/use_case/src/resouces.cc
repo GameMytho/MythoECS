@@ -68,8 +68,6 @@ TEST(ResourcesTest, BasicTest) {
     reg.startup();
 
     reg.update();
-
-    reg.shutdown();
 }
 
 TEST(ResourcesTest, ResourceExistTest) {
@@ -86,8 +84,6 @@ TEST(ResourcesTest, ResourceExistTest) {
     reg.startup();
 
     reg.update();
-
-    reg.shutdown();
 }
 
 TEST(ResourcesTest, ResourceAddedTest) {
@@ -104,8 +100,6 @@ TEST(ResourcesTest, ResourceAddedTest) {
     reg.startup();
 
     reg.update();
-
-    reg.shutdown();
 }
 
 TEST(ResourcesTest, ResourceChangedTest) {
@@ -122,6 +116,4 @@ TEST(ResourcesTest, ResourceChangedTest) {
     reg.startup();
 
     reg.update();
-
-    reg.shutdown();
 }

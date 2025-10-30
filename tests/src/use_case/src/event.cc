@@ -63,6 +63,4 @@ TEST(SystemTest, BasicTest) {
     reg.update();
 
     reg.update();
-
-    reg.shutdown();
 }
