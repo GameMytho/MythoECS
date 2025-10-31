@@ -13,13 +13,13 @@ namespace mytho::utils {
         using value_type = IdT;
 
         template<typename T>
-        static value_type gen() {
+        static value_type gen() noexcept {
             static value_type id = _cur_id++;
             return id;
         }
 
         template<auto E>
-        static value_type gen() {
+        static value_type gen() noexcept {
             static value_type id = _cur_id++;
             return id;
         }

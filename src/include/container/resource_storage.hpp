@@ -23,7 +23,7 @@ namespace mytho::container {
 
     public:
         template<mytho::utils::PureValueType T, typename... Rs>
-        void init(uint64_t tick, Rs&&... rs) noexcept {
+        void init(uint64_t tick, Rs&&... rs) {
             using alloc_traits = std::allocator_traits<AllocatorT<T>>;
 
             auto id = resource_id_generator::template gen<T>();
@@ -58,9 +58,7 @@ namespace mytho::container {
         }
 
         template<mytho::utils::PureValueType T>
-        void deinit() noexcept {
-            using alloc_traits = std::allocator_traits<AllocatorT<T>>;
-
+        void deinit() {
             auto id = resource_id_generator::template gen<T>();
             if (id >= _pool.size() || !_pool[id]) return;
 
@@ -112,7 +110,7 @@ namespace mytho::container {
             return id < _pool.size() && _pool[id] != nullptr && _ticks.get_changed_tick(id) >= tick;
         }
 
-        void clear() noexcept {
+        void clear() {
             for (size_type i = 0; i < _pool.size(); i++) {
                 if (_pool[i] == nullptr) continue;
 

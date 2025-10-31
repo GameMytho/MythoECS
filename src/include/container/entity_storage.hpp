@@ -21,7 +21,7 @@ namespace mytho::container {
 
     public:
         template<mytho::utils::PureValueType... Ts>
-        entity_type emplace() noexcept {
+        entity_type emplace() {
             _length++;
 
             if (_length <= base_type::size()) {
@@ -56,7 +56,7 @@ namespace mytho::container {
 
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
-        void add(const entity_type& e) noexcept {
+        void add(const entity_type& e) {
             ASSURE(contain(e), "invalid entity value(entity not exist).");
 
             (insert_components<Ts>(_map[base_type::index(e)]), ...);

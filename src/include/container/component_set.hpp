@@ -33,7 +33,7 @@ namespace mytho::container {
 
         template<typename... Ts>
         requires (sizeof...(Ts) > 0)
-        void add(const entity_type& e, uint64_t tick, Ts&&... ts) noexcept {
+        void add(const entity_type& e, uint64_t tick, Ts&&... ts) {
             ASSURE(!base_type::contain(e), "entity already exist.");
 
             base_type::add(e);
@@ -59,7 +59,7 @@ namespace mytho::container {
             _ticks.set_changed_tick(idx, tick);
         }
 
-        void remove(const entity_type& e) noexcept {
+        void remove(const entity_type& e) {
             ASSURE(base_type::contain(e), "entity not exist.");
 
             auto idx = base_type::index(e);
@@ -79,7 +79,7 @@ namespace mytho::container {
 
         template<typename... Ts>
         requires (sizeof...(Ts) > 0)
-        void replace(const entity_type& e, uint64_t tick, Ts&&... ts) noexcept {
+        void replace(const entity_type& e, uint64_t tick, Ts&&... ts) {
             ASSURE(base_type::contain(e), "entity not exist.");
 
             auto idx = base_type::index(e);
@@ -89,7 +89,7 @@ namespace mytho::container {
             _ticks.set_changed_tick(idx, tick);
         }
 
-        void clear() noexcept {
+        void clear() {
             for (unsigned int i = 0; i < base_type::size(); i++) {
                 _cdata[i]->~component_type();
             }

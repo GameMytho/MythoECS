@@ -4,7 +4,7 @@
 
 namespace mytho::ecs::internal {
     template<typename RegistryT, typename StageIdT = uint8_t>
-    class basic_schedule {
+    class basic_schedule final {
     public:
         using registry_type = RegistryT;
         using stage_id_type = StageIdT;
@@ -72,7 +72,7 @@ namespace mytho::ecs::internal {
         }
 
         template<auto StageE, auto InsertStageE>
-        self_type& insert_stage() noexcept {
+        self_type& insert_stage() {
             auto id = stage_id_generator::template gen<StageE>();
 
             ASSURE(!_contain(id), "new stage already exists!");
@@ -92,7 +92,7 @@ namespace mytho::ecs::internal {
 
     public:
         template<auto StageE, mytho::utils::FunctionType Func>
-        self_type& add_system(Func&& func) noexcept {
+        self_type& add_system(Func&& func) {
             auto id = stage_id_generator::template gen<StageE>();
 
             ASSURE(_contain(id), "stage not exist!");
@@ -102,7 +102,7 @@ namespace mytho::ecs::internal {
         }
 
         template<auto StageE>
-        self_type& add_system(system_config_type& config) noexcept {
+        self_type& add_system(system_config_type& config) {
             auto id = stage_id_generator::template gen<StageE>();
 
             ASSURE(_contain(id), "stage not exist!");
@@ -118,7 +118,7 @@ namespace mytho::ecs::internal {
             }
         }
 
-        void run(registry_type& reg, uint64_t& tick) noexcept {
+        void run(registry_type& reg, uint64_t& tick) {
             for (auto& [id, storage] : _stages) {
                 storage.run(reg, tick);
             }

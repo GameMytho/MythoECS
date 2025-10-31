@@ -19,7 +19,7 @@ namespace mytho::ecs {
         using event_storage_type = mytho::container::basic_event_storage<event_id_type, AllocatorT>;
 
         template<mytho::utils::PureValueType T, typename... Rs>
-        void write(Rs&&... rs) noexcept {
+        void write(Rs&&... rs) {
             _write_events.template write<T>(std::forward<Rs>(rs)...);
         }
 
@@ -33,7 +33,7 @@ namespace mytho::ecs {
             return _read_events.template read<T>();
         }
 
-        void swap() noexcept {
+        void swap() {
             _read_events.swap(_write_events);
             _write_events.clear();
         }
@@ -53,7 +53,7 @@ namespace mytho::ecs {
 
     public:
         template<typename... Ts>
-        void write(Ts&&... ts) noexcept {
+        void write(Ts&&... ts) {
             _reg.template event_write<event_type>(std::forward<Ts>(ts)...);
         }
 
@@ -87,7 +87,7 @@ namespace mytho::ecs {
         basic_event_reader(const events_type& events) : _events(events) {}
 
     public:
-        const events_type& read() noexcept {
+        const events_type& read() const noexcept {
             return _events;
         }
 

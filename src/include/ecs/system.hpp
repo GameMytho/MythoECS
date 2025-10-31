@@ -199,7 +199,7 @@ namespace mytho::ecs::internal {
     };
 
     template<typename RegistryT, typename ReturnT>
-    class basic_function {
+    class basic_function final {
     public:
         using registry_type = RegistryT;
         using return_type = ReturnT;
@@ -214,7 +214,7 @@ namespace mytho::ecs::internal {
         }
 
     public:
-        return_type operator()(registry_type& reg, uint64_t tick) noexcept {
+        return_type operator()(registry_type& reg, uint64_t tick) {
             return _function_wrapper(_function_pointer, reg, tick);
         }
 
@@ -236,13 +236,13 @@ namespace mytho::ecs::internal {
         }
 
         template<typename Func, typename... Ts>
-        static return_type function_invoke(Func&& func, registry_type& reg, uint64_t tick, mytho::utils::type_list<Ts...>) noexcept {
+        static return_type function_invoke(Func&& func, registry_type& reg, uint64_t tick, mytho::utils::type_list<Ts...>) {
             return std::invoke(std::forward<Func>(func), construct<registry_type, Ts>(reg, tick)...);
         }
     };
 
     template<typename RegistryT>
-    class basic_function<RegistryT, void> {
+    class basic_function<RegistryT, void> final {
     public:
         using registry_type = RegistryT;
         using function_wrapper_type = void(*)(void*, registry_type&, uint64_t);
@@ -256,7 +256,7 @@ namespace mytho::ecs::internal {
         }
 
     public:
-        void operator()(registry_type& reg, uint64_t tick) noexcept {
+        void operator()(registry_type& reg, uint64_t tick) const {
             _function_wrapper(_function_pointer, reg, tick);
         }
 
@@ -278,7 +278,7 @@ namespace mytho::ecs::internal {
         }
 
         template<typename Func, typename... Ts>
-        static void function_invoke(Func&& func, registry_type& reg, uint64_t tick, mytho::utils::type_list<Ts...>) noexcept {
+        static void function_invoke(Func&& func, registry_type& reg, uint64_t tick, mytho::utils::type_list<Ts...>) {
             std::invoke(std::forward<Func>(func), construct<registry_type, Ts>(reg, tick)...);
         }
     };
@@ -286,7 +286,7 @@ namespace mytho::ecs::internal {
 
 namespace mytho::ecs::internal {
     template<typename RegistryT>
-    class basic_system {
+    class basic_system final {
     public:
         using registry_type = RegistryT;
         using function_type = basic_function<registry_type, void>;
@@ -298,11 +298,11 @@ namespace mytho::ecs::internal {
         basic_system(const function_type& func, const runif_type& runif) noexcept : _function(func), _runif(runif) {}
 
     public:
-        bool should_run(registry_type& reg) noexcept {
+        bool should_run(registry_type& reg) {
             return !_runif.pointer() || _runif(reg, _last_run_tick);
         }
 
-        void operator()(registry_type& reg, uint64_t tick) noexcept {
+        void operator()(registry_type& reg, uint64_t tick) {
             _function(reg, _last_run_tick);
             _last_run_tick = tick;
         }
@@ -314,7 +314,7 @@ namespace mytho::ecs::internal {
     };
 
     template<typename RegistryT>
-    class basic_system_config {
+    class basic_system_config final {
     public:
         using registry_type = RegistryT;
         using self_type = basic_system_config<registry_type>;
@@ -330,13 +330,13 @@ namespace mytho::ecs::internal {
 
     public:
         template<mytho::utils::FunctionType Func>
-        self_type& after(Func&& func) noexcept {
+        self_type& after(Func&& func) {
             _afters.emplace(reinterpret_cast<void*>(std::forward<Func>(func)));
             return *this;
         }
 
         template<mytho::utils::FunctionType Func>
-        self_type& before(Func&& func) noexcept {
+        self_type& before(Func&& func) {
             _befores.emplace(reinterpret_cast<void*>(std::forward<Func>(func)));
             return *this;
         }
@@ -366,7 +366,7 @@ namespace mytho::ecs::internal {
     };
 
     template<typename RegistryT>
-    class basic_system_storage {
+    class basic_system_storage final {
     public:
         using registry_type = RegistryT;
         using system_type = basic_system<registry_type>;
@@ -389,16 +389,16 @@ namespace mytho::ecs::internal {
 
     public:
         template<mytho::utils::FunctionType Func>
-        void add(Func&& func) noexcept {
+        void add(Func&& func) {
             _configs.emplace(reinterpret_cast<void*>(std::forward<Func>(func)), system_config_type(std::forward<Func>(func)));
         }
 
-        void add(const system_config_type& config) noexcept {
+        void add(const system_config_type& config) {
             _configs.emplace(config.function().pointer(), config);
         }
 
     public:
-        void ready() noexcept {
+        void ready() {
             ASSURE(valid_dependencies(), "There are some system dependencies not found in the system dependencies map!");
 
             for (auto& [ptr, config] : _configs) {
@@ -411,7 +411,7 @@ namespace mytho::ecs::internal {
             kahn();
         }
 
-        void run(registry_type& reg, uint64_t& tick) noexcept {
+        void run(registry_type& reg, uint64_t& tick) {
             for (auto& system : _systems) {
                 if (system.should_run(reg)) {
                     system(reg, ++tick);
@@ -453,7 +453,7 @@ namespace mytho::ecs::internal {
             return true;
         }
 
-        void kahn() noexcept {
+        void kahn() {
             const std::size_t sys_count = _configs.size();
             _systems.reserve(sys_count);
 

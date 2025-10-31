@@ -34,7 +34,7 @@ namespace mytho::container {
             _changed_ticks[index] = tick;
         }
 
-        void resize(size_type size, uint64_t value = 0) noexcept {
+        void resize(size_type size, uint64_t value = 0) {
             _added_ticks.resize(size, value);
             _changed_ticks.resize(size, value);
         }

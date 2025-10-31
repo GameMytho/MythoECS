@@ -66,7 +66,7 @@ namespace mytho::container {
         virtual ~basic_entity_set() = default;
 
     public:
-        entity_type add(const entity_type& e) noexcept {
+        entity_type add(const entity_type& e) {
             ASSURE(!contain(e), "invalid entity value(entity exist).");
 
             base_type::add(e.id());

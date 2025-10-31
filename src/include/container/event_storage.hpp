@@ -25,7 +25,7 @@ namespace mytho::container {
         }
 
         template<mytho::utils::PureValueType T, typename... Rs>
-        void write(Rs&&... rs) noexcept {
+        void write(Rs&&... rs) {
             using alloc_traits = std::allocator_traits<AllocatorT<T>>;
 
             auto id = event_id_generator::template gen<T>();

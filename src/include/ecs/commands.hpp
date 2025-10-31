@@ -24,7 +24,7 @@ namespace mytho::ecs {
 
         public:
             template<mytho::utils::PureComponentType... Ts>
-            void spawn(Ts&&... ts) noexcept {
+            void spawn(Ts&&... ts) {
                 using tuple_type = std::tuple<Ts...>;
 
                 _executors.push_back([](registry_type& reg, void* ptr) {
@@ -51,7 +51,7 @@ namespace mytho::ecs {
                 new (_buffers.data() + cur_aligned_size) tuple_type(std::forward<Ts>(ts)...);
             }
 
-            void despawn(const entity_type& e) noexcept {
+            void despawn(const entity_type& e) {
                 _executors.push_back([](registry_type& reg, void* ptr) {
                     reg.despawn(*static_cast<entity_type*>(ptr));
                 });
@@ -68,7 +68,7 @@ namespace mytho::ecs {
             }
 
             template<mytho::utils::PureComponentType... Ts>
-            void insert(const entity_type& e, Ts&&... ts) noexcept {
+            void insert(const entity_type& e, Ts&&... ts) {
                 using tuple_type = std::tuple<entity_type, Ts...>;
 
                 _executors.push_back([](registry_type& reg, void* ptr) {
@@ -96,7 +96,7 @@ namespace mytho::ecs {
             }
 
             template<mytho::utils::PureComponentType... Ts>
-            void remove(const entity_type& e) noexcept {
+            void remove(const entity_type& e) {
                 _executors.push_back([](registry_type& reg, void* ptr) {
                     reg.template remove<Ts...>(*static_cast<entity_type*>(ptr));
                 });
@@ -113,7 +113,7 @@ namespace mytho::ecs {
             }
 
             template<mytho::utils::PureComponentType... Ts>
-            void replace(const entity_type& e, Ts&&... ts) noexcept {
+            void replace(const entity_type& e, Ts&&... ts) {
                 using tuple_type = std::tuple<entity_type, Ts...>;
 
                 _executors.push_back([](registry_type& reg, void* ptr) {
@@ -141,7 +141,7 @@ namespace mytho::ecs {
             }
 
             template<typename T, typename... Rs>
-            void init_resource(Rs&&... rs) noexcept {
+            void init_resource(Rs&&... rs) {
                 using tuple_type = std::tuple<Rs...>;
 
                 _executors.push_back([](registry_type& reg, void* ptr) {
@@ -169,7 +169,7 @@ namespace mytho::ecs {
             }
 
             template<typename T>
-            void remove_resource() noexcept {
+            void remove_resource() {
                 _executors.push_back([](registry_type& reg, void* ptr) {
                     reg.template remove_resource<T>();
                 });
@@ -180,7 +180,7 @@ namespace mytho::ecs {
             }
 
         public:
-            void apply(registry_type& reg) noexcept {
+            void apply(registry_type& reg) {
                 // TODO: parallel apply
                 for (size_t i = 0; i < _executors.size(); i++) {
                     _executors[i](reg, _buffers.data() + _offsets[i]);
@@ -219,41 +219,41 @@ namespace mytho::ecs {
 
     public:
         template<mytho::utils::PureComponentType... Ts>
-        void spawn(Ts&&... ts) noexcept {
+        void spawn(Ts&&... ts) {
             _reg.command_queue().spawn(std::forward<Ts>(ts)...);
         }
 
-        void despawn(const entity_type& e) noexcept {
+        void despawn(const entity_type& e) {
             _reg.command_queue().despawn(e);
         }
 
     public:
         template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
-        void insert(const entity_type& e, Ts&&... ts) noexcept {
+        void insert(const entity_type& e, Ts&&... ts) {
             _reg.command_queue().insert(e, std::forward<Ts>(ts)...);
         }
 
         template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
-        void remove(const entity_type& e) noexcept {
+        void remove(const entity_type& e) {
             _reg.command_queue().template remove<Ts...>(e);
         }
 
         template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
-        void replace(const entity_type& e, Ts&&... ts) noexcept {
+        void replace(const entity_type& e, Ts&&... ts) {
             _reg.command_queue().replace(e, std::forward<Ts>(ts)...);
         }
 
     public:
         template<typename T, typename... Rs>
-        void init_resource(Rs&&... rs) noexcept {
+        void init_resource(Rs&&... rs) {
             _reg.command_queue().template init_resource<T>(std::forward<Rs>(rs)...);
         }
 
         template<typename T>
-        void remove_resource() noexcept {
+        void remove_resource() {
             _reg.command_queue().template remove_resource<T>();
         }
 

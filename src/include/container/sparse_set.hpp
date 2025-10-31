@@ -26,7 +26,7 @@ namespace mytho::container {
         static constexpr data_type data_null = std::numeric_limits<data_type>::max();
 
     public:
-        void add(data_type data) noexcept {
+        void add(data_type data) {
             ASSURE(!contain(data), "invalid integral value(value exist).");
 
             _density.push_back(data);
@@ -46,7 +46,7 @@ namespace mytho::container {
             _density.pop_back();
         }
 
-        void swap(data_type src, data_type dst) {
+        void swap(data_type src, data_type dst) noexcept {
             ASSURE(contain(src) && contain(dst), "invalid integral value(value not exist).");
 
             if (src != dst) {
@@ -98,7 +98,7 @@ namespace mytho::container {
 
         size_type offset(data_type data) const noexcept { return data % PageSize; }
 
-        page_type& expand(size_t idx) noexcept {
+        page_type& expand(size_t idx) {
             if (idx >= _sparsity.size()) {
                 size_t old_size = _sparsity.size();
                 _sparsity.resize(idx + 1);

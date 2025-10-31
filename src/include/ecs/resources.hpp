@@ -16,7 +16,7 @@ namespace mytho::utils {
 namespace mytho::ecs {
     namespace internal {
         template<mytho::utils::PureResourceType T>
-        class basic_resource_cache {
+        class basic_resource_cache final {
         public:
             using data_type = std::optional<T>;
             using data_reference_type = data_type&;
@@ -52,7 +52,7 @@ namespace mytho::ecs {
 
     template<mytho::utils::PureResourceType... Ts>
     requires (sizeof...(Ts) > 0)
-    class basic_resources {
+    class basic_resources final {
     public:
         using size_type = size_t;
         using resource_list_type = mytho::utils::type_list<const mytho::utils::internal::data_wrapper<Ts>...>;
@@ -79,7 +79,7 @@ namespace mytho::ecs {
 
     template<mytho::utils::PureResourceType... Ts>
     requires (sizeof...(Ts) > 0)
-    class basic_resources_mut {
+    class basic_resources_mut final {
     public:
         using size_type = size_t;
         using resource_list_type = mytho::utils::type_list<mytho::utils::internal::data_wrapper<Ts>...>;
