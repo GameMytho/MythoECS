@@ -218,7 +218,7 @@ namespace mytho::ecs {
                 }
             }
 
-            return component_bundles;
+            return { std::move(component_bundles) };
         }
 
         template<mytho::utils::QueryValueType... Ts>

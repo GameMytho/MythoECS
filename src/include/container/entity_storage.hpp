@@ -19,6 +19,15 @@ namespace mytho::container {
         using component_id_map_type = std::vector<component_id_set_ptr_type>;
         using component_id_generator = mytho::utils::basic_id_generator<mytho::utils::GeneratorType::COMPONENT_GENOR, component_id_type>;
 
+        basic_entity_storage() noexcept = default;
+        basic_entity_storage(const basic_entity_storage& es) = delete;
+        basic_entity_storage(basic_entity_storage&& es) noexcept = default;
+
+        basic_entity_storage& operator=(const basic_entity_storage& es) = delete;
+        basic_entity_storage& operator=(basic_entity_storage&& es) noexcept = default;
+
+        ~basic_entity_storage() noexcept = default;
+
     public:
         template<mytho::utils::PureValueType... Ts>
         entity_type emplace() {

@@ -96,7 +96,7 @@ TEST(EventsTest, EventMutator) {
 
     auto set_mut = reg.event_mutate<DamageEvent>();
 
-    basic_event_mutator<DamageEvent> mutator(set_mut);
+    basic_event_mutator<DamageEvent> mutator(std::move(set_mut));
 
     auto& mut_view = mutator.mutate();
 
@@ -119,7 +119,7 @@ TEST(EventsTest, EventReader) {
     reg.update();
 
     auto set_read = reg.event_read<DamageEvent>();
-    basic_event_reader<DamageEvent> reader(set_read);
+    basic_event_reader<DamageEvent> reader(std::move(set_read));
 
     const auto& view = reader.read();
     ASSERT_EQ(view.size(), 2);

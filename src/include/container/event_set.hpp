@@ -59,8 +59,16 @@ namespace mytho::container {
         using size_type = typename events_data_type::size_type;
 
         basic_event_set() noexcept : _data(nullptr) {}
+        basic_event_set(const basic_event_set& es) noexcept = default;
+        basic_event_set(basic_event_set&& es) noexcept = default;
+
         explicit basic_event_set(events_data_type& data) noexcept : _data(&data) {}
         explicit basic_event_set(const events_data_type& data) noexcept : _data(&const_cast<events_data_type&>(data)) {}
+
+        basic_event_set& operator=(const basic_event_set& es) noexcept = default;
+        basic_event_set& operator=(basic_event_set&& es) noexcept = default;
+
+        ~basic_event_set() noexcept = default;
 
     public:
         iterator begin() noexcept { if(!_data) return iterator{}; return iterator(_data->begin()); }

@@ -25,6 +25,15 @@ namespace mytho::container {
 
         static constexpr data_type data_null = std::numeric_limits<data_type>::max();
 
+        basic_sparse_set() noexcept = default;
+        basic_sparse_set(const basic_sparse_set& ss) = delete;
+        basic_sparse_set(basic_sparse_set&& ss) noexcept = default;
+
+        basic_sparse_set& operator=(const basic_sparse_set& ss) = delete;
+        basic_sparse_set& operator=(basic_sparse_set&& ss) noexcept = default;
+
+        ~basic_sparse_set() noexcept = default;
+
     public:
         void add(data_type data) {
             ASSURE(!contain(data), "invalid integral value(value exist).");

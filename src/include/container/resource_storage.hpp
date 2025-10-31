@@ -19,6 +19,13 @@ namespace mytho::container {
         using resource_ticks_type = basic_tick_set;
         using resource_id_generator = mytho::utils::basic_id_generator<mytho::utils::GeneratorType::RESOURCE_GENOR, resource_id_type>;
 
+        basic_resource_storage() noexcept = default;
+        basic_resource_storage(const basic_resource_storage& rs) = delete;
+        basic_resource_storage(basic_resource_storage&& rs) noexcept = default;
+
+        basic_resource_storage& operator=(const basic_resource_storage& rs) = delete;
+        basic_resource_storage& operator=(basic_resource_storage&& rs) noexcept = default;
+
         ~basic_resource_storage() { clear(); }
 
     public:

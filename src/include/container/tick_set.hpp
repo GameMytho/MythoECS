@@ -9,6 +9,15 @@ namespace mytho::container {
         using changed_ticks_type = std::vector<uint64_t>;
         using size_type = typename added_ticks_type::size_type;
 
+        basic_tick_set() noexcept = default;
+        basic_tick_set(const basic_tick_set& ts) = delete;
+        basic_tick_set(basic_tick_set&& ts) noexcept = default;
+
+        basic_tick_set& operator=(const basic_tick_set& ts) = delete;
+        basic_tick_set& operator=(basic_tick_set&& ts) noexcept = default;
+
+        ~basic_tick_set() noexcept = default;
+
     public:
         uint64_t get_added_tick(size_type index) const noexcept {
             return _added_ticks[index];

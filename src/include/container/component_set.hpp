@@ -26,11 +26,16 @@ namespace mytho::container {
         using component_data_ptr_set_type = std::vector<component_data_ptr_type, typename alloc_traits::template rebind_alloc<component_data_ptr_type>>;
         using component_tick_set_type = basic_tick_set;
 
-    public:
-        ~basic_component_set() {
-            clear();
-        }
+        basic_component_set() noexcept = default;
+        basic_component_set(const basic_component_set& cs) = delete;
+        basic_component_set(basic_component_set&& cs) noexcept = default;
 
+        basic_component_set& operator=(const basic_component_set& cs) = delete;
+        basic_component_set& operator=(basic_component_set&& cs) noexcept = default;
+
+        ~basic_component_set() { clear(); }
+
+    public:
         template<typename... Ts>
         requires (sizeof...(Ts) > 0)
         void add(const entity_type& e, uint64_t tick, Ts&&... ts) {

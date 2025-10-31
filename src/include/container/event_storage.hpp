@@ -20,10 +20,16 @@ namespace mytho::container {
         using event_destroy_funcs_type = std::vector<void(*)(void*)>;
         using event_id_generator = mytho::utils::basic_id_generator<mytho::utils::GeneratorType::EVENT_GENOR, event_id_type>;
 
-        ~basic_event_storage() {
-            clear();
-        }
+        basic_event_storage() noexcept = default;
+        basic_event_storage(const basic_event_storage& es) = delete;
+        basic_event_storage(basic_event_storage&& es) noexcept = default;
 
+        basic_event_storage& operator=(const basic_event_storage& es) = delete;
+        basic_event_storage& operator=(basic_event_storage&& es) noexcept = default;
+
+        ~basic_event_storage() { clear(); }
+
+    public:
         template<mytho::utils::PureValueType T, typename... Rs>
         void write(Rs&&... rs) {
             using alloc_traits = std::allocator_traits<AllocatorT<T>>;

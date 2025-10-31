@@ -58,7 +58,7 @@ namespace mytho::ecs {
         using resource_list_type = mytho::utils::type_list<const mytho::utils::internal::data_wrapper<Ts>...>;
         using resource_bundle_type = mytho::utils::list_to_tuple_t<resource_list_type>;
 
-        basic_resources(const resource_bundle_type& resources) : _resources(resources) {}
+        basic_resources(resource_bundle_type&& resources) noexcept : _resources(std::move(resources)) {}
 
     public:
         constexpr size_type size() const noexcept {
@@ -85,7 +85,7 @@ namespace mytho::ecs {
         using resource_list_type = mytho::utils::type_list<mytho::utils::internal::data_wrapper<Ts>...>;
         using resource_bundle_type = mytho::utils::list_to_tuple_t<resource_list_type>;
 
-        basic_resources_mut(const resource_bundle_type& resources) : _resources(resources) {}
+        basic_resources_mut(resource_bundle_type&& resources) noexcept : _resources(std::move(resources)) {}
 
     public:
         constexpr size_type size() const noexcept {

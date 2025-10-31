@@ -11,9 +11,9 @@ namespace mytho::ecs {
         using version_type = EntityVersionT;
         using self_type = basic_entity<id_type, version_type>;
 
-    public:
-        basic_entity(id_type id, version_type ver = 0) : _id(id), _ver(ver) { }
+        basic_entity(id_type id, version_type ver = 0) noexcept : _id(id), _ver(ver) { }
 
+    public:
         id_type id() const noexcept { return _id; }
 
         version_type version() const noexcept { return _ver; }

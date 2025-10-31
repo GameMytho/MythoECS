@@ -21,6 +21,15 @@ namespace mytho::container {
         using entity_remove_functions_type = std::vector<void(*)(void*, const entity_type&)>;
         using removed_entities_type = std::vector<std::vector<entity_type>>;
 
+        basic_component_storage() noexcept = default;
+        basic_component_storage(const basic_component_storage& cs) = delete;
+        basic_component_storage(basic_component_storage&& cs) noexcept = default;
+
+        basic_component_storage& operator=(const basic_component_storage& cs) = delete;
+        basic_component_storage& operator=(basic_component_storage&& cs) noexcept = default;
+
+        ~basic_component_storage() = default;
+
     public:
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)

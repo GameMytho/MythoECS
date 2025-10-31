@@ -166,8 +166,7 @@ namespace mytho::ecs {
         using size_type = typename component_bundle_container_type::size_type;
         using iterator = typename component_bundle_container_type::iterator;
 
-    public:
-        basic_querier(const component_bundle_container_type& component_bundles) : _component_bundles(component_bundles) {}
+        basic_querier(component_bundle_container_type&& component_bundles) noexcept : _component_bundles(std::move(component_bundles)) {}
 
     public:
         size_type size() const noexcept { return _component_bundles.size(); }

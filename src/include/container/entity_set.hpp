@@ -21,8 +21,8 @@ namespace mytho::container {
             using value_type = EntityT;
             using self_type = entity_iterator<id_iterator_type, version_iterator_type>;
 
-            entity_iterator() = default;
-            entity_iterator(id_iterator_type id_it, version_iterator_type version_it) : _id_it(id_it), _version_it(version_it) {}
+            entity_iterator() noexcept = default;
+            entity_iterator(id_iterator_type id_it, version_iterator_type version_it) noexcept : _id_it(id_it), _version_it(version_it) {}
 
         public:
             value_type operator*() const noexcept { return value_type(*_id_it, *_version_it); }
@@ -63,7 +63,14 @@ namespace mytho::container {
         using iterator = entity_iterator<typename base_type::iterator, typename entity_version_container_type::iterator>;
         using const_iterator = entity_iterator<typename base_type::const_iterator, typename entity_version_container_type::const_iterator>;
 
-        virtual ~basic_entity_set() = default;
+        basic_entity_set() noexcept = default;
+        basic_entity_set(const basic_entity_set& es) = delete;
+        basic_entity_set(basic_entity_set&& es) noexcept = default;
+
+        basic_entity_set& operator=(const basic_entity_set& es) = delete;
+        basic_entity_set& operator=(basic_entity_set&& es) noexcept = default;
+
+        virtual ~basic_entity_set() noexcept = default;
 
     public:
         entity_type add(const entity_type& e) {

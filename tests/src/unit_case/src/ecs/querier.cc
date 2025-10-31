@@ -204,7 +204,7 @@ TEST(QuerierTest, ConstructionAndIteration) {
     bundles.emplace_back(Bundle{we1, wp1, wv1, wh1});
     bundles.emplace_back(Bundle{we2, wp2, wv2, wh2});
 
-    Q qu(bundles);
+    Q qu(std::move(bundles));
     ASSERT_EQ(qu.size(), 2);
 
     int i = 0;
@@ -256,7 +256,7 @@ TEST(QuerierTest, EmptyContainer) {
     using Container = typename Q::component_bundle_container_type;
 
     Container bundles; // empty
-    Q qu(bundles);
+    Q qu(std::move(bundles));
 
     EXPECT_TRUE(qu.empty());
     EXPECT_EQ(qu.size(), 0);

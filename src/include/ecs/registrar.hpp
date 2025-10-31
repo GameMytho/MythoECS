@@ -10,7 +10,7 @@ namespace mytho::ecs {
         using entity_type = typename registry_type::entity_type;
         using size_type = typename registry_type::size_type;
 
-        basic_registrar(registry_type& reg, uint64_t tick) : _reg(reg), _last_run_tick(tick) {}
+        basic_registrar(registry_type& reg, uint64_t tick) noexcept : _reg(reg), _last_run_tick(tick) {}
 
     public:
         template<mytho::utils::PureComponentType... Ts>
