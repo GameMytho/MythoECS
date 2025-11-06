@@ -207,7 +207,6 @@ TEST(RegistryTest, AddAndRunSystemsWithFunc) {
     reg.add_startup_system(+[](){ gSysOrder.push_back(1); })
         .add_update_system(+[](){ gSysOrder.push_back(2); });
 
-    reg.ready();
     reg.startup();
 
     reg.update();
@@ -228,7 +227,6 @@ TEST(RegistryTest, AddAndRunSystemsWithConfig) {
     reg.add_startup_system(s1)
         .add_update_system(s2);
 
-    reg.ready();
     reg.startup();
 
     reg.update();
@@ -257,7 +255,6 @@ TEST(RegistryTest, AddAndRunSystemWithSpecifiedStage) {
         .add_update_system<CoreStage::PreUpdate>(s3)
         .add_update_system<CoreStage::PostUpdate>(s4);
 
-    reg.ready();
     reg.startup();
 
     reg.update();
@@ -304,7 +301,6 @@ TEST(RegistryTest, AddAndRunSystemWithCustomStage) {
         .add_update_system<CoreStage::PostUpdate>(s9)
         .add_update_system<CoreStage::Last>(s10);
 
-    reg.ready();
     reg.startup();
 
     reg.update();

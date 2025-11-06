@@ -47,7 +47,7 @@ namespace mytho::ecs {
         using events_type = mytho::ecs::basic_events<event_id_type, std::allocator>;
         using command_queue_type = mytho::ecs::internal::basic_command_queue<self_type>;
         using schedule_type = mytho::ecs::internal::basic_schedule<self_type, uint16_t>;
-        using system_config_type = typename schedule_type::system_config_type;
+        using system_type = typename schedule_type::system_type;
 
         template<typename... Ts>
         using querier_type = mytho::ecs::basic_querier<self_type, Ts...>;
@@ -385,8 +385,8 @@ namespace mytho::ecs {
 
     public: // system operations
         template<mytho::utils::FunctionType Func>
-        static system_config_type system(Func&& func) noexcept {
-            return system_config_type(std::forward<Func>(func));
+        static system_type system(Func&& func) noexcept {
+            return system_type(std::forward<Func>(func));
         }
 
         template<mytho::utils::FunctionType Func>
@@ -403,15 +403,15 @@ namespace mytho::ecs {
             return *this;
         }
 
-        self_type& add_startup_system(system_config_type& config) {
-            _startup_schedule.template add_system<startup_stage::Startup>(config);
+        self_type& add_startup_system(system_type& system) {
+            _startup_schedule.template add_system<startup_stage::Startup>(system);
 
             return *this;
         }
 
         template<auto StageE>
-        self_type& add_startup_system(system_config_type& config) {
-            _startup_schedule.template add_system<StageE>(config);
+        self_type& add_startup_system(system_type& system) {
+            _startup_schedule.template add_system<StageE>(system);
 
             return *this;
         }
@@ -429,25 +429,20 @@ namespace mytho::ecs {
             return *this;
         }
 
-        self_type& add_update_system(system_config_type& config) {
-            _update_schedule.template add_system<core_stage::Update>(config);
+        self_type& add_update_system(system_type& system) {
+            _update_schedule.template add_system<core_stage::Update>(system);
 
             return *this;
         }
 
         template<auto StageE>
-        self_type& add_update_system(system_config_type& config) {
-            _update_schedule.template add_system<StageE>(config);
+        self_type& add_update_system(system_type& system) {
+            _update_schedule.template add_system<StageE>(system);
 
             return *this;
         }
 
     public: // core operations
-        void ready() {
-            _startup_schedule.ready();
-            _update_schedule.ready();
-        }
-
         void startup() {
             _startup_schedule.run(*this, _current_tick);
 

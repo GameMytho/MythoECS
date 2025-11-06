@@ -181,8 +181,6 @@ TEST(SystemTest, AddAndRunTest) {
     reg.add_startup_system(startup)
        .add_update_system(update1);
 
-    reg.ready();
-
     reg.startup();
 
     reg.update();
@@ -202,8 +200,6 @@ TEST(SystemTest, SystemConfigTest) {
        .add_update_system(system(update3_changed).after(update3))
        .add_update_system(system(update4).after(update3_changed));
 
-    reg.ready();
-
     reg.startup();
 
     reg.update();
@@ -217,8 +213,6 @@ TEST(SystemTest, SystemRunifTest) {
        .add_update_system(system(update2).before(update3).runif(components_added<Position, Vectory, Direction>))
        .add_update_system(system(update3).before(update4).runif(components_changed<Position>))
        .add_update_system(system(update4).runif(components_changed<Vectory>));
-
-    reg.ready();
 
     reg.startup();
 

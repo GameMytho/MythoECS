@@ -63,8 +63,6 @@ TEST(ResourcesTest, BasicTest) {
        .add_update_system(system(update2).after(update1))
        .add_update_system(system(update3).after(update2));
 
-    reg.ready();
-
     reg.startup();
 
     reg.update();
@@ -78,8 +76,6 @@ TEST(ResourcesTest, ResourceExistTest) {
        .add_update_system(update1)
        .add_update_system(system(update2).after(update1).runif(resources_exist<Time, KeyBoard>))
        .add_update_system(system(update3).after(update2).runif(resources_exist<Time, KeyBoard>));
-
-    reg.ready();
 
     reg.startup();
 
@@ -95,8 +91,6 @@ TEST(ResourcesTest, ResourceAddedTest) {
        .add_update_system(system(update2).after(update1).runif(resources_added<Time, KeyBoard>))
        .add_update_system(system(update3).after(update2).runif(resources_added<Time, KeyBoard>));
 
-    reg.ready();
-
     reg.startup();
 
     reg.update();
@@ -110,8 +104,6 @@ TEST(ResourcesTest, ResourceChangedTest) {
        .add_update_system(system(update1).runif(resources_changed<Time, KeyBoard>))
        .add_update_system(system(update2).after(update1).runif(resources_changed<KeyBoard>))
        .add_update_system(system(update3).after(update2).runif(resources_changed<Time, KeyBoard>));
-
-    reg.ready();
 
     reg.startup();
 

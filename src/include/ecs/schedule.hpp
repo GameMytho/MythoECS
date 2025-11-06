@@ -10,17 +10,17 @@ namespace mytho::ecs::internal {
         using stage_id_type = StageIdT;
         using self_type = basic_schedule<registry_type, stage_id_type>;
         using stage_id_generator = mytho::utils::basic_id_generator<mytho::utils::GeneratorType::STAGE_GENOR, stage_id_type>;
-        using system_storage_type = basic_system_storage<registry_type>;
-        using system_config_type = typename system_storage_type::system_config_type;
+        using system_stage_type = basic_system_stage<registry_type>;
+        using system_type = typename system_stage_type::system_type;
 
     private:
         struct basic_stage {
             basic_stage() = default;
-            basic_stage(stage_id_type id, system_storage_type&& storage)
-                : _key(id), _storage(std::move(storage)) {}
+            basic_stage(stage_id_type id, system_stage_type&& stage)
+                : _key(id), _stage(std::move(stage)) {}
 
             stage_id_type _key;
-            system_storage_type _storage;
+            system_stage_type _stage;
         };
 
     public:
@@ -36,7 +36,7 @@ namespace mytho::ecs::internal {
             auto id = stage_id_generator::template gen<StageE>();
 
             ASSURE(!_contain(id), "new stage already exists!");
-            _stages.emplace_back(id, system_storage_type());
+            _stages.emplace_back(id, system_stage_type());
 
             return *this;
         }
@@ -51,7 +51,7 @@ namespace mytho::ecs::internal {
             auto idx = _index(before_id);
 
             ASSURE(idx != stage_index_null, "before-stage not exist!");
-            _stages.insert(_stages.begin() + idx, stage_type(id, system_storage_type()));
+            _stages.insert(_stages.begin() + idx, stage_type(id, system_stage_type()));
 
             return *this;
         }
@@ -66,7 +66,7 @@ namespace mytho::ecs::internal {
             auto idx = _index(after_id);
 
             ASSURE(idx != stage_index_null, "after-stage not exist!");
-            _stages.insert(_stages.begin() + idx + 1, stage_type(id, system_storage_type()));
+            _stages.insert(_stages.begin() + idx + 1, stage_type(id, system_stage_type()));
 
             return *this;
         }
@@ -81,9 +81,9 @@ namespace mytho::ecs::internal {
             auto idx = _index(insert_id);
 
             if (idx == stage_index_null) {
-                _stages.push_back(stage_type(id, system_storage_type()));
+                _stages.push_back(stage_type(id, system_stage_type()));
             } else {
-                _stages.emplace_back(id, system_storage_type());
+                _stages.emplace_back(id, system_stage_type());
                 std::swap(_stages[idx], _stages.back());
             }
 
@@ -96,31 +96,25 @@ namespace mytho::ecs::internal {
             auto id = stage_id_generator::template gen<StageE>();
 
             ASSURE(_contain(id), "stage not exist!");
-            _stages[_index(id)]._storage.add(std::forward<Func>(func));
+            _stages[_index(id)]._stage.add(std::forward<Func>(func));
 
             return *this;
         }
 
         template<auto StageE>
-        self_type& add_system(system_config_type& config) {
+        self_type& add_system(system_type& system) {
             auto id = stage_id_generator::template gen<StageE>();
 
             ASSURE(_contain(id), "stage not exist!");
-            _stages[_index(id)]._storage.add(config);
+            _stages[_index(id)]._stage.add(system);
 
             return *this;
         }
 
     public:
-        void ready() {
-            for (auto& [id, storage] : _stages) {
-                storage.ready();
-            }
-        }
-
         void run(registry_type& reg, uint64_t& tick) {
-            for (auto& [id, storage] : _stages) {
-                storage.run(reg, tick);
+            for (auto& [id, stage] : _stages) {
+                stage.run(reg, tick);
             }
         }
 

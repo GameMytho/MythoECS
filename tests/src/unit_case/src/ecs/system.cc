@@ -7,8 +7,8 @@
  * - hashing: function_pointer_hash uniqueness for different functions
  * - function wrapper: basic_function (non-void and void specializations)
  * - system execution: basic_system should_run and run-if behavior with tick propagation
- * - system config: basic_system_config after/before/runif chaining and accessors
- * - system storage: basic_system_storage add/ready (Kahn topological order), and before->after conversion
+ * - system: basic_system after/before/runif chaining and accessors
+ * - system stage: basic_system_stage add (Kahn topological order), and before/after dependencies
  * - removed entities: basic_removed_entities argument construction and system integration
  * 
  * Utils/Trait Test Cases:
@@ -25,12 +25,11 @@
  * 1. BasicSystemRunAndTick - Tests basic system run and tick
  * 2. BasicSystemRunIfControlsExecution - Tests basic system run if controls execution
  * 
- * System Config Test Cases:
- * 1. BasicSystemConfigAfterBeforeRunif - Tests basic system config after before runif
+ * System Test Cases:
+ * 1. BasicSystemAfterBeforeRunif - Tests basic system after before runif
  * 
- * System Storage Test Cases:
- * 1. BasicSystemStorageTopologicalOrder - Tests basic system storage topological order
- * 2. BasicSystemStorageBeforeRelationConvertedToAfter - Tests basic system storage before relation converted to after
+ * System Stage Test Cases:
+ * 1. BasicSystemStageTopologicalOrder - Tests basic system stage topological order
  * 
  */
 
@@ -171,10 +170,10 @@ TEST(ArgumentConstructionTest, ConstructWork) {
 
 TEST(FunctionWrapperTest, HashValues) {
     internal::function_pointer_hash hasher;
-    internal::basic_system_config<registry> cA(+fp_hash_a);
-    internal::basic_system_config<registry> cB(+fp_hash_b);
-    void* pa = cA.function().pointer();
-    void* pb = cB.function().pointer();
+    internal::basic_system<registry> sysA(+fp_hash_a);
+    internal::basic_system<registry> sysB(+fp_hash_b);
+    void* pa = sysA.function().pointer();
+    void* pb = sysB.function().pointer();
     EXPECT_NE(hasher(pa), hasher(pb));
 }
 
@@ -223,9 +222,8 @@ TEST(BasicSystemTest, RunAndTick) {
 
 TEST(BasicSystemTest, RunIfControlsExecution) {
     registry reg;
-    internal::basic_function<registry, void> fn(+sys_record_tick);
-    internal::basic_function<registry, bool> rf(+[](){ return false; });
-    internal::basic_system<registry> sys(fn, rf);
+    internal::basic_system<registry> sys(+sys_record_tick);
+    sys.runif(+[](){ return false; });
     EXPECT_FALSE(sys.should_run(reg));
 }
 
@@ -235,45 +233,44 @@ TEST(BasicSystemTest, RunIfControlsExecution) {
 // internal::basic_system_config (builders and accessors)
 
 TEST(SystemConfigTest, AfterBeforeRunif) {
-    internal::basic_system_config<registry> cfgA(+sysA);
-    internal::basic_system_config<registry> cfgB(+sysB);
+    internal::basic_system<registry> sysA(+::sysA);
+    internal::basic_system<registry> sysB(+::sysB);
 
-    cfgB.after(+sysA).runif(+runifTrue);
-    EXPECT_NE(cfgA.function().pointer(), nullptr);
-    EXPECT_NE(cfgB.function().pointer(), nullptr);
-    EXPECT_NE(cfgB.runif().pointer(), nullptr);
+    sysB.after(+::sysA).runif(+runifTrue);
+    EXPECT_NE(sysA.function().pointer(), nullptr);
+    EXPECT_NE(sysB.function().pointer(), nullptr);
+    EXPECT_NE(sysB.meta()._runif.pointer(), nullptr);
 }
 
 /*
- * =================================== System Storage Test Cases =======================================
+ * =================================== System Stage Test Cases =======================================
  */
-// internal::basic_system_storage (add, ready/toposort, iteration)
-TEST(SystemStorageTest, TopologicalOrder) {
+// internal::basic_system_stage (add, topological sort, iteration)
+TEST(SystemStageTest, TopologicalOrder) {
     gOrder.clear();
-    internal::basic_system_storage<registry> storage;
+    internal::basic_system_stage<registry> stage;
 
     auto* fA = +[]() { gOrder.push_back(1); };
     auto* fB = +[]() { gOrder.push_back(2); };
     auto* fC = +[]() { gOrder.push_back(3); };
 
-    internal::basic_system_config<registry> cA(fA);
-    internal::basic_system_config<registry> cB(fB);
-    internal::basic_system_config<registry> cC(fC);
+    internal::basic_system<registry> sysA(fA);
+    internal::basic_system<registry> sysB(fB);
+    internal::basic_system<registry> sysC(fC);
 
     // A -> B -> C
-    cB.after(fA);
-    cC.after(fB);
+    sysB.after(fA);
+    sysC.after(fB);
 
-    storage.add(cA);
-    storage.add(cB);
-    storage.add(cC);
+    stage.add(sysA);
+    stage.add(sysB);
+    stage.add(sysC);
 
-    storage.ready();
-    EXPECT_EQ(storage.size(), 3u);
+    EXPECT_EQ(stage.size(), 3u);
 
     registry reg;
     uint64_t tick = 0;
-    storage.run(reg, tick);
+    stage.run(reg, tick);
 
     ASSERT_EQ(gOrder.size(), 3u);
     EXPECT_EQ(gOrder[0], 1);

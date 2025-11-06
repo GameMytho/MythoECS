@@ -1,10 +1,10 @@
 /*
  * Unit Tests for schedule.hpp - Stages & Scheduling Orchestration Testing
  * 
- * This test suite validates the scheduling API built on top of system storage:
+ * This test suite validates the scheduling API built on top of system stages:
  * - stage management: add_stage/add_stage_before/add_stage_after/insert_stage
- * - system adding: add_system(Func) and add_system(Config)
- * - lifecycle: ready() propagates to storages, run() executes in stage order
+ * - system adding: add_system(Func) and add_system(system_type)
+ * - execution: run() executes systems in stage order with topological sorting
  * 
  * Schedule Test Cases:
  * 1. AddStageAndRunOrder - Verify add_stage order reflected in run execution
@@ -63,8 +63,6 @@ TEST(ScheduleTest, AddStageAndRunOrder) {
        .add_system<TestStage::B>(+[](){ gOrder.push_back(2); })
        .add_system<TestStage::C>(+[](){ gOrder.push_back(3); });
 
-    sch.ready();
-
     registry reg;
     uint64_t tick = 0;
     sch.run(reg, tick);
@@ -89,8 +87,6 @@ TEST(ScheduleTest, AddStageBeforeAfter) {
        .add_system<TestStage::B>(+[](){ gOrder.push_back(2); })
        .add_system<TestStage::D>(+[](){ gOrder.push_back(3); })
        .add_system<TestStage::C>(+[](){ gOrder.push_back(4); });
-
-    sch.ready();
     registry reg;
     uint64_t tick = 0;
     sch.run(reg, tick);
@@ -118,8 +114,6 @@ TEST(ScheduleTest, InsertStageBehavior) {
        .add_system<TestStage::Z>(+[](){ gOrder.push_back(2); })
         // If insert target didn't exist, Z would be appended; here it replaces Y's slot
        .add_system<TestStage::Y>(+[](){ gOrder.push_back(3); });
-
-    sch.ready();
     registry reg;
     uint64_t tick = 0;
     sch.run(reg, tick);
@@ -138,15 +132,14 @@ TEST(ScheduleTest, AddSystemOverloads) {
     auto sysA = +[](){ gOrder.push_back(1); };
     auto sysB = +[](){ gOrder.push_back(2); };
 
-    schedule_t::system_config_type cfg(sysB);
+    internal::basic_system<registry> sys(sysB);
 
     sch.add_stage<TestStage::A>();
 
     // Func overload
     sch.add_system<TestStage::A>(sysA)
-        .add_system<TestStage::A>(cfg.after(sysA));
+        .add_system<TestStage::A>(sys.after(sysA));
 
-    sch.ready();
     registry reg;
     uint64_t tick = 0;
     sch.run(reg, tick);
