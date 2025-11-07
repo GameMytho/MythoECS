@@ -354,15 +354,13 @@ namespace mytho::ecs::internal {
         system_meta _meta;
     };
 
-    template<typename RegistryT, typename SystemIdT = uint16_t>
+    template<typename RegistryT>
     class basic_system_stage final {
     public:
         using registry_type = RegistryT;
-        using system_id_type = SystemIdT;
-        using self_type = basic_system_stage<registry_type, system_id_type>;
+        using self_type = basic_system_stage<registry_type>;
         using system_type = basic_system<registry_type>;
         using systems_type = std::unordered_map<void*, system_type, function_pointer_hash>;
-        using frame_systems_type = std::vector<std::vector<system_type*>>;
         using size_type = typename systems_type::size_type;
 
         basic_system_stage() = default;
@@ -415,6 +413,8 @@ namespace mytho::ecs::internal {
         auto size() const noexcept { return _systems.size(); }
 
         auto& systems() noexcept { return _systems; }
+
+        void clear() noexcept { _systems.clear(); }
 
     private:
         systems_type _systems;

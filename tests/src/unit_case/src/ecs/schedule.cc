@@ -107,21 +107,20 @@ TEST(ScheduleTest, InsertStageBehavior) {
     sch.add_stage<TestStage::X>()
        .add_stage<TestStage::Y>();
 
-    // Insert Z with insert target Y (exists): Z should take Y's index, Y moved to end
+    // Insert Z with insert target Y (exists): Z should take Y's index
     sch.insert_stage<TestStage::Z, TestStage::Y>();
 
+    // now, we can not add system into TestStage::Y
     sch.add_system<TestStage::X>(+[](){ gOrder.push_back(1); })
-       .add_system<TestStage::Z>(+[](){ gOrder.push_back(2); })
-        // If insert target didn't exist, Z would be appended; here it replaces Y's slot
-       .add_system<TestStage::Y>(+[](){ gOrder.push_back(3); });
+       .add_system<TestStage::Z>(+[](){ gOrder.push_back(2); });
+
     registry reg;
     uint64_t tick = 0;
     sch.run(reg, tick);
 
-    ASSERT_EQ(gOrder.size(), 3u);
+    ASSERT_EQ(gOrder.size(), 2u);
     EXPECT_EQ(gOrder[0], 1); // X
     EXPECT_EQ(gOrder[1], 2); // Z (at Y's previous position)
-    EXPECT_EQ(gOrder[2], 3); // Y moved to end
 }
 
 TEST(ScheduleTest, AddSystemOverloads) {

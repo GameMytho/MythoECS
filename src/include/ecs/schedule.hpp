@@ -81,10 +81,10 @@ namespace mytho::ecs::internal {
             auto idx = _index(insert_id);
 
             if (idx == stage_index_null) {
-                _stages.push_back(stage_type(id, system_stage_type()));
-            } else {
                 _stages.emplace_back(id, system_stage_type());
-                std::swap(_stages[idx], _stages.back());
+            } else {
+                _stages[idx]._key = id;
+                _stages[idx]._stage.clear();
             }
 
             return *this;
