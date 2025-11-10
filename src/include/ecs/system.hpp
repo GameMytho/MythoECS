@@ -64,127 +64,70 @@ namespace mytho::utils {
 namespace mytho::ecs::internal {
     // argument constructors
     template<typename RegistryT, typename ArgumentT>
-    struct argument_constructor;
+    struct constructor;
+
+    template<typename RegistryT>
+    struct constructor<RegistryT, basic_registrar<RegistryT>> {
+        auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
+            return basic_registrar(reg, tick);
+        }
+    };
+
+    template<typename RegistryT>
+    struct constructor<RegistryT, basic_commands<RegistryT>> {
+        auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
+            return basic_commands(reg);
+        }
+    };
 
     template<typename RegistryT, typename... Ts>
-    struct argument_constructor<RegistryT, basic_querier<RegistryT, Ts...>> {
+    struct constructor<RegistryT, basic_querier<RegistryT, Ts...>> {
         auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
             return reg.template query<Ts...>(tick);
         }
     };
 
     template<typename RegistryT, typename... Ts>
-    struct argument_constructor<RegistryT, basic_resources<Ts...>> {
-        auto operator()(RegistryT& reg) const noexcept {
+    struct constructor<RegistryT, basic_resources<Ts...>> {
+        auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
             return reg.template resources<Ts...>();
         }
     };
 
     template<typename RegistryT, typename... Ts>
-    struct argument_constructor<RegistryT, basic_resources_mut<Ts...>> {
-        auto operator()(RegistryT& reg) const noexcept {
+    struct constructor<RegistryT, basic_resources_mut<Ts...>> {
+        auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
             return reg.template resources_mut<Ts...>();
         }
     };
 
     template<typename RegistryT, typename T>
-    struct argument_constructor<RegistryT, basic_event_writer<RegistryT, T>> {
-        auto operator()(RegistryT& reg) const noexcept {
+    struct constructor<RegistryT, basic_event_writer<RegistryT, T>> {
+        auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
             return basic_event_writer<RegistryT, T>(reg);
         }
     };
 
     template<typename RegistryT, typename T>
-    struct argument_constructor<RegistryT, basic_event_mutator<T>> {
-        auto operator()(RegistryT& reg) const noexcept {
+    struct constructor<RegistryT, basic_event_mutator<T>> {
+        auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
             return basic_event_mutator<T>(reg.template event_mutate<T>());
         }
     };
 
     template<typename RegistryT, typename T>
-    struct argument_constructor<RegistryT, basic_event_reader<T>> {
-        auto operator()(RegistryT& reg) const noexcept {
+    struct constructor<RegistryT, basic_event_reader<T>> {
+        auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
             return basic_event_reader<T>(reg.template event_read<T>());
         }
     };
 
     template<typename RegistryT, typename T>
-    struct argument_constructor<RegistryT, basic_removed_entities<RegistryT, T>> {
-        auto operator()(RegistryT& reg) const noexcept {
+    struct constructor<RegistryT, basic_removed_entities<RegistryT, T>> {
+        auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
             return basic_removed_entities<RegistryT, T>(reg.template removed_entities<T>());
         }
     };
-
-    // argument construct functions
-    template<typename RegistryT>
-    auto construct_registrar(RegistryT& reg, uint64_t tick) {
-        return basic_registrar(reg, tick);
-    }
-
-    template<typename RegistryT>
-    auto construct_commands(RegistryT& reg) {
-        return basic_commands(reg);
-    }
-
-    template<typename RegistryT, typename QuerierT>
-    auto construct_querier(RegistryT& reg, uint64_t tick) {
-        return argument_constructor<RegistryT, QuerierT>{}(reg, tick);
-    }
-
-    template<typename RegistryT, typename ResourcesT>
-    auto construct_resources(RegistryT& reg) {
-        return argument_constructor<RegistryT, ResourcesT>{}(reg);
-    }
-
-    template<typename RegistryT, typename ResourcesMutT>
-    auto construct_resources_mut(RegistryT& reg) {
-        return argument_constructor<RegistryT, ResourcesMutT>{}(reg);
-    }
-
-    template<typename RegistryT, typename EventWriterT>
-    auto construct_event_writer(RegistryT& reg) {
-        return argument_constructor<RegistryT, EventWriterT>{}(reg);
-    }
-
-    template<typename RegistryT, typename EventMutatorT>
-    auto construct_event_mutator(RegistryT& reg) {
-        return argument_constructor<RegistryT, EventMutatorT>{}(reg);
-    }
-
-    template<typename RegistryT, typename EventReaderT>
-    auto construct_event_reader(RegistryT& reg) {
-        return argument_constructor<RegistryT, EventReaderT>{}(reg);
-    }
-
-    template<typename RegistryT, typename RemovedEntitiesT>
-    auto construct_removed_entities(RegistryT& reg) {
-        return argument_constructor<RegistryT, RemovedEntitiesT>{}(reg);
-    }
-
-    template<typename RegistryT, typename T>
-    auto construct(RegistryT& reg, uint64_t tick) {
-        if constexpr (mytho::utils::is_registrar_v<T>) {
-            return construct_registrar(reg, tick);
-        } else if constexpr (mytho::utils::is_commands_v<T>) {
-            return construct_commands(reg);
-        } else if constexpr (mytho::utils::is_querier_v<T>) {
-            return construct_querier<RegistryT, T>(reg, tick);
-        } else if constexpr (mytho::utils::is_resources_v<T>) {
-            return construct_resources<RegistryT, T>(reg);
-        } else if constexpr (mytho::utils::is_resources_mut_v<T>) {
-            return construct_resources_mut<RegistryT, T>(reg);
-        } else if constexpr (mytho::utils::is_event_writer_v<T>) {
-            return construct_event_writer<RegistryT, T>(reg);
-        } else if constexpr (mytho::utils::is_event_mutator_v<T>) {
-            return construct_event_mutator<RegistryT, T>(reg);
-        } else if constexpr (mytho::utils::is_event_reader_v<T>) {
-            return construct_event_reader<RegistryT, T>(reg);
-        } else if constexpr (mytho::utils::is_removed_entities_v<T>) {
-            return construct_removed_entities<RegistryT, T>(reg);
-        } else {
-            ASSURE(false, "Unsupport type, please check the args of systems!");
-        }
-    }
 
     struct function_pointer_hash {
         size_t operator()(void* p) const noexcept {
@@ -237,7 +180,7 @@ namespace mytho::ecs::internal {
 
         template<typename Func, typename... Ts>
         static return_type function_invoke(Func&& func, registry_type& reg, uint64_t tick, mytho::utils::type_list<Ts...>) {
-            return std::invoke(std::forward<Func>(func), construct<registry_type, Ts>(reg, tick)...);
+            return std::invoke(std::forward<Func>(func), constructor<registry_type, Ts>{}(reg, tick)...);
         }
     };
 
@@ -279,7 +222,7 @@ namespace mytho::ecs::internal {
 
         template<typename Func, typename... Ts>
         static void function_invoke(Func&& func, registry_type& reg, uint64_t tick, mytho::utils::type_list<Ts...>) {
-            std::invoke(std::forward<Func>(func), construct<registry_type, Ts>(reg, tick)...);
+            std::invoke(std::forward<Func>(func), constructor<registry_type, Ts>{}(reg, tick)...);
         }
     };
 }
