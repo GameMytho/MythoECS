@@ -85,18 +85,47 @@ namespace mytho::ecs::internal {
             } else {
                 _stages[idx]._key = id;
                 _stages[idx]._stage.clear();
+
+                if (_default == insert_id) {
+                    _default = id;
+                }
             }
 
             return *this;
         }
 
+        template<auto StageE>
+        self_type& set_default_stage() {
+            auto id = stage_id_generator::template gen<StageE>();
+            _default = id;
+
+            return *this;
+        }
+
     public:
+        template<mytho::utils::FunctionType Func>
+        self_type& add_system(Func&& func) {
+            ASSURE(_index(_default) < _stages.size(), "no available default stage!");
+
+            _stages[_index(_default)]._stage.add(std::forward<Func>(func));
+
+            return *this;
+        }
+
         template<auto StageE, mytho::utils::FunctionType Func>
         self_type& add_system(Func&& func) {
             auto id = stage_id_generator::template gen<StageE>();
 
             ASSURE(_contain(id), "stage not exist!");
             _stages[_index(id)]._stage.add(std::forward<Func>(func));
+
+            return *this;
+        }
+
+        self_type& add_system(system_type& system) {
+            ASSURE(_index(_default) < _stages.size(), "no available default stage!");
+
+            _stages[_index(_default)]._stage.add(system);
 
             return *this;
         }
@@ -120,6 +149,7 @@ namespace mytho::ecs::internal {
 
     private:
         stages_type _stages;
+        stage_id_type _default = 0;
 
     private:
         bool _contain(stage_id_type id) const noexcept {

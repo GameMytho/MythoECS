@@ -249,7 +249,7 @@ TEST(RegistryTest, AddAndRunSystemWithSpecifiedStage) {
     auto s6 = registry::system(+[](){ gSysOrder.push_back(60); });
 
     reg.add_startup_system<StartupStage::Startup>(s1)
-        .add_update_system<CoreStage::Update>(s5)
+        .add_update_system(s5) // add to default stage: CoreStage::Update
         .add_update_system<CoreStage::First>(s6)
         .add_update_system<CoreStage::Last>(s2)
         .add_update_system<CoreStage::PreUpdate>(s3)
@@ -287,8 +287,9 @@ TEST(RegistryTest, AddAndRunSystemWithCustomStage) {
     reg.add_startup_stage_before<CustomStartupStage::PreStartup, StartupStage::Startup>()
         .add_startup_stage_after<CustomStartupStage::PostStartup, StartupStage::Startup>()
         .add_update_stage_after<CustomCoreStage::PreRender, CoreStage::PreUpdate>()
-        .add_update_stage_before<CustomCoreStage::PostRender, CoreStage::PostUpdate>()
-        .insert_update_stage<CustomCoreStage::Render, CoreStage::Update>();
+        .add_update_stage_before<CustomCoreStage::PostRender, CoreStage::PostUpdate>();
+
+    reg.insert_update_stage<CustomCoreStage::Render, CoreStage::Update>(); // replace update stage by render and set default stage to render
 
     reg.add_startup_system<CustomStartupStage::PreStartup>(s1)
         .add_startup_system<StartupStage::Startup>(s2)
@@ -296,7 +297,7 @@ TEST(RegistryTest, AddAndRunSystemWithCustomStage) {
         .add_update_system<CoreStage::First>(s4)
         .add_update_system<CoreStage::PreUpdate>(s5)
         .add_update_system<CustomCoreStage::PreRender>(s6)
-        .add_update_system<CustomCoreStage::Render>(s7)
+        .add_update_system(s7) // default stage: CustomCoreStage::Render
         .add_update_system<CustomCoreStage::PostRender>(s8)
         .add_update_system<CoreStage::PostUpdate>(s9)
         .add_update_system<CoreStage::Last>(s10);

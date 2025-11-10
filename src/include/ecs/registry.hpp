@@ -62,13 +62,15 @@ namespace mytho::ecs {
         using resources_mut_type = mytho::ecs::basic_resources_mut<Ts...>;
 
         basic_registry() {
-            _startup_schedule.template add_stage<startup_stage::Startup>();
+            _startup_schedule.template add_stage<startup_stage::Startup>()
+                             .template set_default_stage<startup_stage::Startup>();
 
             _update_schedule.template add_stage<core_stage::First>()
                             .template add_stage<core_stage::PreUpdate>()
                             .template add_stage<core_stage::Update>()
                             .template add_stage<core_stage::PostUpdate>()
-                            .template add_stage<core_stage::Last>();
+                            .template add_stage<core_stage::Last>()
+                            .template set_default_stage<core_stage::Update>();
         }
 
     public: // entity operations
@@ -356,6 +358,13 @@ namespace mytho::ecs {
         }
 
         template<auto StageE>
+        self_type& set_startup_default_stage() {
+            _startup_schedule.template set_default_stage<StageE>();
+
+            return *this;
+        }
+
+        template<auto StageE>
         self_type& add_update_stage() {
             _update_schedule.template add_stage<StageE>();
 
@@ -383,6 +392,13 @@ namespace mytho::ecs {
             return *this;
         }
 
+        template<auto StageE>
+        self_type& set_update_default_stage() {
+            _update_schedule.template set_default_stage<StageE>();
+
+            return *this;
+        }
+
     public: // system operations
         template<mytho::utils::FunctionType Func>
         static system_type system(Func&& func) noexcept {
@@ -391,7 +407,7 @@ namespace mytho::ecs {
 
         template<mytho::utils::FunctionType Func>
         self_type& add_startup_system(Func&& func) {
-            _startup_schedule.template add_system<startup_stage::Startup>(std::forward<Func>(func));
+            _startup_schedule.add_system(std::forward<Func>(func));
 
             return *this;
         }
@@ -404,7 +420,7 @@ namespace mytho::ecs {
         }
 
         self_type& add_startup_system(system_type& system) {
-            _startup_schedule.template add_system<startup_stage::Startup>(system);
+            _startup_schedule.add_system(system);
 
             return *this;
         }
@@ -418,7 +434,7 @@ namespace mytho::ecs {
 
         template<mytho::utils::FunctionType Func>
         self_type& add_update_system(Func&& func) {
-            _update_schedule.template add_system<core_stage::Update>(std::forward<Func>(func));
+            _update_schedule.add_system(std::forward<Func>(func));
 
             return *this;
         }
@@ -430,7 +446,7 @@ namespace mytho::ecs {
         }
 
         self_type& add_update_system(system_type& system) {
-            _update_schedule.template add_system<core_stage::Update>(system);
+            _update_schedule.add_system(system);
 
             return *this;
         }
