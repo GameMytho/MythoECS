@@ -13,6 +13,14 @@
 #include "ecs/schedule.hpp"
 
 namespace mytho::ecs {
+    namespace internal {
+        // id generators
+        struct component_genor final {};
+        struct resource_genor final {};
+        struct event_genor final {};
+        struct stage_genor final {};
+    }
+
     enum class startup_stage {
         Startup
     };
@@ -27,9 +35,10 @@ namespace mytho::ecs {
 
     template<
         mytho::utils::EntityType EntityT,
-        mytho::utils::UnsignedIntegralType ComponentIdT = size_t,
-        mytho::utils::UnsignedIntegralType ResourceIdT = size_t,
-        mytho::utils::UnsignedIntegralType EventIdT = size_t,
+        mytho::utils::UnsignedIntegralType ComponentIdT = uint16_t,
+        mytho::utils::UnsignedIntegralType ResourceIdT = uint16_t,
+        mytho::utils::UnsignedIntegralType EventIdT = uint16_t,
+        mytho::utils::UnsignedIntegralType StageIdT = uint8_t,
         size_t PageSize = 1024
     >
     class basic_registry final {
@@ -38,15 +47,18 @@ namespace mytho::ecs {
         using component_id_type = ComponentIdT;
         using resource_id_type = ResourceIdT;
         using event_id_type = EventIdT;
-        using self_type = mytho::ecs::basic_registry<entity_type, component_id_type, resource_id_type, event_id_type, PageSize>;
-        using entity_storage_type = mytho::container::basic_entity_storage<entity_type, component_id_type, PageSize>;
-        using size_type = typename entity_storage_type::size_type;
-        using component_storage_type = mytho::container::basic_component_storage<entity_type, component_id_type, PageSize>;
-        using component_id_generator = mytho::utils::basic_id_generator<mytho::utils::GeneratorType::COMPONENT_GENOR, component_id_type>;
-        using resource_storage_type = mytho::container::basic_resource_storage<resource_id_type, std::allocator>;
-        using events_type = mytho::ecs::basic_events<event_id_type, std::allocator>;
+        using stage_id_type = StageIdT;
+        using self_type = mytho::ecs::basic_registry<entity_type, component_id_type, resource_id_type, event_id_type, stage_id_type, PageSize>;
+
+        using entity_storage_type = mytho::container::basic_entity_storage<entity_type, internal::component_genor, component_id_type, PageSize>;
+        using component_storage_type = mytho::container::basic_component_storage<entity_type, internal::component_genor, component_id_type, PageSize>;
+        using resource_storage_type = mytho::container::basic_resource_storage<internal::resource_genor, resource_id_type, std::allocator>;
+        using events_type = mytho::ecs::basic_events<internal::event_genor, event_id_type, std::allocator>;
         using command_queue_type = mytho::ecs::internal::basic_command_queue<self_type>;
-        using schedule_type = mytho::ecs::internal::basic_schedule<self_type, uint16_t>;
+        using schedule_type = mytho::ecs::internal::basic_schedule<self_type, internal::stage_genor, stage_id_type>;
+
+        using size_type = typename entity_storage_type::size_type;
+        using component_id_generator = typename component_storage_type::component_id_generator;
         using system_type = typename schedule_type::system_type;
 
         template<typename... Ts>

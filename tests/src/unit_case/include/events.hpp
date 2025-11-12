@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+struct event_genor final {};
+
 struct DamageEvent {
     int id;
     float value;

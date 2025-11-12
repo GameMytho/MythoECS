@@ -1,14 +1,7 @@
 #pragma once
 
 namespace mytho::utils {
-    enum class GeneratorType : uint8_t {
-        COMPONENT_GENOR = 0,
-        RESOURCE_GENOR,
-        EVENT_GENOR,
-        STAGE_GENOR
-    };
-
-    template<GeneratorType GT, typename IdT>
+    template<typename GeneratorT, typename IdT>
     struct basic_id_generator {
         using value_type = IdT;
 

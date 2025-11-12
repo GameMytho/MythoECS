@@ -48,7 +48,7 @@
 using namespace mytho::ecs;
 
 using entity = basic_entity<uint32_t, uint16_t>;
-using registry = basic_registry<entity, uint8_t, uint8_t, uint8_t, 1024>;
+using registry = basic_registry<entity>;
 
 /*
  * ======================================== Helper Structures/Functions ==================================

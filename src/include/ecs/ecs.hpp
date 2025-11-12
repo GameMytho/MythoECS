@@ -27,7 +27,7 @@ namespace {
     using res_mut = mytho::ecs::basic_resources_mut<Ts...>;
 
     using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
-    using registry = mytho::ecs::basic_registry<entity, uint8_t, uint8_t, uint8_t, 1024>;
+    using registry = mytho::ecs::basic_registry<entity, uint16_t, uint16_t, uint16_t, uint8_t, 1024>;
     using commands = mytho::ecs::basic_commands<registry>;
     using registrar = mytho::ecs::basic_registrar<registry>;
 

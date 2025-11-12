@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+struct resource_genor final {};
+
 struct GameConfig {
     int value;
     std::string name;

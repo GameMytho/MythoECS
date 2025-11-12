@@ -3,13 +3,18 @@
 #include "ecs/system.hpp"
 
 namespace mytho::ecs::internal {
-    template<typename RegistryT, typename StageIdT = uint8_t>
+    template<
+        typename RegistryT,
+        typename StageIdGeneratorT,
+        typename StageIdT = uint8_t
+    >
     class basic_schedule final {
     public:
         using registry_type = RegistryT;
+        using stage_id_generator_type = StageIdGeneratorT;
         using stage_id_type = StageIdT;
-        using self_type = basic_schedule<registry_type, stage_id_type>;
-        using stage_id_generator = mytho::utils::basic_id_generator<mytho::utils::GeneratorType::STAGE_GENOR, stage_id_type>;
+        using self_type = basic_schedule<registry_type, stage_id_generator_type, stage_id_type>;
+        using stage_id_generator = mytho::utils::basic_id_generator<stage_id_generator_type, stage_id_type>;
         using system_stage_type = basic_system_stage<registry_type>;
         using system_type = typename system_stage_type::system_type;
 

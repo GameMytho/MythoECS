@@ -7,17 +7,19 @@
 
 namespace mytho::container {
     template<
+        typename ResourceIdGeneratorT,
         mytho::utils::UnsignedIntegralType ResourceIdT = size_t,
         template<typename> typename AllocatorT = std::allocator
     >
     class basic_resource_storage final {
     public:
+        using resource_id_generator_type = ResourceIdGeneratorT;
         using resource_id_type = ResourceIdT;
         using resource_pool_type = std::vector<void*>;
         using size_type = typename resource_pool_type::size_type;
         using resource_destroy_functions_type = std::vector<void(*)(void*)>;
         using resource_ticks_type = basic_tick_set;
-        using resource_id_generator = mytho::utils::basic_id_generator<mytho::utils::GeneratorType::RESOURCE_GENOR, resource_id_type>;
+        using resource_id_generator = mytho::utils::basic_id_generator<resource_id_generator_type, resource_id_type>;
 
         basic_resource_storage() noexcept = default;
         basic_resource_storage(const basic_resource_storage& rs) = delete;

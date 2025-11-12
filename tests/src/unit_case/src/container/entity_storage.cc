@@ -38,7 +38,7 @@ using namespace mytho::ecs;
 #include "components.hpp"
 
 using entity = basic_entity<uint32_t, uint16_t>;
-using entity_storage = basic_entity_storage<entity>;
+using entity_storage = basic_entity_storage<entity, component_genor>;
 
 enum class Operation {
     EMPLACE_NO_COMPONENTS = 0,

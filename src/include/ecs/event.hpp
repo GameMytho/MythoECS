@@ -10,13 +10,15 @@ namespace mytho::utils {
 
 namespace mytho::ecs {
     template<
+        typename EventIdGeneratorT,
         mytho::utils::UnsignedIntegralType EventIdT = size_t,
         template<typename> typename AllocatorT = std::allocator
     >
     class basic_events final {
     public:
+        using event_id_generator_type = EventIdGeneratorT;
         using event_id_type = EventIdT;
-        using event_storage_type = mytho::container::basic_event_storage<event_id_type, AllocatorT>;
+        using event_storage_type = mytho::container::basic_event_storage<event_id_generator_type, event_id_type, AllocatorT>;
 
     public:
         template<mytho::utils::PureValueType T, typename... Rs>

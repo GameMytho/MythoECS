@@ -25,8 +25,10 @@ using namespace mytho::ecs;
  * ======================================== Helper Structures/Functions ==================================
  */
 
+struct stage_genor final {};
+
 using entity = basic_entity<uint32_t, uint16_t>;
-using registry = basic_registry<entity, uint8_t, uint8_t, uint8_t, 1024>;
+using registry = basic_registry<entity>;
 
 // Shared order sink
 static std::vector<int> gOrder;
@@ -44,7 +46,7 @@ namespace {
 }
 
 // convenience alias
-using schedule_t = internal::basic_schedule<registry>;
+using schedule_t = typename registry::schedule_type;
 
 /*
  * ======================================== Test Cases ==================================

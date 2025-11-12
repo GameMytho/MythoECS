@@ -48,7 +48,7 @@ enum class Operation {
 
 // Test basic operations and resource management
 TEST(ResourceStorageTest, BasicOperations) {
-    basic_resource_storage<> resource_storage;
+    basic_resource_storage<resource_genor> resource_storage;
 
     EXPECT_EQ(resource_storage.size(), 0);
     EXPECT_TRUE(resource_storage.empty());
@@ -91,7 +91,7 @@ TEST(ResourceStorageTest, BasicOperations) {
 
 // Test tick management functionality and resource state tracking
 TEST(ResourceStorageTest, TickManagement) {
-    basic_resource_storage<> resource_storage;
+    basic_resource_storage<resource_genor> resource_storage;
 
     resource_storage.init<GameConfig>(100, 10, "resource1");
     resource_storage.init<PhysicsSettings>(200, 2.5f, false);
@@ -120,7 +120,7 @@ TEST(ResourceStorageTest, TickManagement) {
 
 // Test resource lifecycle, memory management, and reinitialization
 TEST(ResourceStorageTest, ResourceLifecycle) {
-    basic_resource_storage<> resource_storage;
+    basic_resource_storage<resource_genor> resource_storage;
 
     resource_storage.init<GameConfig>(100, 10, "first");
     resource_storage.init<GameConfig>(200, 20, "second"); // Should be ignored
@@ -141,7 +141,7 @@ TEST(ResourceStorageTest, ResourceLifecycle) {
 
 // Test complex resource types with containers and custom types
 TEST(ResourceStorageTest, ComplexResourceTypes) {
-    basic_resource_storage<> resource_storage;
+    basic_resource_storage<resource_genor> resource_storage;
 
     std::vector<int> numbers = {1, 2, 3, 4, 5};
     resource_storage.init<LevelData>(100, numbers, "complex_resource");
@@ -161,7 +161,7 @@ TEST(ResourceStorageTest, ComplexResourceTypes) {
 
 // Test multiple resource types and mixed resource management
 TEST(ResourceStorageTest, MultipleResourceTypes) {
-    basic_resource_storage<> resource_storage;
+    basic_resource_storage<resource_genor> resource_storage;
 
     resource_storage.init<GameConfig>(100, 1, "resource1");
     resource_storage.init<PhysicsSettings>(200, 1.5f, true);
@@ -193,7 +193,7 @@ TEST(ResourceStorageTest, MultipleResourceTypes) {
 
 // Test random operations and data integrity under various conditions
 TEST(ResourceStorageTest, RandomOperations) {
-    basic_resource_storage<> resource_storage;
+    basic_resource_storage<resource_genor> resource_storage;
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<int> value_dist(1, 100);

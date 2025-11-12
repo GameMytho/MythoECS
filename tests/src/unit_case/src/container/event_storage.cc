@@ -46,7 +46,7 @@ enum class Operation {
 
 // Test basic event storage operations
 TEST(EventStorageTest, BasicOperations) {
-    basic_event_storage<> event_storage;
+    basic_event_storage<event_genor> event_storage;
     EXPECT_EQ(event_storage.size(), 0);
     EXPECT_TRUE(event_storage.empty());
 
@@ -62,7 +62,7 @@ TEST(EventStorageTest, BasicOperations) {
 
 // Test writing and reading different event types
 TEST(EventStorageTest, WriteAndRead) {
-    basic_event_storage<> event_storage;
+    basic_event_storage<event_genor> event_storage;
 
     event_storage.write<DamageEvent>(1, 10.5f);
     event_storage.write<DamageEvent>(2, 20.5f);
@@ -109,7 +109,7 @@ TEST(EventStorageTest, WriteAndRead) {
 
 // Test mutable event set operations
 TEST(EventStorageTest, MutateOperations) {
-    basic_event_storage<> event_storage;
+    basic_event_storage<event_genor> event_storage;
 
     event_storage.write<DamageEvent>(1, 10.5f);
     event_storage.write<DamageEvent>(2, 20.5f);
@@ -138,7 +138,7 @@ TEST(EventStorageTest, MutateOperations) {
 
 // Test memory management and cleanup
 TEST(EventStorageTest, MemoryManagement) {
-    basic_event_storage<> event_storage;
+    basic_event_storage<event_genor> event_storage;
 
     event_storage.write<BulkEvent>(std::vector<int>{1, 2, 3}, "test1");
     event_storage.write<BulkEvent>(std::vector<int>{4, 5, 6}, "test2");
@@ -176,8 +176,8 @@ TEST(EventStorageTest, MemoryManagement) {
 
 // Test swap and clear operations
 TEST(EventStorageTest, SwapAndClear) {
-    basic_event_storage<> event_storage1;
-    basic_event_storage<> event_storage2;
+    basic_event_storage<event_genor> event_storage1;
+    basic_event_storage<event_genor> event_storage2;
 
     event_storage1.write<DamageEvent>(1, 10.5f);
     event_storage1.write<DamageEvent>(2, 20.5f);
@@ -258,7 +258,7 @@ TEST(EventStorageTest, SwapAndClear) {
 
 // Test random operations and data integrity
 TEST(EventStorageTest, RandomOperations) {
-    basic_event_storage<> event_storage;
+    basic_event_storage<event_genor> event_storage;
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<int> id_dist(1, 100);

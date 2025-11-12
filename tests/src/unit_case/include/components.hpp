@@ -4,6 +4,8 @@
 
 #include <string>
 
+struct component_genor final {};
+
 struct Position {
     int x, y;
 
