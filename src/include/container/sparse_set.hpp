@@ -98,6 +98,8 @@ namespace mytho::container {
 
         bool empty() const noexcept { return _density.empty(); }
 
+        const auto& operator[](auto idx) const { return _density[idx]; }
+
     private:
         density_type _density;
         sparsity_type _sparsity;

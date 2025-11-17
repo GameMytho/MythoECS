@@ -269,6 +269,10 @@ TEST(SparseSetTest, ConstIteratorOperations) {
     EXPECT_EQ(const_sparse_set.begin()[1], 20);
     EXPECT_EQ(const_sparse_set.begin()[2], 30);
 
+    EXPECT_EQ(const_sparse_set[0], 10);
+    EXPECT_EQ(const_sparse_set[1], 20);
+    EXPECT_EQ(const_sparse_set[2], 30);
+
     std::vector<uint32_t> elements;
     for (const auto& element : const_sparse_set) {
         elements.push_back(element);

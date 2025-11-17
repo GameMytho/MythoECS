@@ -12,6 +12,7 @@
 
 #include "utils/assert.hpp"
 #include "utils/type_list.hpp"
+#include "container/sparse_set.hpp"
 #include "ecs/registrar.hpp"
 #include "ecs/commands.hpp"
 #include "ecs/querier.hpp"
@@ -129,18 +130,6 @@ namespace mytho::ecs::internal {
         }
     };
 
-    struct function_pointer_hash {
-        size_t operator()(void* p) const noexcept {
-            size_t v = reinterpret_cast<size_t>(p);
-            v ^= v >> 16;
-            v *= 0x85ebca6b;
-            v ^= v >> 13;
-            v *= 0xc2b2ae35;
-            v ^= v >> 16;
-            return v;
-        }
-    };
-
     template<typename RegistryT, typename ReturnT>
     class basic_function final {
     public:
@@ -235,6 +224,8 @@ namespace mytho::ecs::internal {
         using self_type = basic_system<registry_type>;
         using function_type = basic_function<registry_type, void>;
         using runif_type = basic_function<registry_type, bool>;
+        using befores_type = std::vector<void*>;
+        using afters_type = std::vector<void*>;
 
         basic_system() noexcept = default;
 
@@ -244,57 +235,47 @@ namespace mytho::ecs::internal {
     public:
         template<mytho::utils::FunctionType Func>
         self_type& after(Func&& func) {
-            _meta._afters.push_back(reinterpret_cast<void*>(func));
+            _afters.push_back(reinterpret_cast<void*>(func));
 
             return *this;
         }
 
         template<mytho::utils::FunctionType Func>
         self_type& before(Func&& func) {
-            _meta._befores.push_back(reinterpret_cast<void*>(func));
+            _befores.push_back(reinterpret_cast<void*>(func));
 
             return *this;
         }
 
         template<mytho::utils::FunctionType Func>
         self_type& runif(Func&& func) {
-            _meta._runif = std::forward<Func>(func);
+            _runif = std::forward<Func>(func);
 
             return *this;
         }
 
     public:
-        bool should_run(registry_type& reg) {
-            return !_meta._runif.pointer() || _meta._runif(reg, _meta._last_run_tick);
-        }
-
-        void operator()(registry_type& reg, uint64_t tick) {
-            _function(reg, _meta._last_run_tick);
-            _meta._last_run_tick = tick;
-        }
-
-    public:
-        const auto& function() const noexcept {
+        auto& function() noexcept {
             return _function;
         }
 
-        const auto& meta() const noexcept {
-            return _meta;
+        auto& runif() noexcept {
+            return _runif;
+        }
+
+        auto befores() && noexcept {
+            return std::move(_befores);
+        }
+
+        auto afters() && noexcept {
+            return std::move(_afters);
         }
 
     private:
-        struct system_meta {
-            using befores_type = std::vector<void*>;
-            using afters_type = std::vector<void*>;
-
-            uint64_t _last_run_tick = 0;
-            runif_type _runif;
-            befores_type _befores;
-            afters_type _afters;
-        };
-
         function_type _function;
-        system_meta _meta;
+        runif_type _runif;
+        befores_type _befores;
+        afters_type _afters;
     };
 
     template<typename RegistryT>
@@ -303,17 +284,37 @@ namespace mytho::ecs::internal {
         using registry_type = RegistryT;
         using self_type = basic_system_stage<registry_type>;
         using system_type = basic_system<registry_type>;
-        using systems_type = std::unordered_map<void*, system_type, function_pointer_hash>;
-        using size_type = typename systems_type::size_type;
+
+        using tick_type = uint64_t;
+        using function_type = typename system_type::function_type;
+        using runif_type = typename system_type::runif_type;
+        using befores_type = typename system_type::befores_type;
+        using afters_type = typename system_type::afters_type;
+
+        using ticks_type = std::vector<tick_type>;
+        using functions_type = std::vector<function_type>;
+        using runifs_type = std::vector<runif_type>;
+        using befores_pool_type = std::vector<befores_type>;
+        using afters_pool_type = std::vector<afters_type>;
+
+        using size_type = typename functions_type::size_type;
+        using id_map_type = std::unordered_map<void*, size_type>;
 
         basic_system_stage() = default;
         basic_system_stage(basic_system_stage& ss) = delete;
 
         basic_system_stage(basic_system_stage&& ss) noexcept
-            : _systems(std::move(ss.systems())) {}
+            : _last_run_ticks(std::move(ss).last_run_ticks()), _functions(std::move(ss).functions()),
+            _runifs(std::move(ss).runifs()), _befores_pool(std::move(ss).befores_pool()),
+            _afters_pool(std::move(ss).afters_pool()), _id_map(std::move(ss).id_map()) {}
 
         basic_system_stage& operator=(basic_system_stage&& ss) noexcept {
-            _systems = std::move(ss.systems());
+            _last_run_ticks = std::move(ss).last_run_ticks();
+            _functions = std::move(ss).functions();
+            _runifs = std::move(ss).runifs();
+            _befores_pool = std::move(ss).befores_pool();
+            _afters_pool = std::move(ss).afters_pool();
+            _id_map = std::move(ss).id_map();
 
             return *this;
         }
@@ -321,107 +322,139 @@ namespace mytho::ecs::internal {
     public:
         template<mytho::utils::FunctionType Func>
         void add(Func&& func) {
-            _systems.emplace(reinterpret_cast<void*>(func), system_type{ std::forward<Func>(func) });
+            if (_id_map.contains(reinterpret_cast<void*>(func))) {
+                return;
+            }
+
+            _last_run_ticks.push_back(0);
+            _functions.emplace_back(std::forward<Func>(func));
+            _runifs.emplace_back();
+            _befores_pool.emplace_back();
+            _afters_pool.emplace_back();
+
+            _id_map[reinterpret_cast<void*>(func)] = _functions.size() - 1;
         }
 
-        void add(const system_type& system) {
-            _systems.emplace(system.function().pointer(), system);
+        void add(system_type& system) {
+            if (_id_map.contains(reinterpret_cast<void*>(system.function().pointer()))) {
+                return;
+            }
+
+            _last_run_ticks.push_back(0);
+            _functions.push_back(system.function());
+            _runifs.push_back(system.runif());
+            _befores_pool.push_back(std::move(system).befores());
+            _afters_pool.push_back(std::move(system).afters());
+
+            _id_map[reinterpret_cast<void*>(system.function().pointer())] = _functions.size() - 1;
         }
 
     public:
         void run(registry_type& reg, uint64_t& tick) {
-            std::vector<void*> valid_systems;
+            mytho::container::basic_sparse_set<size_type, 64> ids;
 
-            for (auto& [ptr, system] : _systems) {
-                if (system.should_run(reg)) {
-                    valid_systems.push_back(ptr);
+            for (size_type i = 0; i < _runifs.size(); i++) {
+                if (!_runifs[i].pointer() || _runifs[i](reg, _last_run_ticks[i])) {
+                    ids.add(i);
                 }
             }
 
-            std::vector<system_type*> result;
-            result.reserve(valid_systems.size());
-
-            build(valid_systems, result);
-
-            for (auto sp : result) {
-                (*sp)(reg, tick);
+            for (auto id : build(ids)) {
+                _functions[id](reg, _last_run_ticks[id]);
+                _last_run_ticks[id] = tick;
             }
         }
 
     public:
-        auto begin() noexcept { return _systems.begin(); }
+        auto last_run_ticks() && noexcept { return _last_run_ticks; }
 
-        auto end() noexcept { return _systems.end(); }
+        auto functions() && noexcept { return _functions; }
 
-        auto size() const noexcept { return _systems.size(); }
+        auto runifs() && noexcept { return _runifs; }
 
-        auto& systems() noexcept { return _systems; }
+        auto befores_pool() && noexcept { return _befores_pool; }
 
-        void clear() noexcept { _systems.clear(); }
+        auto afters_pool() && noexcept { return _afters_pool; }
 
-    private:
-        systems_type _systems;
+        auto id_map() && noexcept { return _id_map; }
 
-    private:
-        void build(auto& valid_ptrs, auto& result) {
-            std::unordered_map<void*, std::unordered_set<void*>, function_pointer_hash> edges(valid_ptrs.size());
-            std::unordered_map<void*, size_t> in_degrees;
+        auto size() const noexcept { return _functions.size(); }
 
-            for (auto p : valid_ptrs) {
-                edges.emplace(p, std::unordered_set<void*>());
-                in_degrees.emplace(p, 0);
-            }
-
-            for (auto p : valid_ptrs) {
-                auto& system = _systems[p];
-
-                for (auto before : system.meta()._befores) {
-                    if (!edges.contains(before)) {
-                        continue;
-                    }
-
-                    if (edges[p].insert(before).second) {
-                        in_degrees[before]++;
-                    }
-                }
-
-                for (auto after : system.meta()._afters) {
-                    if (!edges.contains(after)) {
-                        continue;
-                    }
-
-                    if (edges[after].insert(p).second) {
-                        in_degrees[p]++;
-                    }
-                }
-            }
-
-            kahn(edges, in_degrees, result);
+        void clear() noexcept {
+            _last_run_ticks.clear();
+            _functions.clear();
+            _runifs.clear();
+            _befores_pool.clear();
+            _afters_pool.clear();
+            _id_map.clear();
         }
 
-        void kahn(auto& edges, auto& in_degrees, auto& result) {
-            std::queue<void*> q;
-            for (auto [p, degree] : in_degrees) {
-                if (degree == 0) {
-                    q.push(p);
+    private:
+        ticks_type _last_run_ticks;
+        functions_type _functions;
+        runifs_type _runifs;
+        befores_pool_type _befores_pool;
+        afters_pool_type _afters_pool;
+
+        id_map_type _id_map;
+
+    private:
+        auto build(auto& ids) {
+            std::vector<std::vector<size_type>> edges(ids.size());
+            std::vector<size_t> in_degrees(ids.size(), 0);
+
+            for (auto i = 0; i < ids.size(); i++) {
+                for (auto p : _befores_pool[ids[i]]) {
+                    if (!_id_map.contains(p) || !ids.contain(_id_map[p])) {
+                        continue;
+                    }
+
+                    auto v = ids.index(_id_map[p]);
+                    if (std::find(edges[i].begin(), edges[i].end(), v) == edges[i].end()) {
+                        edges[i].push_back(v);
+                        in_degrees[v]++;
+                    }
+                }
+
+                for (auto p : _afters_pool[ids[i]]) {
+                    if (!_id_map.contains(p) || !ids.contain(_id_map[p])) {
+                        continue;
+                    }
+
+                    auto k = ids.index(_id_map[p]);
+                    if (std::find(edges[k].begin(), edges[k].end(), i) == edges[k].end()) {
+                        edges[k].push_back(i);
+                        in_degrees[i]++;
+                    }
                 }
             }
 
-            while(!q.empty()) {
-                auto p = q.front();
-                q.pop();
-                result.push_back(&_systems[p]);
+            return kahn(edges, in_degrees, ids);
+        }
 
-                if (edges.contains(p)) {
-                    for (auto tp : edges[p]) {
-                        if (--in_degrees[tp] == 0) {
-                            q.push(tp);
-                        }
+        auto kahn(auto& edges, auto& in_degrees, auto& ids) {
+            std::queue<size_type> q;
+            for (auto i = 0; i < in_degrees.size(); i++) {
+                if (in_degrees[i] == 0) {
+                    q.push(i);
+                }
+            }
+
+            std::vector<size_type> result;
+            while(!q.empty()) {
+                auto i = q.front();
+                q.pop();
+                result.push_back(ids[i]);
+
+                for (auto idx : edges[i]) {
+                    if (--in_degrees[idx] == 0) {
+                        q.push(idx);
                     }
                 }
             }
 
             ASSURE(result.size() == in_degrees.size(), "Cycle detected in system dependencies.");
+            return result;
         }
     };
 }

@@ -3,33 +3,31 @@
  * 
  * This test suite validates the systems API and scheduling utilities:
  * - utils: function_traits, system_traits, and FunctionType concept
- * - argument construction: argument_constructor and construct() path via basic_function
- * - hashing: function_pointer_hash uniqueness for different functions
+ * - argument construction: constructor and function invocation via basic_function
  * - function wrapper: basic_function (non-void and void specializations)
- * - system execution: basic_system should_run and run-if behavior with tick propagation
- * - system: basic_system after/before/runif chaining and accessors
- * - system stage: basic_system_stage add (Kahn topological order), and before/after dependencies
+ * - system: basic_system after/before/runif chaining and accessors (function, runif, befores, afters)
+ * - system stage: basic_system_stage add (Kahn topological order using sparse_set), and before/after dependencies
  * - removed entities: basic_removed_entities argument construction and system integration
  * 
  * Utils/Trait Test Cases:
- * 1. FunctionAndSystemTraitsCompileAndConcept - Tests function and system traits compile and concept
+ * 1. CompileAndConcept - Tests function and system traits compile and concept
  * 
  * Argument Construction Test Cases:
- * 1. ArgumentConstructorsAndConstructWork - Tests argument constructors and construct work
+ * 1. ConstructWork - Tests constructor and function invocation work
  * 
  * Function Wrapper Test Cases:
- * 1. FunctionPointerHashProducesDifferentValues - Tests function pointer hash produces different values
- * 2. BasicFunctionReturnAndVoidInvoke - Tests basic function return and void invoke
+ * 1. ReturnAndVoidInvoke - Tests basic function return and void invoke
  * 
  * Basic System Test Cases:
- * 1. BasicSystemRunAndTick - Tests basic system run and tick
- * 2. BasicSystemRunIfControlsExecution - Tests basic system run if controls execution
+ * 1. FunctionAndRunif - Tests basic system function and runif accessors
  * 
  * System Test Cases:
- * 1. BasicSystemAfterBeforeRunif - Tests basic system after before runif
+ * 1. AfterBeforeRunif - Tests basic system after/before/runif chaining and befores/afters accessors
  * 
  * System Stage Test Cases:
- * 1. BasicSystemStageTopologicalOrder - Tests basic system stage topological order
+ * 1. TopologicalOrder - Tests basic system stage topological order with dependencies
+ * 2. AddByFunctionPointer - Tests adding systems directly by function pointer
+ * 3. RunifFiltering - Tests runif filtering to control system execution
  * 
  */
 
@@ -55,11 +53,6 @@ using registry = basic_registry<entity>;
  */
 // Shared helper for order assertions
 static std::vector<int> gOrder;
-
-// function_pointer_hash helpers (make bodies distinct to avoid ICF folding in release)
-static int fp_sink = 0;
-static void fp_hash_a() { fp_sink += 1; }
-static void fp_hash_b() { fp_sink += 2; }
 
 // basic_system helpers
 static void sys_record_tick(basic_registrar<registry> r) {
@@ -99,7 +92,7 @@ TEST(TraitTest, CompileAndConcept) {
  * ================================= Argument Construction Test Cases ==================================
  */
 
-// internal::argument_constructor + construct() via basic_function invocation
+// internal::constructor + function invocation via basic_function
 TEST(ArgumentConstructionTest, ConstructWork) {
     registry reg;
 
@@ -166,16 +159,6 @@ TEST(ArgumentConstructionTest, ConstructWork) {
 /*
  * ================================ Function Wrapper Test Cases ========================================
  */
-// internal::function_pointer_hash
-
-TEST(FunctionWrapperTest, HashValues) {
-    internal::function_pointer_hash hasher;
-    internal::basic_system<registry> sysA(+fp_hash_a);
-    internal::basic_system<registry> sysB(+fp_hash_b);
-    void* pa = sysA.function().pointer();
-    void* pb = sysB.function().pointer();
-    EXPECT_NE(hasher(pa), hasher(pb));
-}
 
 // internal::basic_function (non-void and void specializations)
 TEST(FunctionWrapperTest, ReturnAndVoidInvoke) {
@@ -208,44 +191,46 @@ TEST(FunctionWrapperTest, ReturnAndVoidInvoke) {
 /*
  * ===================================== Basic System Test Cases =======================================
  */
-// internal::basic_system (should_run and tick propagation)
+// internal::basic_system (function, runif, after, before accessors)
 
-TEST(BasicSystemTest, RunAndTick) {
+TEST(BasicSystemTest, FunctionAndRunif) {
     registry reg;
     reg.spawn(Position{0,0});
 
     internal::basic_system<registry> sys(+sys_record_tick);
-    EXPECT_TRUE(sys.should_run(reg));
-    sys(reg, 1);
-    sys(reg, 2);
-}
+    EXPECT_NE(sys.function().pointer(), nullptr);
 
-TEST(BasicSystemTest, RunIfControlsExecution) {
-    registry reg;
-    internal::basic_system<registry> sys(+sys_record_tick);
-    sys.runif(+[](){ return false; });
-    EXPECT_FALSE(sys.should_run(reg));
+    // Test runif access
+    EXPECT_FALSE(sys.runif().pointer());
+    sys.runif(+[](){ return true; });
+    EXPECT_NE(sys.runif().pointer(), nullptr);
 }
 
 /*
- * =================================== System Config Test Cases ========================================
+ * =================================== System Test Cases =======================================
  */
-// internal::basic_system_config (builders and accessors)
+// internal::basic_system (builders and accessors)
 
-TEST(SystemConfigTest, AfterBeforeRunif) {
+TEST(SystemTest, AfterBeforeRunif) {
     internal::basic_system<registry> sysA(+::sysA);
     internal::basic_system<registry> sysB(+::sysB);
 
     sysB.after(+::sysA).runif(+runifTrue);
     EXPECT_NE(sysA.function().pointer(), nullptr);
     EXPECT_NE(sysB.function().pointer(), nullptr);
-    EXPECT_NE(sysB.meta()._runif.pointer(), nullptr);
+    EXPECT_NE(sysB.runif().pointer(), nullptr);
+
+    // Test befores and afters accessors (they use move semantics, so we check after moving)
+    auto befores = std::move(sysB).befores();
+    auto afters = std::move(sysB).afters();
+    EXPECT_EQ(befores.size(), 0u); // sysB has no before dependencies
+    EXPECT_EQ(afters.size(), 1u);  // sysB has sysA as an after dependency
 }
 
 /*
  * =================================== System Stage Test Cases =======================================
  */
-// internal::basic_system_stage (add, topological sort, iteration)
+// internal::basic_system_stage (add, topological sort using sparse_set for efficient dependency resolution)
 TEST(SystemStageTest, TopologicalOrder) {
     gOrder.clear();
     internal::basic_system_stage<registry> stage;
@@ -259,8 +244,9 @@ TEST(SystemStageTest, TopologicalOrder) {
     internal::basic_system<registry> sysC(fC);
 
     // A -> B -> C
-    sysB.after(fA);
-    sysC.after(fB);
+    sysA.before(fB).before(fC);
+    sysB.after(fA).before(fC);
+    sysC.after(fA).after(fB);
 
     stage.add(sysA);
     stage.add(sysB);
@@ -276,4 +262,55 @@ TEST(SystemStageTest, TopologicalOrder) {
     EXPECT_EQ(gOrder[0], 1);
     EXPECT_EQ(gOrder[1], 2);
     EXPECT_EQ(gOrder[2], 3);
+}
+
+// Test adding systems directly by function pointer (without creating basic_system objects)
+TEST(SystemStageTest, AddByFunctionPointer) {
+    gOrder.clear();
+    internal::basic_system_stage<registry> stage;
+
+    auto* fA = +[]() { gOrder.push_back(1); };
+    auto* fB = +[]() { gOrder.push_back(2); };
+
+    // Add systems directly by function pointer
+    stage.add(fA);
+    stage.add(fB);
+
+    EXPECT_EQ(stage.size(), 2u);
+
+    registry reg;
+    uint64_t tick = 0;
+    stage.run(reg, tick);
+
+    ASSERT_EQ(gOrder.size(), 2u);
+    EXPECT_EQ(gOrder[0], 1);
+    EXPECT_EQ(gOrder[1], 2);
+}
+
+// Test runif filtering to control which systems execute (systems with runif returning false are skipped)
+TEST(SystemStageTest, RunifFiltering) {
+    gOrder.clear();
+    internal::basic_system_stage<registry> stage;
+
+    auto* fA = +[]() { gOrder.push_back(1); };
+    auto* fB = +[]() { gOrder.push_back(2); };
+
+    internal::basic_system<registry> sysA(fA);
+    internal::basic_system<registry> sysB(fB);
+
+    // sysB should not run (runif returns false)
+    sysB.runif(+[](){ return false; });
+
+    stage.add(sysA);
+    stage.add(sysB);
+
+    EXPECT_EQ(stage.size(), 2u);
+
+    registry reg;
+    uint64_t tick = 0;
+    stage.run(reg, tick);
+
+    // Only sysA should have run
+    ASSERT_EQ(gOrder.size(), 1u);
+    EXPECT_EQ(gOrder[0], 1);
 }

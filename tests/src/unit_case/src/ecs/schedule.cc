@@ -130,16 +130,16 @@ TEST(ScheduleTest, AddSystemOverloads) {
 
     schedule_t sch;
 
-    auto sysA = +[](){ gOrder.push_back(1); };
-    auto sysB = +[](){ gOrder.push_back(2); };
+    auto fA = +[](){ gOrder.push_back(1); };
+    auto fB = +[](){ gOrder.push_back(2); };
 
-    internal::basic_system<registry> sys(sysB);
+    internal::basic_system<registry> sys(fB);
 
     sch.add_stage<TestStage::A>();
 
     // Func overload
-    sch.add_system<TestStage::A>(sysA)
-        .add_system<TestStage::A>(sys.after(sysA));
+    sch.add_system<TestStage::A>(fA)
+        .add_system<TestStage::A>(sys.after(fA));
 
     registry reg;
     uint64_t tick = 0;
