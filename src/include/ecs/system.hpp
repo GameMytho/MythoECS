@@ -366,17 +366,17 @@ namespace mytho::ecs::internal {
         }
 
     public:
-        auto last_run_ticks() && noexcept { return _last_run_ticks; }
+        auto last_run_ticks() && noexcept { return std::move(_last_run_ticks); }
 
-        auto functions() && noexcept { return _functions; }
+        auto functions() && noexcept { return std::move(_functions); }
 
-        auto runifs() && noexcept { return _runifs; }
+        auto runifs() && noexcept { return std::move(_runifs); }
 
-        auto befores_pool() && noexcept { return _befores_pool; }
+        auto befores_pool() && noexcept { return std::move(_befores_pool); }
 
-        auto afters_pool() && noexcept { return _afters_pool; }
+        auto afters_pool() && noexcept { return std::move(_afters_pool); }
 
-        auto id_map() && noexcept { return _id_map; }
+        auto id_map() && noexcept { return std::move(_id_map); }
 
         auto size() const noexcept { return _functions.size(); }
 
