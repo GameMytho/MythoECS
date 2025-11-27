@@ -359,9 +359,11 @@ namespace mytho::ecs::internal {
                 }
             }
 
-            for (auto id : build(ids)) {
-                _functions[id](reg, _last_run_ticks[id]);
-                _last_run_ticks[id] = tick;
+            for (auto vec : build(ids)) {
+                for (auto id : vec) {
+                    _functions[id](reg, _last_run_ticks[id]);
+                    _last_run_ticks[id] = tick;
+                }
             }
         }
 
@@ -433,27 +435,35 @@ namespace mytho::ecs::internal {
         }
 
         auto kahn(auto& edges, auto& in_degrees, auto& ids) {
-            std::queue<size_type> q;
+            std::vector<size_type> v;
+
             for (auto i = 0; i < in_degrees.size(); i++) {
                 if (in_degrees[i] == 0) {
-                    q.push(i);
+                    v.push_back(i);
                 }
             }
 
-            std::vector<size_type> result;
-            while(!q.empty()) {
-                auto i = q.front();
-                q.pop();
-                result.push_back(ids[i]);
+            std::vector<std::vector<size_type>> result;
+            size_t count = 0;
 
-                for (auto idx : edges[i]) {
-                    if (--in_degrees[idx] == 0) {
-                        q.push(idx);
+            while(!v.empty()) {
+                count += v.size();
+                result.emplace_back();
+                result.back().swap(v);
+
+                for (auto& it : result.back()) {
+                    auto i = it;
+                    it = ids[i];
+
+                    for (auto idx : edges[i]) {
+                        if (--in_degrees[idx] == 0) {
+                            v.push_back(idx);
+                        }
                     }
                 }
             }
 
-            ASSURE(result.size() == in_degrees.size(), "Cycle detected in system dependencies.");
+            ASSURE(count == in_degrees.size(), "Cycle detected in system dependencies.");
             return result;
         }
     };
