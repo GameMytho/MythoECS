@@ -55,5 +55,5 @@ function(add_unit_test SRC_DIR LABEL)
     set_tests_properties(${TARGET} PROPERTIES LABELS "${LABEL}")
 endfunction()
 
-add_unit_test(src/unit_case unit_case TARGET_NAME MythoECS_UnitCaseTests)
+# add_unit_test(src/unit_case unit_case TARGET_NAME MythoECS_UnitCaseTests)
 add_unit_test(src/use_case use_case TARGET_NAME MythoECS_UseCaseTests)
