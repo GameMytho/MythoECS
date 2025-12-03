@@ -325,6 +325,20 @@ namespace mytho::ecs {
         }
 
     public: // event operations
+        template<mytho::utils::PureEventType T>
+        self_type& init_event() {
+            _events.template init<T>();
+
+            return *this;
+        }
+
+        template<mytho::utils::PureEventType T>
+        self_type& deinit_event() {
+            _events.template deinit<T>();
+
+            return *this;
+        }
+
         template<mytho::utils::PureEventType T, typename... Rs>
         void event_write(Rs&&... rs) {
             _events.template write<T>(std::forward<Rs>(rs)...);

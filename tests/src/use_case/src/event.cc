@@ -47,10 +47,11 @@ void update_frame(res_mut<Frame> r) {
     frame->value += 1u;
 }
 
-TEST(SystemTest, BasicTest) {
+TEST(SystemTest, EventTest) {
     registry reg;
 
     reg.init_resource<Frame>(0u)
+       .init_event<Damage>()
        .add_update_system(update1)
        .add_update_system(system(update2).after(update1))
        .add_update_system(system(update3).after(update2))

@@ -21,6 +21,18 @@ namespace mytho::ecs {
         using event_storage_type = mytho::container::basic_event_storage<event_id_generator_type, event_id_type, AllocatorT>;
 
     public:
+        template<mytho::utils::PureValueType T>
+        void init() {
+            _write_events.template init<T>();
+            _read_events.template init<T>();
+        }
+
+        template<mytho::utils::PureValueType T>
+        void deinit() {
+            _write_events.template deinit<T>();
+            _read_events.template deinit<T>();
+        }
+
         template<mytho::utils::PureValueType T, typename... Rs>
         void write(Rs&&... rs) {
             _write_events.template write<T>(std::forward<Rs>(rs)...);
