@@ -7,7 +7,6 @@
 #include "utils/idgen.hpp"
 
 namespace mytho::container {
-    // we must ensure entity exist before call `add`/`remove`/`has`/`not_has` functions
     template<
         mytho::utils::EntityType EntityT,
         typename ComponentIdGenerator,
@@ -62,6 +61,7 @@ namespace mytho::container {
             }
         }
 
+        // must ensure entity exist
         void pop(const entity_type& e) noexcept {
             auto idx = base_type::index(e);
             base_type::version_next(e);
@@ -75,6 +75,7 @@ namespace mytho::container {
             --_length;
         }
 
+        // must ensure entity exist
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         void add(const entity_type& e) {
@@ -82,6 +83,7 @@ namespace mytho::container {
             (insert_components<Ts>(_map[idx]), ...);
         }
 
+        // must ensure entity exist
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         void remove(const entity_type& e) noexcept {
@@ -89,6 +91,7 @@ namespace mytho::container {
             (remove_components<Ts>(_map[idx]), ...);
         }
 
+        // must ensure entity exist
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         bool has(const entity_type& e) const noexcept {
@@ -96,6 +99,7 @@ namespace mytho::container {
             return (_has<Ts>(idx) && ...);
         }
 
+        // must ensure entity exist
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         bool not_has(const entity_type& e) const noexcept {

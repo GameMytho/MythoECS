@@ -126,12 +126,17 @@ namespace mytho::container {
         }
 
         void clear() {
-            for (unsigned int i = 0; i < base_type::size(); i++) {
-                _cdata[i]->~component_type();
+            auto size = base_type::size();
+            allocator_type allocator{_cdata.get_allocator()};
+
+            for (unsigned int i = 0; i < size; i++) {
+                auto* data = _cdata[i];
+                data->~component_type();
+                alloc_traits::deallocate(allocator, data, 1);
             }
 
-            allocator_type allocator{_cdata.get_allocator()};
-            for (unsigned int i = 0; i < _cdata.size(); i++) {
+            auto new_size = _cdata.size();
+            for (unsigned int i = size; i < new_size; i++) {
                 alloc_traits::deallocate(allocator, _cdata[i], 1);
             }
 

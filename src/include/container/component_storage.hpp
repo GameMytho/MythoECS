@@ -42,10 +42,10 @@ namespace mytho::container {
             (assure<Ts>().add(e, tick, std::forward<Ts>(ts)), ...);
         }
 
-        // must ensure the entity has all specific components
         template<mytho::utils::PureValueType... Ts>
         void remove(const entity_type& e) {
             if constexpr (sizeof...(Ts) > 0) {
+                // must ensure the entity has all specific components
                 (_remove_components<Ts>(e), ...);
             } else {
                 _remove_entity(e);
@@ -146,7 +146,8 @@ namespace mytho::container {
         }
 
         void _remove_entity(const entity_type& e) {
-            for (size_type i = 0; i < _pool.size(); ++i) {
+            auto size = _pool.size();
+            for (size_type i = 0; i < size; ++i) {
                 auto& p = _pool[i];
                 if (p && p->contain(e)) {
                     _remove_funcs[i](p.get(), e);

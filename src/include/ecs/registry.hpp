@@ -105,14 +105,15 @@ namespace mytho::ecs {
             return e;
         }
 
-        // must ensure entity exist
         void despawn(const entity_type& e) {
+            ASSURE(alive(e), "entity not alive");
+
             _components.remove(e);
             _entities.pop(e);
         }
 
         bool alive(const entity_type& e) const noexcept {
-            return _entities.contain(e);
+            return e.valid() && _entities.contain(e);
         }
 
         const auto& entities() const noexcept {
@@ -123,7 +124,7 @@ namespace mytho::ecs {
         template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void insert(const entity_type& e, Ts&&... ts) {
-            if (contain<Ts...>(e)) {
+            if (!alive(e)) {
                 return;
             }
 
@@ -142,10 +143,11 @@ namespace mytho::ecs {
             _components.template remove<Ts...>(e);
         }
 
-        // must ensure the entity has all specific components
         template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         std::tuple<const Ts&...> get(const entity_type& e) const noexcept {
+            ASSURE(contain<Ts...>(e), "entity does not have some components");
+
             return _components.template get<Ts...>(e);
         }
 
@@ -163,7 +165,7 @@ namespace mytho::ecs {
         requires (sizeof...(Ts) > 0)
         bool contain(const entity_type& e) const noexcept {
             // _entities and _components are synchronized, just check one
-            return _entities.contain(e) && _entities.template has<Ts...>(e) /* && _components.template contain<Ts...>(e) */;
+            return alive(e) && _entities.template has<Ts...>(e) /* && _components.template contain<Ts...>(e) */;
         }
 
         template<mytho::utils::PureComponentType... Ts>
@@ -172,8 +174,9 @@ namespace mytho::ecs {
             auto id = _get_cid_with_minimun_entities<Ts...>();
 
             if (id) {
-                for (auto it : *_components[id.value()]) {
-                    if(_components.template is_added<Ts...>(it, tick)) {
+                auto& entts = *_components[id.value()];
+                for (auto e : entts) {
+                    if(_components.template is_added<Ts...>(e, tick)) {
                         return true;
                     }
                 }
@@ -188,8 +191,9 @@ namespace mytho::ecs {
             auto id = _get_cid_with_minimun_entities<Ts...>();
 
             if (id) {
-                for (auto it : *_components[id.value()]) {
-                    if(_components.template is_changed<Ts...>(it, tick)) {
+                auto& entts = *_components[id.value()];
+                for (auto e : entts) {
+                    if(_components.template is_changed<Ts...>(e, tick)) {
                         return true;
                     }
                 }
@@ -231,13 +235,14 @@ namespace mytho::ecs {
             auto id = get_cid_with_minimun_entities(component_contain_list{});
 
             if (id) {
-                for (auto it : *_components[id.value()]) {
-                    if(component_list_contained(it, component_contain_list{})
-                        && component_list_not_contained(it, component_not_contain_list{}) 
-                        && component_list_added(it, tick, component_added_list{})
-                        && component_list_changed(it, tick, component_changed_list{})
+                auto& entts = *_components[id.value()];
+                for (auto e : entts) {
+                    if(component_list_contained(e, component_contain_list{})
+                        && component_list_not_contained(e, component_not_contain_list{}) 
+                        && component_list_added(e, tick, component_added_list{})
+                        && component_list_changed(e, tick, component_changed_list{})
                     ) {
-                        component_bundles.emplace_back(_query(it, component_prototype_list{}));
+                        component_bundles.emplace_back(_query(e, component_prototype_list{}));
                     }
                 }
             }
@@ -263,11 +268,12 @@ namespace mytho::ecs {
             auto id = get_cid_with_minimun_entities(component_contain_list{});
 
             if (id) {
-                for (auto it : *_components[id.value()]) {
-                    if(component_list_contained(it, component_contain_list{})
-                        && component_list_not_contained(it, component_not_contain_list{})
-                        && component_list_added(it, tick, component_added_list{})
-                        && component_list_changed(it, tick, component_changed_list{})
+                auto& entts = *_components[id.value()];
+                for (auto e : entts) {
+                    if(component_list_contained(e, component_contain_list{})
+                        && component_list_not_contained(e, component_not_contain_list{})
+                        && component_list_added(e, tick, component_added_list{})
+                        && component_list_changed(e, tick, component_changed_list{})
                     ) {
                         ++count;
                     }

@@ -118,7 +118,8 @@ namespace mytho::container {
             auto old_size = _sparsity.size();
             if (idx >= old_size) {
                 _sparsity.resize(idx + 1);
-                for (size_t i = old_size; i < _sparsity.size(); ++i) {
+                auto new_size = _sparsity.size();
+                for (size_t i = old_size; i < new_size; ++i) {
                     std::fill(_sparsity[i].begin(), _sparsity[i].end(), data_null);
                 }
             }
