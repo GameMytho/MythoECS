@@ -91,13 +91,16 @@ namespace mytho::ecs {
             auto e = _entities.emplace();
 
             if constexpr (sizeof...(Ts) > 0) {
-                _entities.template add<Ts...>(e);
-                _components.add(e, _current_tick, std::forward<Ts>(ts)...);
+                if (e.valid()) {
+                    _entities.template add<Ts...>(e);
+                    _components.add(e, _current_tick, std::forward<Ts>(ts)...);
+                }
             }
 
             return e;
         }
 
+        // must ensure entity exist
         void despawn(const entity_type& e) {
             _components.remove(e);
             _entities.pop(e);
@@ -134,6 +137,7 @@ namespace mytho::ecs {
             _components.template remove<Ts...>(e);
         }
 
+        // must ensure the entity has all specific components
         template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         std::tuple<const Ts&...> get(const entity_type& e) const noexcept {
@@ -153,7 +157,8 @@ namespace mytho::ecs {
         template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         bool contain(const entity_type& e) const noexcept {
-            return _entities.contain(e) && _entities.template has<Ts...>(e) && _components.template contain<Ts...>(e);
+            // _entities and _components are synchronized, just check one
+            return _entities.contain(e) && _entities.template has<Ts...>(e) /* && _components.template contain<Ts...>(e) */;
         }
 
         template<mytho::utils::PureComponentType... Ts>
@@ -531,31 +536,57 @@ namespace mytho::ecs {
         }
 
         template<typename T, typename... Rs>
-        auto _get_cid_with_minimun_entities() noexcept {
-            auto best = component_id_generator::template gen<T>();
+        std::optional<component_id_type> _get_cid_with_minimun_entities() noexcept {
+            constexpr size_t N = 1 + sizeof...(Rs);
 
-            bool ok = (best < _components.size() && _components[best]) && (
-                true && ... && [&]{
-                    auto cur = component_id_generator::template gen<Rs>();
-                    if (cur >= _components.size() || !_components[cur]) return false;
-                    if (_components[cur]->size() < _components[best]->size()) best = cur;
-                    return true;
-                }()
-            );
+            component_id_type ids[N] = {component_id_generator::template gen<T>(), component_id_generator::template gen<Rs>()...};
 
-            return ok ? std::optional<component_id_type>(best) : std::nullopt;
+            auto best = ids[0];
+            auto size = _components.size();
+            if (best >= size) return std::nullopt;
+
+            auto* p = _components[best];
+            if (!p) return std::nullopt;
+
+            auto p_size = p->size();
+
+            bool ok = [&]<size_t... I>(std::index_sequence<I...>){
+                return (
+                    [&]{
+                        constexpr auto idx = I + 1;
+                        auto id = ids[idx];
+
+                        if (id >= size) return false;
+
+                        auto* tp = _components[id];
+                        if (!tp) return false;
+
+                        auto tp_size = tp->size();
+
+                        // branchless
+                        size_t mask = -(size_t)(tp_size < p_size);
+                        p_size = p_size ^ ((p_size ^ tp_size) & mask);
+                        best = best ^ ((best ^ id) & mask);
+                        return true;
+                    }() && ...
+                );
+            }(std::make_index_sequence<sizeof...(Rs)>{});
+
+            return ok ? std::optional{best} : std::nullopt;
         }
 
         template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         bool component_list_contained(const entity_type& e, internal::type_list<Ts...>) const noexcept {
-            return _entities.template has<Ts...>(e) && _components.template contain<Ts...>(e);
+            // _entities and _components are synchronized, just check one
+            return _entities.template has<Ts...>(e) /* && _components.template contain<Ts...>(e) */;
         }
 
         template<mytho::utils::PureComponentType... Ts>
         bool component_list_not_contained(const entity_type& e, internal::type_list<Ts...>) const noexcept {
             if constexpr (sizeof...(Ts) > 0) {
-                return _entities.template not_has<Ts...>(e) && _components.template not_contain<Ts...>(e);
+                // _entities and _components are synchronized, just check one
+                return _entities.template not_has<Ts...>(e) /* && _components.template not_contain<Ts...>(e) */;
             } else {
                 return true;
             }

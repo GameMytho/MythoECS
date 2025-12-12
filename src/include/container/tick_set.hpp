@@ -19,28 +19,33 @@ namespace mytho::container {
         ~basic_tick_set() noexcept = default;
 
     public:
-        uint64_t get_added_tick(size_type index) const noexcept {
+        uint64_t get_added_tick(size_type index) const {
             return _added_ticks[index];
         }
 
-        uint64_t& get_added_tick(size_type index) noexcept {
+        uint64_t& get_added_tick(size_type index) {
             return _added_ticks[index];
         }
 
-        void set_added_tick(size_type index, uint64_t tick) noexcept {
+        void set_added_tick(size_type index, uint64_t tick) {
             _added_ticks[index] = tick;
         }
 
-        uint64_t get_changed_tick(size_type index) const noexcept {
+        uint64_t get_changed_tick(size_type index) const {
             return _changed_ticks[index];
         }
 
-        uint64_t& get_changed_tick(size_type index) noexcept {
+        uint64_t& get_changed_tick(size_type index) {
             return _changed_ticks[index];
         }
 
-        void set_changed_tick(size_type index, uint64_t tick) noexcept {
+        void set_changed_tick(size_type index, uint64_t tick) {
             _changed_ticks[index] = tick;
+        }
+
+        void swap_ticks(size_type l, size_type r) {
+            std::swap(_added_ticks[l], _added_ticks[r]);
+            std::swap(_changed_ticks[l], _changed_ticks[r]);
         }
 
         void resize(size_type size, uint64_t value = 0) {

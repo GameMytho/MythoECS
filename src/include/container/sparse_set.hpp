@@ -11,14 +11,14 @@
 #include "utils/concept.hpp"
 
 namespace mytho::container {
-    template<mytho::utils::UnsignedIntegralType T, size_t PageSize = 1024>
+    template<mytho::utils::UnsignedIntegralType T, size_t PageSize = 256>
     class basic_sparse_set {
     public:
         using data_type = T;
         using density_type = std::vector<data_type>;
         using size_type = typename density_type::size_type;
         using page_data_type = typename density_type::size_type;
-        using page_type = std::array<page_data_type, PageSize>;
+        struct alignas(64) page_type : public std::array<page_data_type, PageSize> {};
         using sparsity_type = std::vector<page_type>;
         using iterator = typename density_type::iterator;
         using const_iterator = typename density_type::const_iterator;
@@ -35,45 +35,52 @@ namespace mytho::container {
         ~basic_sparse_set() noexcept = default;
 
     public:
-        void add(data_type data) {
-            ASSURE(!contain(data), "invalid integral value(value exist).");
+        // must ensure data value not exist
+        size_type add(data_type data) {
+            auto size = _density.size();
 
+            expand(page(data))[offset(data)] = size;
             _density.push_back(data);
-            expand(page(data))[offset(data)] = _density.size() - 1;
+
+            return size;
         }
 
+        // must ensure data value exist
         void remove(data_type data) noexcept {
-            ASSURE(contain(data), "invalid integral value(value not exist).");
+            data_type last_data = _density.back();
+            page_data_type& data_ref = sparse_ref(data);
+            page_data_type pos = data_ref;
 
-            if (data != _density.back()) {
-                page_data_type pos = sparse_ref(data);
-                _density[pos] = _density.back();
-                sparse_ref(_density[pos]) = pos;
+            data_ref = data_null;
+            if (data != last_data) {
+                sparse_ref(last_data) = pos;
+                _density[pos] = last_data;
             }
-
-            sparse_ref(data) = data_null;
             _density.pop_back();
         }
 
-        void swap(data_type src, data_type dst) noexcept {
-            ASSURE(contain(src) && contain(dst), "invalid integral value(value not exist).");
+        // must ensure data value exist
+        std::pair<size_type, size_type> swap(data_type src, data_type dst) noexcept {
+            page_data_type& sref = sparse_ref(src);
+            page_data_type& dref = sparse_ref(dst);
 
-            if (src != dst) {
-                std::swap(sparse_ref(src), sparse_ref(dst));
-                std::swap(_density[sparse_ref(src)], _density[sparse_ref(dst)]);
-            }
+            std::swap(sref, dref);
+            std::swap(_density[sref], _density[dref]);
+
+            return {sref, dref};
+        }
+
+        // must ensure data value exist
+        size_type index(data_type data) const noexcept {
+            return _sparsity[page(data)][offset(data)];
         }
 
         bool contain(data_type data) const noexcept {
             ASSURE(data != data_null, "invalid integral value(value reach max).");
 
-            return page(data) < _sparsity.size() && _sparsity[page(data)][offset(data)] != data_null;
-        }
+            auto idx = page(data);
 
-        size_type index(data_type data) const noexcept {
-            ASSURE(contain(data), "invalid integral value(value not exist).");
-
-            return _sparsity[page(data)][offset(data)];
+            return idx < _sparsity.size() && _sparsity[idx][offset(data)] != data_null;
         }
 
         void clear() noexcept {
@@ -82,8 +89,6 @@ namespace mytho::container {
         }
 
         data_type data(size_type idx) const noexcept {
-            ASSURE(idx < _density.size(), "index out of sparse set!");
-
             return _density[idx];
         }
 
@@ -110,10 +115,10 @@ namespace mytho::container {
         size_type offset(data_type data) const noexcept { return data % PageSize; }
 
         page_type& expand(size_t idx) {
-            if (idx >= _sparsity.size()) {
-                size_t old_size = _sparsity.size();
+            auto old_size = _sparsity.size();
+            if (idx >= old_size) {
                 _sparsity.resize(idx + 1);
-                for (size_t i = old_size; i < _sparsity.size(); i++) {
+                for (size_t i = old_size; i < _sparsity.size(); ++i) {
                     std::fill(_sparsity[i].begin(), _sparsity[i].end(), data_null);
                 }
             }

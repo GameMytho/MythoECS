@@ -7,11 +7,12 @@
 #include "utils/idgen.hpp"
 
 namespace mytho::container {
+    // we must ensure entity exist before call `add`/`remove`/`has`/`not_has` functions
     template<
         mytho::utils::EntityType EntityT,
         typename ComponentIdGeneratorT,
         mytho::utils::UnsignedIntegralType ComponentIdT = size_t,
-        size_t PageSize = 1024
+        size_t PageSize = 256
     >
     class basic_entity_storage final : protected basic_entity_set<EntityT, PageSize> {
     public:
@@ -37,9 +38,11 @@ namespace mytho::container {
     public:
         template<mytho::utils::PureValueType... Ts>
         entity_type emplace() {
-            _length++;
+            ++_length;
 
-            if (_length <= base_type::size()) {
+            auto size = base_type::size();
+
+            if (_length <= size) {
                 if constexpr (sizeof...(Ts) > 0) {
                     (insert_components<Ts>(_map[_length - 1]), ...);
                 }
@@ -51,54 +54,55 @@ namespace mytho::container {
                     (insert_components<Ts>(_map.back()), ...);
                 }
 
-                return base_type::add(entity_type(base_type::size()));
+                entity_type e(size);
+
+                if (e.valid()) {
+                    base_type::add(e);
+                }
+
+                return e;
             }
         }
 
         void pop(const entity_type& e) noexcept {
-            ASSURE(contain(e), "invalid entity value(entity not exist).");
-
-            if (base_type::index(e) != (_length - 1)) {
-                _map[base_type::index(e)]->clear();
-                std::swap(_map[base_type::index(e)], _map[_length - 1]);
-                base_type::swap(e, base_type::entity(_length - 1));
-            }
-
+            auto idx = base_type::index(e);
             base_type::version_next(e);
 
-            _length--;
+            if (idx != (_length - 1)) {
+                base_type::swap(e, base_type::entity(_length - 1));
+                _map[idx]->clear();
+                std::swap(_map[idx], _map[_length - 1]);
+            }
+
+            --_length;
         }
 
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         void add(const entity_type& e) {
-            ASSURE(contain(e), "invalid entity value(entity not exist).");
-
-            (insert_components<Ts>(_map[base_type::index(e)]), ...);
+            auto idx = base_type::index(e);
+            (insert_components<Ts>(_map[idx]), ...);
         }
 
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         void remove(const entity_type& e) noexcept {
-            ASSURE(contain(e), "invalid entity value(entity not exist).");
-
-            (remove_components<Ts>(_map[base_type::index(e)]), ...);
+            auto idx = base_type::index(e);
+            (remove_components<Ts>(_map[idx]), ...);
         }
 
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         bool has(const entity_type& e) const noexcept {
-            ASSURE(contain(e), "invalid entity value(entity not exist).");
-
-            return (_has<Ts>(e) && ...);
+            auto idx = base_type::index(e);
+            return (_has<Ts>(idx) && ...);
         }
 
         template<mytho::utils::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         bool not_has(const entity_type& e) const noexcept {
-            ASSURE(contain(e), "invalid entity value(entity not exist).");
-
-            return (_not_has<Ts>(e) && ...);
+            auto idx = base_type::index(e);
+            return (!_has<Ts>(idx) && ...);
         }
 
         bool contain(const entity_type& e) const noexcept {
@@ -135,15 +139,9 @@ namespace mytho::container {
         }
 
         template<typename T>
-        bool _has(const entity_type& e) const noexcept {
+        bool _has(auto idx) const noexcept {
             auto id = component_id_generator::template gen<T>();
-            return _map[base_type::index(e)]->contain(id);
-        }
-
-        template<typename T>
-        bool _not_has(const entity_type& e) const noexcept {
-            auto id = component_id_generator::template gen<T>();
-            return !_map[base_type::index(e)]->contain(id);
+            return _map[idx]->contain(id);
         }
 
     private:

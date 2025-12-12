@@ -12,7 +12,7 @@ namespace mytho::container {
         mytho::utils::EntityType EntityT,
         typename ComponentT,
         typename AllocatorT,
-        size_t PageSize = 1024
+        size_t PageSize = 256
     >
     class basic_component_set : public basic_entity_set<EntityT, PageSize> {
     public:
@@ -36,23 +36,17 @@ namespace mytho::container {
         ~basic_component_set() { clear(); }
 
     public:
+        // must ensure entity exist
         template<typename... Ts>
         requires (sizeof...(Ts) > 0)
         void add(const entity_type& e, uint64_t tick, Ts&&... ts) {
-            ASSURE(!base_type::contain(e), "entity already exist.");
-
-            base_type::add(e);
-
-            auto idx = base_type::index(e);
+            auto idx = base_type::add(e);
             auto data_size = _cdata.size();
             if (idx >= data_size) {
-                _cdata.resize(idx + 1);
-                _ticks.resize(idx + 1);
+                allocator_type allocator{_cdata.get_allocator()};
 
-                for (int i = data_size; i < _cdata.size(); i++) {
-                    allocator_type allocator{_cdata.get_allocator()};
-                    _cdata[i] = alloc_traits::allocate(allocator, 1);
-                }
+                _cdata.resize(idx + 1, alloc_traits::allocate(allocator, 1));
+                _ticks.resize(idx + 1);
             }
 
             // use placement new, construct_at(c++20) need explicit constructor
@@ -64,29 +58,27 @@ namespace mytho::container {
             _ticks.set_changed_tick(idx, tick);
         }
 
+        // must ensure entity exist
         void remove(const entity_type& e) {
-            ASSURE(base_type::contain(e), "entity not exist.");
-
             auto idx = base_type::index(e);
+            auto last = base_type::size() - 1;
+
+            base_type::remove(e);
 
             // allocator_type allocator{_cdata.get_allocator()};
             // alloc_traits::destroy(allocator, _cdata[idx]);
             _cdata[idx]->~component_type();
 
-            if (idx != base_type::size() - 1) {
-                std::swap(_cdata[idx], _cdata[base_type::size() - 1]);
-                _ticks.set_added_tick(idx, _ticks.get_added_tick(base_type::size() - 1));
-                _ticks.set_changed_tick(idx, _ticks.get_changed_tick(base_type::size() - 1));
+            if (idx != last) {
+                std::swap(_cdata[idx], _cdata[last]);
+                _ticks.swap_ticks(idx, last);
             }
-
-            base_type::remove(e);
         }
 
+        // must ensure entity exist
         template<typename... Ts>
         requires (sizeof...(Ts) > 0)
         void replace(const entity_type& e, uint64_t tick, Ts&&... ts) {
-            ASSURE(base_type::contain(e), "entity not exist.");
-
             auto idx = base_type::index(e);
             _cdata[idx]->~component_type();
             new (_cdata[idx]) component_type{ std::forward<Ts>(ts)... };
@@ -94,42 +86,23 @@ namespace mytho::container {
             _ticks.set_changed_tick(idx, tick);
         }
 
-        void clear() {
-            for (unsigned int i = 0; i < base_type::size(); i++) {
-                _cdata[i]->~component_type();
-            }
-
-            for (unsigned int i = 0; i < _cdata.size(); i++) {
-                allocator_type allocator{_cdata.get_allocator()};
-                alloc_traits::deallocate(allocator, _cdata[i], 1);
-            }
-
-            _cdata.clear();
-            _ticks.clear();
-            base_type::clear();
-        }
-
+        // must ensure entity exist
         component_type& get(const entity_type& e) noexcept {
-            ASSURE(base_type::contain(e), "entity not exist.");
-
             return *_cdata[base_type::index(e)];
         }
 
+        // must ensure entity exist
         const component_type& get(const entity_type& e) const noexcept {
-            ASSURE(base_type::contain(e), "entity not exist.");
-
             return *_cdata[base_type::index(e)];
         }
 
+        // must ensure entity exist
         uint64_t& changed_tick(const entity_type& e) noexcept {
-            ASSURE(base_type::contain(e), "entity not exist.");
-
             return _ticks.get_changed_tick(base_type::index(e));
         }
 
+        // must ensure entity exist
         bool is_added(const entity_type& e, uint64_t tick) const noexcept {
-            ASSURE(base_type::contain(e), "entity not exist.");
-
             /*
              * if the component added system is same as the caller of this,
              * component added tick will be equal to the last run tick of the system,
@@ -138,9 +111,8 @@ namespace mytho::container {
             return _ticks.get_added_tick(base_type::index(e)) >= tick;
         }
 
+        // must ensure entity exist
         bool is_changed(const entity_type& e, uint64_t tick) const noexcept {
-            ASSURE(base_type::contain(e), "entity not exist.");
-
             /*
              * if the component changed system is same as the caller of this,
              * component changed tick will be equal to the last run tick of the system,
@@ -151,6 +123,21 @@ namespace mytho::container {
 
         bool contain(const entity_type& e) const noexcept {
             return base_type::contain(e);
+        }
+
+        void clear() {
+            for (unsigned int i = 0; i < base_type::size(); i++) {
+                _cdata[i]->~component_type();
+            }
+
+            allocator_type allocator{_cdata.get_allocator()};
+            for (unsigned int i = 0; i < _cdata.size(); i++) {
+                alloc_traits::deallocate(allocator, _cdata[i], 1);
+            }
+
+            _cdata.clear();
+            _ticks.clear();
+            base_type::clear();
         }
 
     public:

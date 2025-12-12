@@ -11,12 +11,16 @@ namespace mytho::ecs {
         using version_type = EntityVersionT;
         using self_type = basic_entity<id_type, version_type>;
 
-        basic_entity(id_type id, version_type ver = 0) noexcept : _id(id), _ver(ver) { }
+        static constexpr id_type id_null = std::numeric_limits<id_type>::max();
+
+        basic_entity(id_type id = 0, version_type ver = 0) noexcept : _id(id), _ver(ver) { }
 
     public:
         id_type id() const noexcept { return _id; }
 
         version_type version() const noexcept { return _ver; }
+
+        bool valid() const noexcept { return _id != id_null; }
 
         friend bool operator==(const self_type& l, const self_type& r) noexcept { return l._id == r._id && l._ver == r._ver; }
 
