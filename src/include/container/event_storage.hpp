@@ -8,19 +8,17 @@
 
 namespace mytho::container {
     template<
-        typename EventIdGeneratorT,
-        mytho::utils::UnsignedIntegralType EventIdT = size_t,
+        typename EventIdGenerator,
         template<typename> typename AllocatorT = std::allocator
     >
     class basic_event_storage final {
     public:
-        using event_id_generator_type = EventIdGeneratorT;
-        using event_id_type = EventIdT;
-        using self_type = basic_event_storage<event_id_generator_type, event_id_type, AllocatorT>;
+        using event_id_generator = EventIdGenerator;
+        using event_id_type = typename event_id_generator::value_type;
+        using self_type = basic_event_storage<event_id_generator, AllocatorT>;
         using event_pool_type = std::vector<std::vector<void*>>;
         using size_type = typename event_pool_type::size_type;
         using event_destroy_funcs_type = std::vector<void(*)(void*)>;
-        using event_id_generator = mytho::utils::basic_id_generator<event_id_generator_type, event_id_type>;
 
         basic_event_storage() noexcept = default;
         basic_event_storage(const basic_event_storage& es) = delete;

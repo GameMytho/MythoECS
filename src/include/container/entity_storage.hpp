@@ -10,21 +10,19 @@ namespace mytho::container {
     // we must ensure entity exist before call `add`/`remove`/`has`/`not_has` functions
     template<
         mytho::utils::EntityType EntityT,
-        typename ComponentIdGeneratorT,
-        mytho::utils::UnsignedIntegralType ComponentIdT = size_t,
+        typename ComponentIdGenerator,
         size_t PageSize = 256
     >
     class basic_entity_storage final : protected basic_entity_set<EntityT, PageSize> {
     public:
         using entity_type = EntityT;
-        using component_id_generator_type = ComponentIdGeneratorT;
+        using component_id_generator = ComponentIdGenerator;
         using base_type = basic_entity_set<entity_type, PageSize>;
         using size_type = typename basic_entity_set<EntityT, PageSize>::size_type;
-        using component_id_type = ComponentIdT;
+        using component_id_type = typename component_id_generator::value_type;
         using component_id_set_type = basic_sparse_set<component_id_type, PageSize>;
         using component_id_set_ptr_type = std::unique_ptr<component_id_set_type>;
         using component_id_map_type = std::vector<component_id_set_ptr_type>;
-        using component_id_generator = mytho::utils::basic_id_generator<component_id_generator_type, component_id_type>;
 
         basic_entity_storage() noexcept = default;
         basic_entity_storage(const basic_entity_storage& es) = delete;

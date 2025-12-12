@@ -11,19 +11,17 @@
 namespace mytho::container {
     template<
         mytho::utils::EntityType EntityT,
-        typename ComponentIdGeneratorT,
-        mytho::utils::UnsignedIntegralType ComponentIdT = size_t,
+        typename ComponentIdGenerator,
         size_t PageSize = 1024
     >
     class basic_component_storage final {
     public:
         using entity_type = EntityT;
-        using component_id_generator_type = ComponentIdGeneratorT;
-        using component_id_type = ComponentIdT;
+        using component_id_generator = ComponentIdGenerator;
+        using component_id_type = typename component_id_generator::value_type;
         using component_set_base_type = basic_entity_set<entity_type, PageSize>;
         using component_pool_type = std::vector<std::unique_ptr<component_set_base_type>>;
         using size_type = typename component_pool_type::size_type;
-        using component_id_generator = mytho::utils::basic_id_generator<component_id_generator_type, component_id_type>;
         using entity_remove_functions_type = std::vector<void(*)(void*, const entity_type&)>;
         using removed_entities_type = std::vector<std::vector<entity_type>>;
 
