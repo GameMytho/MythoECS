@@ -32,19 +32,30 @@ namespace mytho::ecs {
             _read_events.template deinit<T>();
         }
 
+    public:
         template<mytho::utils::PureValueType T, typename... Rs>
         void write(Rs&&... rs) {
             _write_events.template write<T>(std::forward<Rs>(rs)...);
         }
 
         template<mytho::utils::PureValueType T>
-        auto mutate() noexcept {
+        auto mutate() {
             return _read_events.template mutate<T>();
         }
 
         template<mytho::utils::PureValueType T>
-        auto read() const noexcept {
+        auto read() const {
             return _read_events.template read<T>();
+        }
+
+        template<mytho::utils::PureValueType T>
+        bool exist_in_wb() const {
+            return _write_events.template exist<T>();
+        }
+
+        template<mytho::utils::PureValueType T>
+        bool exist_in_rb() const {
+            return _read_events.template exist<T>();
         }
 
         void swap() {

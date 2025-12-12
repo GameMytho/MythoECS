@@ -295,43 +295,51 @@ namespace mytho::ecs {
         template<mytho::utils::PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         auto resources() noexcept {
-            return std::tuple<const mytho::utils::internal::data_wrapper<Ts>...>{
-                mytho::utils::internal::data_wrapper<Ts>{
+            ASSURE(resources_exist<Ts...>(), "some resources not exist");
+
+            return std::tuple<const mytho::utils::internal::data_wrapper<Ts>...>(
+                mytho::utils::internal::data_wrapper<Ts>(
                     &_resources.template get<Ts>(),
                     _resources.template get_changed_tick_ref<Ts>(),
                     _current_tick
-                }...
-            };
+                )...
+            );
         }
 
         template<mytho::utils::PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         auto resources_mut() noexcept {
-            return std::tuple<mytho::utils::internal::data_wrapper<Ts>...>{
-                mytho::utils::internal::data_wrapper<Ts>{
+            ASSURE(resources_exist<Ts...>(), "some resources not exist");
+
+            return std::tuple<mytho::utils::internal::data_wrapper<Ts>...>(
+                mytho::utils::internal::data_wrapper<Ts>(
                     &_resources.template get<Ts>(),
                     _resources.template get_changed_tick_ref<Ts>(),
                     _current_tick
-                }...
-            };
-        }
-
-        template<mytho::utils::PureResourceType... Ts>
-        requires (sizeof...(Ts) > 0)
-        bool resources_exist() const noexcept {
-            return (_resources.template contain<Ts>() && ...);
+                )...
+            );
         }
 
         template<mytho::utils::PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         bool resources_added(uint64_t tick) const noexcept {
+            ASSURE(resources_exist<Ts...>(), "some resources not exist");
+
             return (_resources.template is_added<Ts>(tick) && ...);
         }
 
         template<mytho::utils::PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         bool resources_changed(uint64_t tick) const noexcept {
+            ASSURE(_resources.template exist<Ts>() && ..., "some resources not exist");
+
             return (_resources.template is_changed<Ts>(tick) && ...);
+        }
+
+        template<mytho::utils::PureResourceType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool resources_exist() const noexcept {
+            return (_resources.template exist<Ts>() && ...);
         }
 
     public: // event operations
@@ -351,16 +359,22 @@ namespace mytho::ecs {
 
         template<mytho::utils::PureEventType T, typename... Rs>
         void event_write(Rs&&... rs) {
+            ASSURE(_events.template exist_in_wb<T>(), "event type not exist");
+
             _events.template write<T>(std::forward<Rs>(rs)...);
         }
 
         template<mytho::utils::PureEventType T>
-        auto event_mutate() noexcept {
+        auto event_mutate() {
+            ASSURE(_events.template exist_in_rb<T>(), "event type not exist");
+
             return _events.template mutate<T>();
         }
 
         template<mytho::utils::PureEventType T>
-        auto event_read() const noexcept {
+        auto event_read() const {
+            ASSURE(_events.template exist_in_rb<T>(), "event type not exist");
+
             return _events.template read<T>();
         }
 

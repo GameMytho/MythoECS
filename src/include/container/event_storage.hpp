@@ -40,9 +40,10 @@ namespace mytho::container {
                 _destroy_funcs.resize(id + 1, nullptr);
             }
 
-            if (_destroy_funcs[id]) return;
+            auto& f = _destroy_funcs[id];
+            if (f) return;
 
-            _destroy_funcs[id] = [] (void* ptr) {
+            f = [] (void* ptr) {
                 AllocatorT<T> allocator;
 
                 static_cast<T*>(ptr)->~T();
@@ -54,13 +55,17 @@ namespace mytho::container {
         void deinit() {
             auto id = event_id_generator::template gen<T>();
 
-            if (id >= _pool.size() || !_destroy_funcs[id]) return;
+            if (id >= _pool.size()) return;
+
+            auto& f = _destroy_funcs[id];
+
+            if (!f) return;
 
             for (auto e : _pool[id]) {
-                _destroy_funcs[id](e);
+                f(e);
             }
 
-            _destroy_funcs[id] = nullptr;
+            f = nullptr;
         }
 
     public:
@@ -69,27 +74,23 @@ namespace mytho::container {
             using alloc_traits = std::allocator_traits<AllocatorT<T>>;
 
             auto id = event_id_generator::template gen<T>();
-            ASSURE(id < _pool.size() && _destroy_funcs[id], "event not exist.");
+            auto& p = _pool[id];
 
             AllocatorT<T> allocator;
-            _pool[id].push_back(static_cast<void*>(alloc_traits::allocate(allocator, 1)));
-            new (static_cast<T*>(_pool[id].back())) T{ std::forward<Rs>(rs)... };
+            p.push_back(static_cast<void*>(alloc_traits::allocate(allocator, 1)));
+            new (static_cast<T*>(p.back())) T{ std::forward<Rs>(rs)... };
         }
 
         template<mytho::utils::PureValueType T>
-        mytho::container::basic_event_set<T> mutate() noexcept {
+        mytho::container::basic_event_set<T> mutate() {
             auto id = event_id_generator::template gen<T>();
-
-            ASSURE(id < _pool.size() && _destroy_funcs[id], "event not exist.");
 
             return mytho::container::basic_event_set<T>{ _pool[id] };
         }
 
         template<mytho::utils::PureValueType T>
-        const mytho::container::basic_event_set<T> read() const noexcept {
+        const mytho::container::basic_event_set<T> read() const {
             auto id = event_id_generator::template gen<T>();
-
-            ASSURE(id < _pool.size() && _destroy_funcs[id], "event not exist.");
 
             return mytho::container::basic_event_set<T>{ _pool[id] };
         }
@@ -99,14 +100,24 @@ namespace mytho::container {
             _destroy_funcs.swap(other.destroy_funcs());
         }
 
+        template<mytho::utils::PureValueType T>
+        bool exist() const {
+            auto id = event_id_generator::template gen<T>();
+
+            return id < _pool.size() && _destroy_funcs[id];
+        }
+
         void clear() {
-            for (size_type i = 0; i < _destroy_funcs.size(); i++) {
-                if (_destroy_funcs[i]) {
-                    for (auto e : _pool[i]) {
-                        _destroy_funcs[i](e);
+            auto size = _destroy_funcs.size();
+            for (size_type i = 0; i < size; i++) {
+                auto& f = _destroy_funcs[i];
+                auto& p = _pool[i];
+                if (f) {
+                    for (auto e : p) {
+                        f(e);
                     }
 
-                    _pool[i].clear();
+                    p.clear();
                 }
             }
         }

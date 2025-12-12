@@ -41,14 +41,15 @@ namespace mytho::container {
                 _destroy_funcs.resize(id + 1, nullptr);
             }
 
-            if (_pool[id]) return;
+            auto& p = _pool[id];
+            if (p) return;
 
             AllocatorT<T> allocator;
-            _pool[id] = static_cast<void*>(alloc_traits::allocate(allocator, 1));
+            p = static_cast<void*>(alloc_traits::allocate(allocator, 1));
 
             // use placement new, construct_at(c++20) need explicit constructor
             // alloc_traits::construct(allocator, static_cast<T*>(_pool[id]), std::forward<Rs>(rs)...);
-            new (static_cast<T*>(_pool[id])) T{ std::forward<Rs>(rs)... };
+            new (static_cast<T*>(p)) T{ std::forward<Rs>(rs)... };
 
             // resource init means resource added and changed, is_added case is considered in is_changed case
             _ticks.set_added_tick(id, tick);
@@ -67,61 +68,67 @@ namespace mytho::container {
         template<mytho::utils::PureValueType T>
         void deinit() {
             auto id = resource_id_generator::template gen<T>();
-            if (id >= _pool.size() || !_pool[id]) return;
+            if (id >= _pool.size()) return;
 
-            _destroy_funcs[id](_pool[id]);
-            _pool[id] = nullptr;
+            auto& p = _pool[id];
+            if (!p) return;
+
+            _destroy_funcs[id](p);
+            p = nullptr;
 
             // we do not need to reset added/changed tick
         }
 
+    public:
         template<mytho::utils::PureValueType T>
-        const T& get() const noexcept {
-            ASSURE(contain<T>(), "resource not exist.");
-
-            return *static_cast<T*>(_pool[resource_id_generator::template gen<T>()]);
-        }
-
-        template<mytho::utils::PureValueType T>
-        T& get() noexcept {
-            ASSURE(contain<T>(), "resource not exist.");
-
-            return *static_cast<T*>(_pool[resource_id_generator::template gen<T>()]);
-        }
-
-        template<mytho::utils::PureValueType T>
-        uint64_t& get_changed_tick_ref() noexcept {
-            ASSURE(contain<T>(), "resource not exist.");
-
-            return _ticks.get_changed_tick(resource_id_generator::template gen<T>());
-        }
-
-        template<mytho::utils::PureValueType T>
-        bool contain() const noexcept {
+        const T& get() const {
             auto id = resource_id_generator::template gen<T>();
 
-            return id < _pool.size() && _pool[id] != nullptr;
+            return *static_cast<T*>(_pool[id]);
         }
 
         template<mytho::utils::PureValueType T>
-        bool is_added(uint64_t tick) const noexcept {
+        T& get() {
             auto id = resource_id_generator::template gen<T>();
 
-            return id < _pool.size() && _pool[id] != nullptr && _ticks.get_added_tick(id) >= tick;
+            return *static_cast<T*>(_pool[id]);
         }
 
         template<mytho::utils::PureValueType T>
-        bool is_changed(uint64_t tick) const noexcept {
+        uint64_t& get_changed_tick_ref() {
             auto id = resource_id_generator::template gen<T>();
 
-            return id < _pool.size() && _pool[id] != nullptr && _ticks.get_changed_tick(id) >= tick;
+            return _ticks.get_changed_tick(id);
+        }
+
+        template<mytho::utils::PureValueType T>
+        bool is_added(uint64_t tick) const {
+            auto id = resource_id_generator::template gen<T>();
+
+            return id < _pool.size() && _pool[id] && _ticks.get_added_tick(id) >= tick;
+        }
+
+        template<mytho::utils::PureValueType T>
+        bool is_changed(uint64_t tick) const {
+            auto id = resource_id_generator::template gen<T>();
+
+            return id < _pool.size() && _pool[id] && _ticks.get_changed_tick(id) >= tick;
+        }
+
+        template<mytho::utils::PureValueType T>
+        bool exist() const {
+            auto id = resource_id_generator::template gen<T>();
+
+            return id < _pool.size() && _pool[id];
         }
 
         void clear() {
-            for (size_type i = 0; i < _pool.size(); i++) {
-                if (_pool[i] == nullptr) continue;
+            auto size = _pool.size();
+            for (size_type i = 0; i < size; ++i) {
+                auto p = _pool[i];
+                if (p == nullptr) continue;
 
-                _destroy_funcs[i](_pool[i]);
+                _destroy_funcs[i](p);
             }
 
             _pool.clear();
