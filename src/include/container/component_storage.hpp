@@ -12,7 +12,7 @@ namespace mytho::container {
     template<
         mytho::utils::EntityType EntityT,
         typename ComponentIdGenerator,
-        size_t PageSize = 1024
+        size_t PageSize = 256
     >
     class basic_component_storage final {
     public:

@@ -72,15 +72,19 @@ namespace mytho::container {
 
         // must ensure data value exist
         size_type index(data_type data) const noexcept {
-            return _sparsity[page(data)][offset(data)];
+            auto& sparse = _sparsity[page(data)];
+            return sparse[offset(data)];
         }
 
         bool contain(data_type data) const noexcept {
             ASSURE(data != data_null, "invalid integral value(value reach max).");
 
             auto idx = page(data);
+            if (idx >= _sparsity.size()) return false;
 
-            return idx < _sparsity.size() && _sparsity[idx][offset(data)] != data_null;
+            auto& sparse = _sparsity[idx];
+
+            return sparse[offset(data)] != data_null;
         }
 
         void clear() noexcept {
@@ -120,13 +124,17 @@ namespace mytho::container {
                 _sparsity.resize(idx + 1);
                 auto new_size = _sparsity.size();
                 for (size_t i = old_size; i < new_size; ++i) {
-                    std::fill(_sparsity[i].begin(), _sparsity[i].end(), data_null);
+                    auto& sparse = _sparsity[i];
+                    std::fill(sparse.begin(), sparse.end(), data_null);
                 }
             }
 
             return _sparsity[idx];
         }
 
-        page_data_type& sparse_ref(data_type data) noexcept { return _sparsity[page(data)][offset(data)]; }
+        page_data_type& sparse_ref(data_type data) noexcept {
+            auto& sparse = _sparsity[page(data)];
+            return sparse[offset(data)];
+        }
     };
 }

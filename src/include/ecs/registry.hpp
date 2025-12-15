@@ -40,7 +40,7 @@ namespace mytho::ecs {
         mytho::utils::UnsignedIntegralType ResourceIdT = uint16_t,
         mytho::utils::UnsignedIntegralType EventIdT = uint16_t,
         mytho::utils::UnsignedIntegralType StageIdT = uint8_t,
-        size_t PageSize = 1024
+        size_t PageSize = 256
     >
     class basic_registry final {
     public:
@@ -236,7 +236,9 @@ namespace mytho::ecs {
 
             if (id) {
                 auto& entts = *_components[id.value()];
-                for (auto i = 0; i < entts.size(); ++i) {
+                auto size = entts.size();
+                for (auto i = 0; i < size; ++i) {
+                    component_bundles.reserve(size);
                     const auto& e = entts[i];
                     if(component_list_contained(e, component_contain_list{})
                         && component_list_not_contained(e, component_not_contain_list{}) 
@@ -270,7 +272,8 @@ namespace mytho::ecs {
 
             if (id) {
                 auto& entts = *_components[id.value()];
-                for (auto i = 0; i < entts.size(); ++i) {
+                auto size = entts.size();
+                for (auto i = 0; i < size; ++i) {
                     const auto& e = entts[i];
                     if(component_list_contained(e, component_contain_list{})
                         && component_list_not_contained(e, component_not_contain_list{})
