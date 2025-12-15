@@ -181,8 +181,8 @@ namespace mytho::ecs {
 
         public:
             void apply(registry_type& reg) {
-                // TODO: parallel apply
-                for (size_t i = 0; i < _executors.size(); i++) {
+                auto size = _executors.size();
+                for (size_t i = 0; i < size; i++) {
                     _executors[i](reg, _buffers.data() + _offsets[i]);
 
                     if (_destroyers[i]) {

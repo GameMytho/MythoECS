@@ -113,8 +113,9 @@ namespace mytho::container {
 
         void removed_entities_clear() noexcept {
             // we do not need to clear whole container, just clear the sub vector to avoid repetitive memory allocation
-            for (auto& entity : _entities) {
-                entity.clear();
+            auto size = _entities.size();
+            for (auto i= 0; i < _entities.size(); ++i) {
+                _entities[i].clear();
             }
         }
 

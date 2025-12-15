@@ -174,9 +174,9 @@ namespace mytho::ecs {
             auto id = _get_cid_with_minimun_entities<Ts...>();
 
             if (id) {
-                auto& entts = *_components[id.value()];
-                for (auto e : entts) {
-                    if(_components.template is_added<Ts...>(e, tick)) {
+                const auto& entts = *_components[id.value()];
+                for (auto i = 0; i < entts.size(); ++i) {
+                    if(_components.template is_added<Ts...>(entts[i], tick)) {
                         return true;
                     }
                 }
@@ -191,9 +191,9 @@ namespace mytho::ecs {
             auto id = _get_cid_with_minimun_entities<Ts...>();
 
             if (id) {
-                auto& entts = *_components[id.value()];
-                for (auto e : entts) {
-                    if(_components.template is_changed<Ts...>(e, tick)) {
+                const auto& entts = *_components[id.value()];
+                for (auto i = 0; i < entts.size(); ++i) {
+                    if(_components.template is_changed<Ts...>(entts[i], tick)) {
                         return true;
                     }
                 }
@@ -236,7 +236,8 @@ namespace mytho::ecs {
 
             if (id) {
                 auto& entts = *_components[id.value()];
-                for (auto e : entts) {
+                for (auto i = 0; i < entts.size(); ++i) {
+                    const auto& e = entts[i];
                     if(component_list_contained(e, component_contain_list{})
                         && component_list_not_contained(e, component_not_contain_list{}) 
                         && component_list_added(e, tick, component_added_list{})
@@ -269,7 +270,8 @@ namespace mytho::ecs {
 
             if (id) {
                 auto& entts = *_components[id.value()];
-                for (auto e : entts) {
+                for (auto i = 0; i < entts.size(); ++i) {
+                    const auto& e = entts[i];
                     if(component_list_contained(e, component_contain_list{})
                         && component_list_not_contained(e, component_not_contain_list{})
                         && component_list_added(e, tick, component_added_list{})

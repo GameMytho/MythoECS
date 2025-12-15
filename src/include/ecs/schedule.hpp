@@ -142,8 +142,9 @@ namespace mytho::ecs::internal {
 
     public:
         void run(registry_type& reg, uint64_t& tick) {
-            for (auto& [id, stage] : _stages) {
-                stage.run(reg, tick);
+            auto size = _stages.size();
+            for (auto i = 0; i < size; ++i) {
+                _stages[i]._stage.run(reg, tick);
             }
         }
 
@@ -153,8 +154,9 @@ namespace mytho::ecs::internal {
 
     private:
         bool _contain(stage_id_type id) const noexcept {
-            for (auto& stage : _stages) {
-                if (stage._key == id) {
+            auto size = _stages.size();
+            for (auto i = 0; i < size; ++i) {
+                if (_stages[i]._key == id) {
                     return true;
                 }
             }
@@ -163,7 +165,8 @@ namespace mytho::ecs::internal {
         }
 
         stage_index_type _index(stage_id_type id) const noexcept {
-            for (stage_index_type i = 0; i < _stages.size(); ++i) {
+            auto size = _stages.size();
+            for (auto i = 0; i < size; ++i) {
                 if (_stages[i]._key == id) {
                     return i;
                 }

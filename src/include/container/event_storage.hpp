@@ -61,8 +61,9 @@ namespace mytho::container {
 
             if (!f) return;
 
-            for (auto e : _pool[id]) {
-                f(e);
+            auto& es = _pool[id];
+            for (auto i = 0; i < es.size(); ++i) {
+                f(es[i]);
             }
 
             f = nullptr;
@@ -111,13 +112,14 @@ namespace mytho::container {
             auto size = _destroy_funcs.size();
             for (size_type i = 0; i < size; i++) {
                 auto& f = _destroy_funcs[i];
-                auto& p = _pool[i];
+                auto& es = _pool[i];
                 if (f) {
-                    for (auto e : p) {
-                        f(e);
+                    auto new_size = es.size();
+                    for (auto i = 0; i < new_size; ++i) {
+                        f(es[i]);
                     }
 
-                    p.clear();
+                    es.clear();
                 }
             }
         }

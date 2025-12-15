@@ -353,16 +353,27 @@ namespace mytho::ecs::internal {
         void run(registry_type& reg, uint64_t& tick) {
             mytho::container::basic_sparse_set<size_type, 64> ids;
 
-            for (size_type i = 0; i < _runifs.size(); i++) {
-                if (!_runifs[i].pointer() || _runifs[i](reg, _last_run_ticks[i])) {
+            auto size = _runifs.size();
+            for (auto i = 0; i < size; i++) {
+                auto& runif = _runifs[i];
+                if (!runif.pointer() || runif(reg, _last_run_ticks[i])) {
                     ids.add(i);
                 }
             }
 
-            for (auto vec : build(ids)) {
-                for (auto id : vec) {
-                    _functions[id](reg, _last_run_ticks[id]);
-                    _last_run_ticks[id] = tick;
+            auto graph = build(ids);
+            size = graph.size();
+
+            for (auto i = 0; i < size; ++i) {
+                auto& vec = graph[i];
+                auto in_size = vec.size();
+
+                for (auto j = 0; j < in_size; ++j) {
+                    auto id = vec[j];
+
+                    auto& last_tick = _last_run_ticks[id];
+                    _functions[id](reg, last_tick);
+                    last_tick = tick;
                 }
             }
         }
@@ -405,27 +416,51 @@ namespace mytho::ecs::internal {
             std::vector<std::vector<size_type>> edges(ids.size());
             std::vector<size_t> in_degrees(ids.size(), 0);
 
-            for (auto i = 0; i < ids.size(); i++) {
-                for (auto p : _befores_pool[ids[i]]) {
-                    if (!_id_map.contains(p) || !ids.contain(_id_map[p])) {
+            auto size = ids.size();
+            for (auto i = 0; i < size; i++) {
+                auto id = ids[i];
+                auto& befores = _befores_pool[id];
+                auto bf_size = befores.size();
+
+                for (auto j = 0; j < bf_size; ++j) {
+                    auto p = befores[j];
+
+                    if (!_id_map.contains(p)) {
                         continue;
                     }
 
-                    auto v = ids.index(_id_map[p]);
-                    if (std::find(edges[i].begin(), edges[i].end(), v) == edges[i].end()) {
-                        edges[i].push_back(v);
+                    auto pid = _id_map[p];
+                    if (!ids.contain(pid)) {
+                        continue;
+                    }
+
+                    auto v = ids.index(pid);
+                    auto& edge = edges[i];
+                    if (std::find(edge.begin(), edge.end(), v) == edge.end()) {
+                        edge.push_back(v);
                         in_degrees[v]++;
                     }
                 }
 
-                for (auto p : _afters_pool[ids[i]]) {
-                    if (!_id_map.contains(p) || !ids.contain(_id_map[p])) {
+                auto& afters = _afters_pool[id];
+                auto af_size = afters.size();
+
+                for (auto j = 0; j < af_size; ++j) {
+                    auto p = afters[j];
+
+                    if (!_id_map.contains(p)) {
                         continue;
                     }
 
-                    auto k = ids.index(_id_map[p]);
-                    if (std::find(edges[k].begin(), edges[k].end(), i) == edges[k].end()) {
-                        edges[k].push_back(i);
+                    auto pid = _id_map[p];
+                    if (!ids.contain(pid)) {
+                        continue;
+                    }
+
+                    auto k = ids.index(pid);
+                    auto& edge = edges[k];
+                    if (std::find(edge.begin(), edge.end(), i) == edge.end()) {
+                        edge.push_back(i);
                         in_degrees[i]++;
                     }
                 }
@@ -437,7 +472,8 @@ namespace mytho::ecs::internal {
         auto kahn(auto& edges, auto& in_degrees, auto& ids) {
             std::vector<size_type> v;
 
-            for (auto i = 0; i < in_degrees.size(); i++) {
+            auto size = in_degrees.size();
+            for (auto i = 0; i < size; ++i) {
                 if (in_degrees[i] == 0) {
                     v.push_back(i);
                 }
@@ -448,14 +484,19 @@ namespace mytho::ecs::internal {
 
             while(!v.empty()) {
                 count += v.size();
-                result.emplace_back();
-                result.back().swap(v);
+                auto& back = result.emplace_back(); // emplace_back will return ref after c++17
 
-                for (auto& it : result.back()) {
-                    auto i = it;
-                    it = ids[i];
+                back.swap(v);
+                auto new_size = back.size();
+                for (auto i = 0; i < new_size; ++i) {
+                    auto& it = back[i];
+                    auto id = it;
+                    it = ids[id];
 
-                    for (auto idx : edges[i]) {
+                    auto& edge = edges[id];
+                    auto in_size = edge.size();
+                    for (auto j = 0; j < in_size; ++j) {
+                        auto idx = edge[j];
                         if (--in_degrees[idx] == 0) {
                             v.push_back(idx);
                         }
