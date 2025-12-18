@@ -45,8 +45,12 @@ namespace mytho::container {
             if (idx >= data_size) {
                 allocator_type allocator{_cdata.get_allocator()};
 
-                _cdata.resize(idx + 1, alloc_traits::allocate(allocator, 1));
+                _cdata.resize(idx + 1);
                 _ticks.resize(idx + 1);
+
+                for (auto i = data_size; i <= idx; i++) {
+                    _cdata[i] = alloc_traits::allocate(allocator, 1);
+                }
             }
 
             // use placement new, construct_at(c++20) need explicit constructor

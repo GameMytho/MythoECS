@@ -222,9 +222,11 @@ namespace mytho::container {
             if (id >= _pool.size()) {
                 _pool.resize(id + 1);
                 _remove_funcs.resize(id + 1, nullptr);
+            }
 
+            if (!_pool[id]) {
                 _pool[id] = std::make_unique<component_set_type>();
-                _remove_funcs[id] = [](void* ptr, const entity_type& e){
+                _remove_funcs[id] = [](void* ptr, const entity_type& e) {
                     static_cast<component_set_type*>(ptr)->remove(e);
                 };
             }
