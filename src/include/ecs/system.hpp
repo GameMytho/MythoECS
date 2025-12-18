@@ -136,35 +136,38 @@ namespace mytho::ecs::internal {
     public:
         using registry_type = RegistryT;
         using return_type = ReturnT;
-        using function_wrapper_type = return_type(*)(void*, registry_type&, uint64_t);
+        using function_wrapper_type = return_type(*)(std::uintptr_t, registry_type&, uint64_t);
 
-        basic_function() noexcept : _function_wrapper(nullptr), _function_pointer(nullptr) {}
+        basic_function() noexcept : _function_wrapper(nullptr), _address(0) {}
 
         template<mytho::utils::FunctionType Func>
         basic_function(Func&& func) noexcept {
-            new (&_function_pointer) std::decay_t<Func>(std::forward<Func>(func));
-            _function_wrapper = function_wrapper_construct<Func>();
+            using Fp = decltype(+std::declval<Func>());
+
+            Fp fp = +func;
+            _address = std::bit_cast<std::uintptr_t>(fp);
+            _function_wrapper = function_wrapper_construct<Fp>();
         }
 
     public:
         return_type operator()(registry_type& reg, uint64_t tick) {
-            return _function_wrapper(_function_pointer, reg, tick);
+            return _function_wrapper(_address, reg, tick);
         }
 
     public:
-        void* pointer() const noexcept { return _function_pointer; }
+        std::uintptr_t address() const noexcept { return _address; }
 
     private:
         function_wrapper_type _function_wrapper;
-        void* _function_pointer;
+        std::uintptr_t _address;
 
     private:
-        template<typename Func>
+        template<typename Fp>
         auto function_wrapper_construct() noexcept {
-            return [](void* func_ptr, registry_type& reg, uint64_t tick) -> return_type {
-                using types = mytho::utils::system_traits_t<mytho::utils::function_traits_t<std::decay_t<Func>>>;
+            return [](std::uintptr_t addr, registry_type& reg, uint64_t tick) -> return_type {
+                using types = mytho::utils::system_traits_t<mytho::utils::function_traits_t<Fp>>;
 
-                return function_invoke(*reinterpret_cast<std::decay_t<Func>>(func_ptr), reg, tick, types{});
+                return function_invoke(std::bit_cast<Fp>(addr), reg, tick, types{});
             };
         }
 
@@ -178,35 +181,38 @@ namespace mytho::ecs::internal {
     class basic_function<RegistryT, void> final {
     public:
         using registry_type = RegistryT;
-        using function_wrapper_type = void(*)(void*, registry_type&, uint64_t);
+        using function_wrapper_type = void(*)(std::uintptr_t, registry_type&, uint64_t);
 
-        basic_function() noexcept : _function_wrapper(nullptr), _function_pointer(nullptr) {}
+        basic_function() noexcept : _function_wrapper(nullptr), _address(0) {}
 
         template<mytho::utils::FunctionType Func>
         basic_function(Func&& func) noexcept {
-            new (&_function_pointer) std::decay_t<Func>(std::forward<Func>(func));
-            _function_wrapper = function_wrapper_construct<Func>();
+            using Fp = decltype(+std::declval<Func>());
+
+            Fp fp = +func;
+            _address = std::bit_cast<std::uintptr_t>(fp);
+            _function_wrapper = function_wrapper_construct<Fp>();
         }
 
     public:
         void operator()(registry_type& reg, uint64_t tick) const {
-            _function_wrapper(_function_pointer, reg, tick);
+            _function_wrapper(_address, reg, tick);
         }
 
     public:
-        void* pointer() const noexcept { return _function_pointer; }
+        std::uintptr_t address() const noexcept { return _address; }
 
     private:
         function_wrapper_type _function_wrapper;
-        void* _function_pointer;
+        std::uintptr_t _address;
 
     private:
-        template<typename Func>
+        template<typename Fp>
         auto function_wrapper_construct() noexcept {
-            return [](void* func_ptr, registry_type& reg, uint64_t tick) {
-                using types = mytho::utils::system_traits_t<mytho::utils::function_traits_t<std::decay_t<Func>>>;
+            return [](std::uintptr_t addr, registry_type& reg, uint64_t tick) {
+                using types = mytho::utils::system_traits_t<mytho::utils::function_traits_t<Fp>>;
 
-                function_invoke(*reinterpret_cast<std::decay_t<Func>>(func_ptr), reg, tick, types{});
+                function_invoke(std::bit_cast<Fp>(addr), reg, tick, types{});
             };
         }
 
@@ -225,8 +231,8 @@ namespace mytho::ecs::internal {
         using self_type = basic_system<registry_type>;
         using function_type = basic_function<registry_type, void>;
         using runif_type = basic_function<registry_type, bool>;
-        using befores_type = std::vector<void*>;
-        using afters_type = std::vector<void*>;
+        using befores_type = std::vector<std::uintptr_t>;
+        using afters_type = std::vector<std::uintptr_t>;
 
         basic_system() noexcept = default;
 
@@ -236,14 +242,20 @@ namespace mytho::ecs::internal {
     public:
         template<mytho::utils::FunctionType Func>
         self_type& after(Func&& func) {
-            _afters.push_back(reinterpret_cast<void*>(func));
+            using Fp = decltype(+std::declval<Func>());
+
+            Fp fp = +func;
+            _afters.push_back(std::bit_cast<std::uintptr_t>(fp));
 
             return *this;
         }
 
         template<mytho::utils::FunctionType Func>
         self_type& before(Func&& func) {
-            _befores.push_back(reinterpret_cast<void*>(func));
+            using Fp = decltype(+std::declval<Func>());
+
+            Fp fp = +func;
+            _befores.push_back(std::bit_cast<std::uintptr_t>(fp));
 
             return *this;
         }
@@ -299,7 +311,7 @@ namespace mytho::ecs::internal {
         using afters_pool_type = std::vector<afters_type>;
 
         using size_type = typename functions_type::size_type;
-        using id_map_type = std::unordered_map<void*, size_type>;
+        using id_map_type = std::unordered_map<std::uintptr_t, size_type>;
 
         basic_system_stage() = default;
         basic_system_stage(basic_system_stage& ss) = delete;
@@ -323,7 +335,11 @@ namespace mytho::ecs::internal {
     public:
         template<mytho::utils::FunctionType Func>
         void add(Func&& func) {
-            if (_id_map.contains(reinterpret_cast<void*>(func))) {
+            using Fp = decltype(+std::declval<Func>());
+
+            Fp fp = +func;
+            auto addr = std::bit_cast<std::uintptr_t>(fp);
+            if (_id_map.contains(addr)) {
                 return;
             }
 
@@ -333,11 +349,11 @@ namespace mytho::ecs::internal {
             _befores_pool.emplace_back();
             _afters_pool.emplace_back();
 
-            _id_map[reinterpret_cast<void*>(func)] = _functions.size() - 1;
+            _id_map[addr] = _functions.size() - 1;
         }
 
         void add(system_type& system) {
-            if (_id_map.contains(reinterpret_cast<void*>(system.function().pointer()))) {
+            if (_id_map.contains(system.function().address())) {
                 return;
             }
 
@@ -347,7 +363,7 @@ namespace mytho::ecs::internal {
             _befores_pool.push_back(std::move(system).befores());
             _afters_pool.push_back(std::move(system).afters());
 
-            _id_map[reinterpret_cast<void*>(system.function().pointer())] = _functions.size() - 1;
+            _id_map[system.function().address()] = _functions.size() - 1;
         }
 
     public:
@@ -357,7 +373,7 @@ namespace mytho::ecs::internal {
             auto size = _runifs.size();
             for (auto i = 0; i < size; i++) {
                 auto& runif = _runifs[i];
-                if (!runif.pointer() || runif(reg, _last_run_ticks[i])) {
+                if (!runif.address() || runif(reg, _last_run_ticks[i])) {
                     ids.add(i);
                 }
             }
