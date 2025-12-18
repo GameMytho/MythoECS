@@ -15,8 +15,8 @@ namespace mytho::ecs::internal {
 
     private:
         struct basic_stage {
-            basic_stage() = default;
-            basic_stage(stage_id_type id, system_stage_type&& stage)
+            basic_stage() noexcept = default;
+            basic_stage(stage_id_type id, system_stage_type&& stage) noexcept
                 : _key(id), _stage(std::move(stage)) {}
 
             stage_id_type _key;
@@ -95,7 +95,7 @@ namespace mytho::ecs::internal {
         }
 
         template<auto StageE>
-        self_type& set_default_stage() {
+        self_type& set_default_stage() noexcept {
             auto id = stage_id_generator::template gen<StageE>();
             _default = id;
 

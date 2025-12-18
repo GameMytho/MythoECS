@@ -63,7 +63,7 @@ namespace mytho::container {
         }
 
         // must ensure entity exist
-        void remove(const entity_type& e) {
+        void remove(const entity_type& e) noexcept {
             auto idx = base_type::index(e);
             auto last = base_type::size() - 1;
 
@@ -129,7 +129,7 @@ namespace mytho::container {
             return base_type::contain(e);
         }
 
-        void clear() {
+        void clear() noexcept {
             auto size = base_type::size();
             allocator_type allocator{_cdata.get_allocator()};
 

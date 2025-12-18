@@ -83,7 +83,7 @@ namespace mytho::container {
         }
 
         template<mytho::utils::PureValueType T>
-        auto& removed_entities() noexcept {
+        auto& removed_entities() {
             auto id = component_id_generator::template gen<T>();
 
             if (id >= _entities.size()) {

@@ -19,31 +19,38 @@ namespace mytho::container {
         ~basic_tick_set() noexcept = default;
 
     public:
-        uint64_t get_added_tick(size_type index) const {
+        // must ensure index valid
+        uint64_t get_added_tick(size_type index) const noexcept {
             return _added_ticks[index];
         }
 
-        uint64_t& get_added_tick(size_type index) {
+        // must ensure index valid
+        uint64_t& get_added_tick(size_type index) noexcept {
             return _added_ticks[index];
         }
 
-        void set_added_tick(size_type index, uint64_t tick) {
+        // must ensure index valid
+        void set_added_tick(size_type index, uint64_t tick) noexcept {
             _added_ticks[index] = tick;
         }
 
-        uint64_t get_changed_tick(size_type index) const {
+        // must ensure index valid
+        uint64_t get_changed_tick(size_type index) const noexcept {
             return _changed_ticks[index];
         }
 
-        uint64_t& get_changed_tick(size_type index) {
+        // must ensure index valid
+        uint64_t& get_changed_tick(size_type index) noexcept {
             return _changed_ticks[index];
         }
 
-        void set_changed_tick(size_type index, uint64_t tick) {
+        // must ensure index valid
+        void set_changed_tick(size_type index, uint64_t tick) noexcept {
             _changed_ticks[index] = tick;
         }
 
-        void swap_ticks(size_type l, size_type r) {
+        // must ensure index valid
+        void swap_ticks(size_type l, size_type r) noexcept {
             std::swap(_added_ticks[l], _added_ticks[r]);
             std::swap(_changed_ticks[l], _changed_ticks[r]);
         }
@@ -59,9 +66,7 @@ namespace mytho::container {
         }
 
     public:
-        size_type size() const noexcept {
-            return _added_ticks.size();
-        }
+        size_type size() const noexcept { return _added_ticks.size(); }
 
         bool empty() const noexcept { return _added_ticks.empty(); }
 

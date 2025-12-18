@@ -70,8 +70,8 @@ namespace mytho::ecs {
         template<typename... Ts>
         using querier_type = mytho::ecs::basic_querier<self_type, Ts...>;
 
-        template<typename T>
-        using resource_cache = mytho::ecs::internal::basic_resource_cache<T>;
+        // template<typename T>
+        // using resource_cache = mytho::ecs::internal::basic_resource_cache<T>;
 
         template<typename... Ts>
         using resources_type = mytho::ecs::basic_resources<Ts...>;
@@ -303,7 +303,7 @@ namespace mytho::ecs {
         }
 
         template<mytho::utils::PureResourceType T>
-        self_type& remove_resource() {
+        self_type& remove_resource() noexcept {
             ASSURE(_resources.template exist<T>() , "resource not exists");
 
             _resources.template deinit<T>();
@@ -378,21 +378,21 @@ namespace mytho::ecs {
         }
 
         template<mytho::utils::PureEventType T>
-        auto& event_write() {
+        auto& event_write() noexcept {
             ASSURE(_resources.template exist<basic_events<T>>(), "event type not exists");
 
             return _resources.template get<basic_events<T>>().write();
         }
 
         template<mytho::utils::PureEventType T>
-        auto& event_mutate() {
+        auto& event_mutate() noexcept {
             ASSURE(_resources.template exist<basic_events<T>>(), "event type not exists");
 
             return _resources.template get<basic_events<T>>().mutate();
         }
 
         template<mytho::utils::PureEventType T>
-        const auto& event_read() const {
+        const auto& event_read() const noexcept {
             ASSURE(_resources.template exist<basic_events<T>>(), "event type not exists");
 
             return _resources.template get<basic_events<T>>().read();
@@ -428,7 +428,7 @@ namespace mytho::ecs {
         }
 
         template<auto StageE>
-        self_type& set_startup_default_stage() {
+        self_type& set_startup_default_stage() noexcept {
             _startup_schedule.template set_default_stage<StageE>();
 
             return *this;
@@ -463,7 +463,7 @@ namespace mytho::ecs {
         }
 
         template<auto StageE>
-        self_type& set_update_default_stage() {
+        self_type& set_update_default_stage() noexcept {
             _update_schedule.template set_default_stage<StageE>();
 
             return *this;
@@ -533,14 +533,14 @@ namespace mytho::ecs {
             _startup_schedule.run(*this, _current_tick);
 
             _current_tick++;
-            apply_commands();
+            _command_queue.apply(*this);
         }
 
         void update() {
             _update_schedule.run(*this, _current_tick);
 
             _current_tick++;
-            apply_commands();
+            _command_queue.apply(*this);
 
             _components.removed_entities_clear();
 
@@ -550,10 +550,6 @@ namespace mytho::ecs {
     public: // command operations
         command_queue_type& command_queue() noexcept {
             return _command_queue;
-        }
-
-        void apply_commands() {
-            _command_queue.apply(*this);
         }
 
     private:

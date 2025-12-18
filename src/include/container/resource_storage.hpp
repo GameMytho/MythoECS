@@ -66,7 +66,7 @@ namespace mytho::container {
         }
 
         template<mytho::utils::PureValueType T>
-        void deinit() {
+        void deinit() noexcept {
             auto id = resource_id_generator::template gen<T>();
             if (id >= _pool.size()) return;
 
@@ -80,49 +80,54 @@ namespace mytho::container {
         }
 
     public:
+        // must ensure resource exists
         template<mytho::utils::PureValueType T>
-        const T& get() const {
+        const T& get() const noexcept {
             auto id = resource_id_generator::template gen<T>();
 
             return *static_cast<T*>(_pool[id]);
         }
 
+        // must ensure resource exists
         template<mytho::utils::PureValueType T>
-        T& get() {
+        T& get() noexcept {
             auto id = resource_id_generator::template gen<T>();
 
             return *static_cast<T*>(_pool[id]);
         }
 
+        // must ensure resource exists
         template<mytho::utils::PureValueType T>
-        uint64_t& get_changed_tick_ref() {
+        uint64_t& get_changed_tick_ref() noexcept {
             auto id = resource_id_generator::template gen<T>();
 
             return _ticks.get_changed_tick(id);
         }
 
+        // must ensure resource exists
         template<mytho::utils::PureValueType T>
-        bool is_added(uint64_t tick) const {
+        bool is_added(uint64_t tick) const noexcept {
             auto id = resource_id_generator::template gen<T>();
 
             return id < _pool.size() && _pool[id] && _ticks.get_added_tick(id) >= tick;
         }
 
+        // must ensure resource exists
         template<mytho::utils::PureValueType T>
-        bool is_changed(uint64_t tick) const {
+        bool is_changed(uint64_t tick) const noexcept {
             auto id = resource_id_generator::template gen<T>();
 
             return id < _pool.size() && _pool[id] && _ticks.get_changed_tick(id) >= tick;
         }
 
         template<mytho::utils::PureValueType T>
-        bool exist() const {
+        bool exist() const noexcept {
             auto id = resource_id_generator::template gen<T>();
 
             return id < _pool.size() && _pool[id];
         }
 
-        void clear() {
+        void clear() noexcept {
             auto size = _pool.size();
             for (size_type i = 0; i < size; ++i) {
                 auto p = _pool[i];

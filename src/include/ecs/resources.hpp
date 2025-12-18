@@ -14,41 +14,41 @@ namespace mytho::utils {
 }
 
 namespace mytho::ecs {
-    namespace internal {
-        template<mytho::utils::PureResourceType T>
-        class basic_resource_cache final {
-        public:
-            using data_type = std::optional<T>;
-            using data_reference_type = data_type&;
+    // namespace internal {
+    //     template<mytho::utils::PureResourceType T>
+    //     class basic_resource_cache final {
+    //     public:
+    //         using data_type = std::optional<T>;
+    //         using data_reference_type = data_type&;
 
-            basic_resource_cache(data_reference_type res) = delete;
-            data_reference_type operator=(data_reference_type res) = delete;
+    //         basic_resource_cache(data_reference_type res) = delete;
+    //         data_reference_type operator=(data_reference_type res) = delete;
 
-        public:
-            template<typename... Ts>
-            static void init(Ts&&... ts) noexcept {
-                if (_res) {
-                    return;
-                }
+    //     public:
+    //         template<typename... Ts>
+    //         static void init(Ts&&... ts) noexcept {
+    //             if (_res) {
+    //                 return;
+    //             }
 
-                _res = std::make_optional(T{std::forward<Ts>(ts)...});
-            }
+    //             _res = std::make_optional(T{std::forward<Ts>(ts)...});
+    //         }
 
-            static data_reference_type instance() noexcept {
-                return _res;
-            }
+    //         static data_reference_type instance() noexcept {
+    //             return _res;
+    //         }
 
-            static void destroy() noexcept {
-                _res.reset();
-            }
+    //         static void destroy() noexcept {
+    //             _res.reset();
+    //         }
 
-        private:
-            basic_resource_cache() = default;
-            ~basic_resource_cache() = default;
+    //     private:
+    //         basic_resource_cache() = default;
+    //         ~basic_resource_cache() = default;
 
-            inline static data_type _res = std::nullopt;
-        };
-    }
+    //         inline static data_type _res = std::nullopt;
+    //     };
+    // }
 
     template<mytho::utils::PureResourceType... Ts>
     requires (sizeof...(Ts) > 0)
@@ -61,10 +61,6 @@ namespace mytho::ecs {
         basic_resources(resource_bundle_type&& resources) noexcept : _resources(std::move(resources)) {}
 
     public:
-        constexpr size_type size() const noexcept {
-            return sizeof...(Ts);
-        }
-
         const resource_bundle_type& data() const noexcept {
             return _resources;
         }
@@ -88,10 +84,6 @@ namespace mytho::ecs {
         basic_resources_mut(resource_bundle_type&& resources) noexcept : _resources(std::move(resources)) {}
 
     public:
-        constexpr size_type size() const noexcept {
-            return sizeof...(Ts);
-        }
-
         const resource_bundle_type& data() const noexcept {
             return _resources;
         }

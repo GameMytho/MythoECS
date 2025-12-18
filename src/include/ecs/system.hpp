@@ -84,7 +84,7 @@ namespace mytho::ecs::internal {
 
     template<typename RegistryT, typename... Ts>
     struct constructor<RegistryT, basic_querier<RegistryT, Ts...>> {
-        auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
+        auto operator()(RegistryT& reg, uint64_t tick) const {
             return reg.template query<Ts...>(tick);
         }
     };
@@ -261,7 +261,7 @@ namespace mytho::ecs::internal {
         }
 
         template<mytho::utils::FunctionType Func>
-        self_type& runif(Func&& func) {
+        self_type& runif(Func&& func) noexcept {
             _runif = std::forward<Func>(func);
 
             return *this;
@@ -313,8 +313,8 @@ namespace mytho::ecs::internal {
         using size_type = typename functions_type::size_type;
         using id_map_type = std::unordered_map<std::uintptr_t, size_type>;
 
-        basic_system_stage() = default;
-        basic_system_stage(basic_system_stage& ss) = delete;
+        basic_system_stage() noexcept = default;
+        basic_system_stage(basic_system_stage& ss) noexcept = delete;
 
         basic_system_stage(basic_system_stage&& ss) noexcept
             : _last_run_ticks(std::move(ss).last_run_ticks()), _functions(std::move(ss).functions()),

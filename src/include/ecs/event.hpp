@@ -15,19 +15,19 @@ namespace mytho::ecs {
         using events_type = std::vector<event_type>;
 
     public:
-        auto& write() {
+        auto& write() noexcept {
             return _write_events;
         }
 
-        auto& mutate() {
+        auto& mutate() noexcept {
             return _read_events;
         }
 
-        const auto& read() const {
+        const auto& read() const noexcept {
             return _read_events;
         }
 
-        void swap() {
+        void swap() noexcept {
             _read_events.swap(_write_events);
             _write_events.clear();
         }
