@@ -1,7 +1,6 @@
 #pragma once
 
 #include "utils/type_list.hpp"
-#include "container/event_storage.hpp"
 
 namespace mytho::utils {
     template<typename T>
@@ -9,53 +8,23 @@ namespace mytho::utils {
 }
 
 namespace mytho::ecs {
-    template<
-        typename EventIdGenerator,
-        template<typename> typename AllocatorT = std::allocator
-    >
+    template<mytho::utils::PureEventType T>
     class basic_events final {
     public:
-        using event_id_generator = EventIdGenerator;
-        using event_id_type = typename event_id_generator::value_type;
-        using event_storage_type = mytho::container::basic_event_storage<event_id_generator, AllocatorT>;
+        using event_type = T;
+        using events_type = std::vector<event_type>;
 
     public:
-        template<mytho::utils::PureValueType T>
-        void init() {
-            _write_events.template init<T>();
-            _read_events.template init<T>();
+        auto& write() {
+            return _write_events;
         }
 
-        template<mytho::utils::PureValueType T>
-        void deinit() {
-            _write_events.template deinit<T>();
-            _read_events.template deinit<T>();
+        auto& mutate() {
+            return _read_events;
         }
 
-    public:
-        template<mytho::utils::PureValueType T, typename... Rs>
-        void write(Rs&&... rs) {
-            _write_events.template write<T>(std::forward<Rs>(rs)...);
-        }
-
-        template<mytho::utils::PureValueType T>
-        auto mutate() {
-            return _read_events.template mutate<T>();
-        }
-
-        template<mytho::utils::PureValueType T>
-        auto read() const {
-            return _read_events.template read<T>();
-        }
-
-        template<mytho::utils::PureValueType T>
-        bool exist_in_wb() const {
-            return _write_events.template exist<T>();
-        }
-
-        template<mytho::utils::PureValueType T>
-        bool exist_in_rb() const {
-            return _read_events.template exist<T>();
+        const auto& read() const {
+            return _read_events;
         }
 
         void swap() {
@@ -64,35 +33,35 @@ namespace mytho::ecs {
         }
 
     private:
-        event_storage_type _read_events;
-        event_storage_type _write_events;
+        events_type _read_events;
+        events_type _write_events;
     };
 
-    template<typename RegistryT, mytho::utils::PureEventType T>
+    template<mytho::utils::PureEventType T>
     class basic_event_writer final {
     public:
-        using registry_type = RegistryT;
         using event_type = T;
+        using events_type = typename basic_events<event_type>::events_type;
 
-        basic_event_writer(registry_type& reg) noexcept : _reg(reg) {}
+        basic_event_writer(events_type& events) noexcept : _events(events) {}
 
     public:
         template<typename... Ts>
         void write(Ts&&... ts) {
-            _reg.template event_write<event_type>(std::forward<Ts>(ts)...);
+            _events.emplace_back(std::forward<Ts>(ts)...);
         }
 
     private:
-        registry_type& _reg;
+        events_type& _events;
     };
 
     template<mytho::utils::PureEventType T>
     class basic_event_mutator final {
     public:
         using event_type = T;
-        using events_type = mytho::container::basic_event_set<T>;
+        using events_type = typename basic_events<event_type>::events_type;
 
-        basic_event_mutator(events_type&& events) noexcept : _events(std::move(events)) {}
+        basic_event_mutator(events_type& events) noexcept : _events(events) {}
 
     public:
         events_type& mutate() noexcept {
@@ -100,16 +69,16 @@ namespace mytho::ecs {
         }
 
     private:
-        events_type _events;
+        events_type& _events;
     };
 
     template<mytho::utils::PureEventType T>
     class basic_event_reader final {
     public:
         using event_type = T;
-        using events_type = mytho::container::basic_event_set<T>;
+        using events_type = typename basic_events<event_type>::events_type;
 
-        basic_event_reader(events_type&& events) noexcept : _events(std::move(events)) {}
+        basic_event_reader(const events_type& events) noexcept : _events(events) {}
 
     public:
         const events_type& read() const noexcept {
@@ -117,7 +86,7 @@ namespace mytho::ecs {
         }
 
     private:
-        events_type _events;
+        const events_type& _events;
     };
 }
 

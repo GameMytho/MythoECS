@@ -27,7 +27,7 @@ namespace {
     using res_mut = mytho::ecs::basic_resources_mut<Ts...>;
 
     using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
-    using registry = mytho::ecs::basic_registry<entity, uint16_t, uint16_t, uint16_t, uint8_t, 256>;
+    using registry = mytho::ecs::basic_registry<entity, uint16_t, uint16_t, uint8_t, 256>;
     using commands = mytho::ecs::basic_commands<registry>;
     using registrar = mytho::ecs::basic_registrar<registry>;
 
@@ -35,7 +35,7 @@ namespace {
     using querier = mytho::ecs::basic_querier<registry, Ts...>;
 
     template<typename T>
-    using event_writer = mytho::ecs::basic_event_writer<registry, T>;
+    using event_writer = mytho::ecs::basic_event_writer<T>;
 
     template<typename T>
     using event_mutator = mytho::ecs::basic_event_mutator<T>;

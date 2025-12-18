@@ -10,7 +10,7 @@ struct Damage {
 };
 
 void update1(event_writer<Damage> e) {
-    e.write(10.0f);
+    e.write(Damage { 10.0f });
 }
 
 void update2(event_mutator<Damage> e, res<Frame> r) {

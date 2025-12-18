@@ -1,4 +1,5 @@
 #pragma once
+#include <bit>
 #include <type_traits>
 #include <optional>
 #include <functional>
@@ -103,9 +104,9 @@ namespace mytho::ecs::internal {
     };
 
     template<typename RegistryT, typename T>
-    struct constructor<RegistryT, basic_event_writer<RegistryT, T>> {
+    struct constructor<RegistryT, basic_event_writer<T>> {
         auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
-            return basic_event_writer<RegistryT, T>(reg);
+            return basic_event_writer<T>(reg.template event_write<T>());
         }
     };
 

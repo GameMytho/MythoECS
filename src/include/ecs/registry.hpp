@@ -38,28 +38,29 @@ namespace mytho::ecs {
         mytho::utils::EntityType EntityT,
         mytho::utils::UnsignedIntegralType ComponentIdT = uint16_t,
         mytho::utils::UnsignedIntegralType ResourceIdT = uint16_t,
-        mytho::utils::UnsignedIntegralType EventIdT = uint16_t,
         mytho::utils::UnsignedIntegralType StageIdT = uint8_t,
         size_t PageSize = 256
     >
     class basic_registry final {
+    private:
+        enum class internal_stage {
+            Update
+        };
+
     public:
         using entity_type = EntityT;
         using component_id_type = ComponentIdT;
         using resource_id_type = ResourceIdT;
-        using event_id_type = EventIdT;
         using stage_id_type = StageIdT;
-        using self_type = mytho::ecs::basic_registry<entity_type, component_id_type, resource_id_type, event_id_type, stage_id_type, PageSize>;
+        using self_type = mytho::ecs::basic_registry<entity_type, component_id_type, resource_id_type, stage_id_type, PageSize>;
 
         using component_id_generator = mytho::utils::basic_id_generator<internal::component_genor, component_id_type>;
         using resource_id_generator = mytho::utils::basic_id_generator<internal::resource_genor, component_id_type>;
-        using event_id_generator = mytho::utils::basic_id_generator<internal::event_genor, component_id_type>;
         using stage_id_generator = mytho::utils::basic_id_generator<internal::stage_genor, component_id_type>;
 
         using entity_storage_type = mytho::container::basic_entity_storage<entity_type, component_id_generator, PageSize>;
         using component_storage_type = mytho::container::basic_component_storage<entity_type, component_id_generator, PageSize>;
         using resource_storage_type = mytho::container::basic_resource_storage<resource_id_generator, std::allocator>;
-        using events_type = mytho::ecs::basic_events<event_id_generator, std::allocator>;
         using command_queue_type = mytho::ecs::internal::basic_command_queue<self_type>;
         using schedule_type = mytho::ecs::internal::basic_schedule<self_type>;
 
@@ -88,6 +89,9 @@ namespace mytho::ecs {
                             .template add_stage<core_stage::PostUpdate>()
                             .template add_stage<core_stage::Last>()
                             .template set_default_stage<core_stage::Update>();
+
+            _internal_schedule.template add_stage<internal_stage::Update>()
+                              .template set_default_stage<internal_stage::Update>();
         }
 
     public: // entity operations
@@ -241,7 +245,7 @@ namespace mytho::ecs {
                     component_bundles.reserve(size);
                     const auto& e = entts[i];
                     if(component_list_contained(e, component_contain_list{})
-                        && component_list_not_contained(e, component_not_contain_list{}) 
+                        && component_list_not_contained(e, component_not_contain_list{})
                         && component_list_added(e, tick, component_added_list{})
                         && component_list_changed(e, tick, component_changed_list{})
                     ) {
@@ -291,6 +295,8 @@ namespace mytho::ecs {
     public: // resource operations
         template<mytho::utils::PureResourceType T, typename... Rs>
         self_type& init_resource(Rs&&... rs) {
+            ASSURE(!_resources.template exist<T>() , "resource already exists");
+
             _resources.template init<T>(_current_tick, std::forward<Rs>(rs)...);
 
             return *this;
@@ -298,6 +304,8 @@ namespace mytho::ecs {
 
         template<mytho::utils::PureResourceType T>
         self_type& remove_resource() {
+            ASSURE(_resources.template exist<T>() , "resource not exists");
+
             _resources.template deinit<T>();
 
             return *this;
@@ -306,7 +314,7 @@ namespace mytho::ecs {
         template<mytho::utils::PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         auto resources() noexcept {
-            ASSURE(resources_exist<Ts...>(), "some resources not exist");
+            ASSURE(_resources.template exist<Ts>() && ..., "some resources not exist");
 
             return std::tuple<const mytho::utils::internal::data_wrapper<Ts>...>(
                 mytho::utils::internal::data_wrapper<Ts>(
@@ -320,7 +328,7 @@ namespace mytho::ecs {
         template<mytho::utils::PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         auto resources_mut() noexcept {
-            ASSURE(resources_exist<Ts...>(), "some resources not exist");
+            ASSURE(_resources.template exist<Ts>() && ..., "some resources not exist");
 
             return std::tuple<mytho::utils::internal::data_wrapper<Ts>...>(
                 mytho::utils::internal::data_wrapper<Ts>(
@@ -334,7 +342,7 @@ namespace mytho::ecs {
         template<mytho::utils::PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         bool resources_added(uint64_t tick) const noexcept {
-            ASSURE(resources_exist<Ts...>(), "some resources not exist");
+            ASSURE(_resources.template exist<Ts>() && ..., "some resources not exist");
 
             return (_resources.template is_added<Ts>(tick) && ...);
         }
@@ -356,37 +364,38 @@ namespace mytho::ecs {
     public: // event operations
         template<mytho::utils::PureEventType T>
         self_type& init_event() {
-            _events.template init<T>();
+            ASSURE(!_resources.template exist<basic_events<T>>(), "event type already exists");
+
+            _resources.template init<basic_events<T>>(_current_tick);
+
+            _internal_schedule.add_system(+[](basic_resources_mut<basic_events<T>> rm){
+                auto& [events] = rm;
+
+                events->swap();
+            });
 
             return *this;
         }
 
         template<mytho::utils::PureEventType T>
-        self_type& deinit_event() {
-            _events.template deinit<T>();
+        auto& event_write() {
+            ASSURE(_resources.template exist<basic_events<T>>(), "event type not exists");
 
-            return *this;
-        }
-
-        template<mytho::utils::PureEventType T, typename... Rs>
-        void event_write(Rs&&... rs) {
-            ASSURE(_events.template exist_in_wb<T>(), "event type not exist");
-
-            _events.template write<T>(std::forward<Rs>(rs)...);
+            return _resources.template get<basic_events<T>>().write();
         }
 
         template<mytho::utils::PureEventType T>
-        auto event_mutate() {
-            ASSURE(_events.template exist_in_rb<T>(), "event type not exist");
+        auto& event_mutate() {
+            ASSURE(_resources.template exist<basic_events<T>>(), "event type not exists");
 
-            return _events.template mutate<T>();
+            return _resources.template get<basic_events<T>>().mutate();
         }
 
         template<mytho::utils::PureEventType T>
-        auto event_read() const {
-            ASSURE(_events.template exist_in_rb<T>(), "event type not exist");
+        const auto& event_read() const {
+            ASSURE(_resources.template exist<basic_events<T>>(), "event type not exists");
 
-            return _events.template read<T>();
+            return _resources.template get<basic_events<T>>().read();
         }
 
     public: // schedule operations
@@ -534,7 +543,8 @@ namespace mytho::ecs {
             apply_commands();
 
             _components.removed_entities_clear();
-            _events.swap();
+
+            _internal_schedule.run(*this, _current_tick);
         }
 
     public: // command operations
@@ -550,7 +560,6 @@ namespace mytho::ecs {
         entity_storage_type _entities;
         component_storage_type _components;
         resource_storage_type _resources;
-        events_type _events;
 
         command_queue_type _command_queue;
 
@@ -558,6 +567,7 @@ namespace mytho::ecs {
         uint64_t _current_tick = 1;
         schedule_type _startup_schedule;
         schedule_type _update_schedule;
+        schedule_type _internal_schedule;
 
     private:
         template<typename T, typename... Rs>
