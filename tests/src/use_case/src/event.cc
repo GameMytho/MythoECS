@@ -57,6 +57,8 @@ TEST(SystemTest, EventTest) {
        .add_update_system(system(update3).after(update2))
        .add_update_system(system(update_frame).after(update3));
 
+    reg.ready();
+
     reg.startup();
 
     reg.update();

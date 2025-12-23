@@ -141,6 +141,13 @@ namespace mytho::ecs::internal {
         }
 
     public:
+        void ready() {
+            auto size = _stages.size();
+            for (auto i = 0; i < size; ++i) {
+                _stages[i]._stage.ready();
+            }
+        }
+
         void run(registry_type& reg, uint64_t& tick) {
             auto size = _stages.size();
             for (auto i = 0; i < size; ++i) {

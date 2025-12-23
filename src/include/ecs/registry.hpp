@@ -529,6 +529,12 @@ namespace mytho::ecs {
         }
 
     public: // core operations
+        void ready() {
+            _startup_schedule.ready();
+            _update_schedule.ready();
+            _internal_schedule.ready();
+        }
+
         void startup() {
             _startup_schedule.run(*this, _current_tick);
 

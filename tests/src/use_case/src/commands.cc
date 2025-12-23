@@ -61,6 +61,8 @@ TEST(CommandsTest, CommandsQueueTest) {
     reg.add_update_system(system(update).before(update_added));
     reg.add_update_system(update_added);
 
+    reg.ready();
+
     reg.startup();
 
     reg.update();

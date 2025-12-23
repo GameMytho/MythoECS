@@ -179,7 +179,8 @@ TEST(SystemTest, AddAndRunTest) {
     registry reg;
 
     reg.add_startup_system(startup)
-       .add_update_system(update1);
+       .add_update_system(update1)
+       .ready();
 
     reg.startup();
 
@@ -198,7 +199,8 @@ TEST(SystemTest, SystemConfigTest) {
        .add_update_system(system(update2_changed).after(update2))
        .add_update_system(system(update3).after(update2_changed).before(update3_changed))
        .add_update_system(system(update3_changed).after(update3))
-       .add_update_system(system(update4).after(update3_changed));
+       .add_update_system(system(update4).after(update3_changed))
+       .ready();
 
     reg.startup();
 
@@ -212,7 +214,8 @@ TEST(SystemTest, SystemRunifTest) {
        .add_update_system(system(update1).before(update2).runif(components_added<Position, Vectory>))
        .add_update_system(system(update2).before(update3).runif(components_added<Position, Vectory, Direction>))
        .add_update_system(system(update3).before(update4).runif(components_changed<Position>))
-       .add_update_system(system(update4).runif(components_changed<Vectory>));
+       .add_update_system(system(update4).runif(components_changed<Vectory>))
+       .ready();
 
     reg.startup();
 

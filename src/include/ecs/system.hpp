@@ -225,6 +225,39 @@ namespace mytho::ecs::internal {
 
 namespace mytho::ecs::internal {
     template<typename RegistryT>
+    class basic_meta_system final {
+    public:
+        using registry_type = RegistryT;
+        using self_type = basic_meta_system<registry_type>;
+        using tick_type = uint64_t;
+        using function_type = basic_function<registry_type, void>;
+        using runif_type = basic_function<registry_type, bool>;
+
+    public:
+        basic_meta_system() noexcept = default;
+
+        template<mytho::utils::FunctionType Func>
+        basic_meta_system(Func&& func) noexcept
+            : _function(std::forward<Func>(func)), _runif(), _last_run_tick(0) {}
+
+        basic_meta_system(function_type&& func, runif_type&& runif, tick_type tick = 0) noexcept
+            : _function(func), _runif(runif), _last_run_tick(tick) {}
+
+    public:
+        void operator()(registry_type& reg, uint64_t tick) {
+            if (!_runif.address() || _runif(reg, _last_run_tick)) {
+                _function(reg, _last_run_tick);
+                _last_run_tick = tick;
+            }
+        }
+
+    private:
+        tick_type _last_run_tick;
+        function_type _function;
+        runif_type _runif;
+    };
+
+    template<typename RegistryT>
     class basic_system final {
     public:
         using registry_type = RegistryT;
@@ -268,11 +301,11 @@ namespace mytho::ecs::internal {
         }
 
     public:
-        auto& function() noexcept {
+        auto function() noexcept {
             return _function;
         }
 
-        auto& runif() noexcept {
+        auto runif() noexcept {
             return _runif;
         }
 
@@ -296,38 +329,34 @@ namespace mytho::ecs::internal {
     public:
         using registry_type = RegistryT;
         using self_type = basic_system_stage<registry_type>;
+        using meta_system_type = basic_meta_system<registry_type>;
         using system_type = basic_system<registry_type>;
 
-        using tick_type = uint64_t;
-        using function_type = typename system_type::function_type;
-        using runif_type = typename system_type::runif_type;
+        using meta_systems_type = std::vector<meta_system_type>;
         using befores_type = typename system_type::befores_type;
         using afters_type = typename system_type::afters_type;
 
-        using ticks_type = std::vector<tick_type>;
-        using functions_type = std::vector<function_type>;
-        using runifs_type = std::vector<runif_type>;
+        using meta_systems_pool_type = std::vector<meta_systems_type>;
         using befores_pool_type = std::vector<befores_type>;
         using afters_pool_type = std::vector<afters_type>;
 
-        using size_type = typename functions_type::size_type;
+        using size_type = typename meta_systems_type::size_type;
         using id_map_type = std::unordered_map<std::uintptr_t, size_type>;
 
         basic_system_stage() noexcept = default;
         basic_system_stage(basic_system_stage& ss) noexcept = delete;
 
         basic_system_stage(basic_system_stage&& ss) noexcept
-            : _last_run_ticks(std::move(ss).last_run_ticks()), _functions(std::move(ss).functions()),
-            _runifs(std::move(ss).runifs()), _befores_pool(std::move(ss).befores_pool()),
-            _afters_pool(std::move(ss).afters_pool()), _id_map(std::move(ss).id_map()) {}
+            : _meta_systems(std::move(ss).meta_systems()), _befores_pool(std::move(ss).befores_pool()),
+            _afters_pool(std::move(ss).afters_pool()), _id_map(std::move(ss).id_map()),
+            _meta_systems_pool(std::move(ss).meta_systems_pool()) {}
 
         basic_system_stage& operator=(basic_system_stage&& ss) noexcept {
-            _last_run_ticks = std::move(ss).last_run_ticks();
-            _functions = std::move(ss).functions();
-            _runifs = std::move(ss).runifs();
+            _meta_systems = std::move(ss).meta_systems();
             _befores_pool = std::move(ss).befores_pool();
             _afters_pool = std::move(ss).afters_pool();
             _id_map = std::move(ss).id_map();
+            _meta_systems_pool = std::move(ss).meta_systems_pool();
 
             return *this;
         }
@@ -343,13 +372,11 @@ namespace mytho::ecs::internal {
                 return;
             }
 
-            _last_run_ticks.push_back(0);
-            _functions.emplace_back(std::forward<Func>(func));
-            _runifs.emplace_back();
+            _meta_systems.emplace_back(std::forward<Func>(func));
             _befores_pool.emplace_back();
             _afters_pool.emplace_back();
 
-            _id_map[addr] = _functions.size() - 1;
+            _id_map[addr] = _meta_systems.size() - 1;
         }
 
         void add(system_type& system) {
@@ -357,50 +384,69 @@ namespace mytho::ecs::internal {
                 return;
             }
 
-            _last_run_ticks.push_back(0);
-            _functions.push_back(system.function());
-            _runifs.push_back(system.runif());
+            _meta_systems.emplace_back(std::move(system).function(), std::move(system).runif());
             _befores_pool.push_back(std::move(system).befores());
             _afters_pool.push_back(std::move(system).afters());
 
-            _id_map[system.function().address()] = _functions.size() - 1;
+            _id_map[system.function().address()] = _meta_systems.size() - 1;
         }
 
     public:
-        void run(registry_type& reg, uint64_t& tick) {
-            mytho::container::basic_sparse_set<size_type, 64> ids;
+        void ready() {
+            _meta_systems_pool.clear();
 
-            auto size = _runifs.size();
-            for (auto i = 0; i < size; i++) {
-                auto& runif = _runifs[i];
-                if (!runif.address() || runif(reg, _last_run_ticks[i])) {
+            auto size = _meta_systems.size();
+            if (size < 1) return;
+
+            if (size == 1) {
+                _meta_systems_pool.push_back(std::move(_meta_systems));
+            } else {
+                mytho::container::basic_sparse_set<size_type, 64> ids;
+                for (auto i = 0; i < size; i++) {
                     ids.add(i);
                 }
+
+                auto graph = build(ids);
+                size = graph.size();
+                _meta_systems_pool.resize(size);
+
+                for (auto i = 0; i < size; ++i) {
+                    auto& vec = graph[i];
+                    auto in_size = vec.size();
+
+                    auto& systems = _meta_systems_pool[i];
+                    systems.reserve(in_size);
+
+                    for (auto j = 0; j < in_size; ++j) {
+                        auto id = vec[j];
+
+                        systems.push_back(_meta_systems[id]);
+                    }
+                }
             }
 
-            auto graph = build(ids);
-            size = graph.size();
+            _meta_systems.clear();
+            _befores_pool.clear();
+            _afters_pool.clear();
+            _id_map.clear();
+        }
 
+        void run(registry_type& reg, uint64_t tick) {
+            auto size = _meta_systems_pool.size();
             for (auto i = 0; i < size; ++i) {
-                auto& vec = graph[i];
-                auto in_size = vec.size();
+                auto& systems = _meta_systems_pool[i];
+                auto in_size = systems.size();
 
                 for (auto j = 0; j < in_size; ++j) {
-                    auto id = vec[j];
+                    auto& system = systems[j];
 
-                    auto& last_tick = _last_run_ticks[id];
-                    _functions[id](reg, last_tick);
-                    last_tick = tick;
+                    system(reg, tick);
                 }
             }
         }
 
     public:
-        auto last_run_ticks() && noexcept { return std::move(_last_run_ticks); }
-
-        auto functions() && noexcept { return std::move(_functions); }
-
-        auto runifs() && noexcept { return std::move(_runifs); }
+        auto meta_systems() && noexcept { return std::move(_meta_systems); }
 
         auto befores_pool() && noexcept { return std::move(_befores_pool); }
 
@@ -408,25 +454,25 @@ namespace mytho::ecs::internal {
 
         auto id_map() && noexcept { return std::move(_id_map); }
 
-        auto size() const noexcept { return _functions.size(); }
+        auto meta_systems_pool() && noexcept { return std::move(_meta_systems_pool); }
+
+        auto size() const noexcept { return _meta_systems.size(); }
 
         void clear() noexcept {
-            _last_run_ticks.clear();
-            _functions.clear();
-            _runifs.clear();
+            _meta_systems.clear();
             _befores_pool.clear();
             _afters_pool.clear();
             _id_map.clear();
+            _meta_systems_pool.clear();
         }
 
     private:
-        ticks_type _last_run_ticks;
-        functions_type _functions;
-        runifs_type _runifs;
+        meta_systems_type _meta_systems;
         befores_pool_type _befores_pool;
         afters_pool_type _afters_pool;
-
         id_map_type _id_map;
+
+        meta_systems_pool_type _meta_systems_pool;
 
     private:
         auto build(auto& ids) {
