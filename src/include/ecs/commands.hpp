@@ -9,6 +9,7 @@
 
 #include "utils/concept.hpp"
 #include "ecs/querier.hpp"
+#include "ecs/resources.hpp"
 
 namespace mytho::ecs {
     namespace internal {
@@ -215,9 +216,10 @@ namespace mytho::ecs {
         using entity_type = typename registry_type::entity_type;
 
     public:
-        basic_commands(registry_type& reg) : _reg(reg) {}
+        basic_commands(registry_type& reg, uint64_t tick) : _reg(reg), _tick(tick) {}
 
     public:
+        // entity
         template<mytho::utils::PureComponentType... Ts>
         void spawn(Ts&&... ts) {
             _reg.command_queue().spawn(std::forward<Ts>(ts)...);
@@ -228,6 +230,7 @@ namespace mytho::ecs {
         }
 
     public:
+        // component
         template<mytho::utils::PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void insert(const entity_type& e, Ts&&... ts) {
@@ -246,7 +249,26 @@ namespace mytho::ecs {
             _reg.command_queue().replace(e, std::forward<Ts>(ts)...);
         }
 
+        template<mytho::utils::PureComponentType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool components_added() noexcept {
+            return _reg.template components_added<Ts...>(_tick);
+        }
+
+        template<mytho::utils::PureComponentType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool components_changed() noexcept {
+            return _reg.template components_changed<Ts...>(_tick);
+        }
+
+        template<mytho::utils::PureComponentType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool components_removed() noexcept {
+            return _reg.template components_removed<Ts...>();
+        }
+
     public:
+        // resource
         template<typename T, typename... Rs>
         void init_resource(Rs&&... rs) {
             _reg.command_queue().template init_resource<T>(std::forward<Rs>(rs)...);
@@ -257,8 +279,32 @@ namespace mytho::ecs {
             _reg.command_queue().template remove_resource<T>();
         }
 
+        template<mytho::utils::PureResourceType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool resources_added() const noexcept {
+            return _reg.template resources_added<Ts...>(_tick);
+        }
+
+        template<mytho::utils::PureResourceType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool resources_changed() const noexcept {
+            return _reg.template resources_changed<Ts...>(_tick);
+        }
+
+        template<mytho::utils::PureResourceType... Ts>
+        requires (sizeof...(Ts) > 0)
+        bool resources_exist() const noexcept {
+            return _reg.template resources_exist<Ts...>();
+        }
+
+    public:
+        registry_type& registry() noexcept {
+            return _reg;
+        }
+
     private:
         registry_type& _reg;
+        uint64_t _tick;
     };
 }
 

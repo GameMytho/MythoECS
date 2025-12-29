@@ -29,7 +29,6 @@ namespace {
     using entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
     using registry = mytho::ecs::basic_registry<entity, uint16_t, uint16_t, uint8_t, 256>;
     using commands = mytho::ecs::basic_commands<registry>;
-    using registrar = mytho::ecs::basic_registrar<registry>;
 
     template<typename... Ts>
     using querier = mytho::ecs::basic_querier<registry, Ts...>;
@@ -52,32 +51,32 @@ namespace {
     }
 
     template<mytho::utils::PureComponentType T, mytho::utils::PureComponentType... Rs>
-    bool components_added(registrar reg) {
-        return reg.template components_added<T, Rs...>();
+    bool components_added(commands cmd) {
+        return cmd.template components_added<T, Rs...>();
     }
 
     template<mytho::utils::PureComponentType T, mytho::utils::PureComponentType... Rs>
-    bool components_changed(registrar reg) {
-        return reg.template components_changed<T, Rs...>();
+    bool components_changed(commands cmd) {
+        return cmd.template components_changed<T, Rs...>();
     }
 
     template<mytho::utils::PureComponentType T, mytho::utils::PureComponentType... Rs>
-    bool components_removed(registrar reg) {
-        return reg.template components_removed<T, Rs...>();
+    bool components_removed(commands cmd) {
+        return cmd.template components_removed<T, Rs...>();
     }
 
-    template<mytho::utils::PureResourceType... Ts>
-    bool resources_exist(registrar reg) {
-        return reg.template resources_exist<Ts...>();
+    template<mytho::utils::PureResourceType T, mytho::utils::PureResourceType... Rs>
+    bool resources_exist(commands cmd) {
+        return cmd.template resources_exist<T, Rs...>();
     }
 
-    template<mytho::utils::PureResourceType... Ts>
-    bool resources_added(registrar reg) {
-        return reg.template resources_added<Ts...>();
+    template<mytho::utils::PureResourceType T, mytho::utils::PureResourceType... Rs>
+    bool resources_added(commands cmd) {
+        return cmd.template resources_added<T, Rs...>();
     }
 
-    template<mytho::utils::PureResourceType... Ts>
-    bool resources_changed(registrar reg) {
-        return reg.template resources_changed<Ts...>();
+    template<mytho::utils::PureResourceType T, mytho::utils::PureResourceType... Rs>
+    bool resources_changed(commands cmd) {
+        return cmd.template resources_changed<T, Rs...>();
     }
 }

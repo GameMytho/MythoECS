@@ -14,10 +14,7 @@
 #include "utils/assert.hpp"
 #include "utils/type_list.hpp"
 #include "container/sparse_set.hpp"
-#include "ecs/registrar.hpp"
 #include "ecs/commands.hpp"
-#include "ecs/querier.hpp"
-#include "ecs/resources.hpp"
 #include "ecs/event.hpp"
 
 namespace mytho::utils {
@@ -69,16 +66,9 @@ namespace mytho::ecs::internal {
     struct constructor;
 
     template<typename RegistryT>
-    struct constructor<RegistryT, basic_registrar<RegistryT>> {
-        auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
-            return basic_registrar(reg, tick);
-        }
-    };
-
-    template<typename RegistryT>
     struct constructor<RegistryT, basic_commands<RegistryT>> {
         auto operator()(RegistryT& reg, uint64_t tick) const noexcept {
-            return basic_commands(reg);
+            return basic_commands(reg, tick);
         }
     };
 
