@@ -59,7 +59,7 @@ namespace mytho::ecs {
         using stage_id_generator = mytho::utils::basic_id_generator<internal::stage_genor, component_id_type>;
 
         using entity_storage_type = mytho::container::basic_entity_storage<entity_type, component_id_generator, PageSize>;
-        using component_storage_type = mytho::container::basic_component_storage<entity_type, component_id_generator, PageSize>;
+        using component_storage_type = mytho::container::basic_component_storage<entity_type, component_id_generator, std::allocator, PageSize>;
         using resource_storage_type = mytho::container::basic_resource_storage<resource_id_generator, std::allocator>;
         using command_queue_type = mytho::ecs::internal::basic_command_queue<self_type>;
         using schedule_type = mytho::ecs::internal::basic_schedule<self_type>;

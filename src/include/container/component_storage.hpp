@@ -12,18 +12,25 @@ namespace mytho::container {
     template<
         mytho::utils::EntityType EntityT,
         typename ComponentIdGenerator,
+        template<typename> typename AllocatorTemplateT,
         size_t PageSize = 256
     >
     class basic_component_storage final {
     public:
         using entity_type = EntityT;
         using component_id_generator = ComponentIdGenerator;
+
+        template<typename ComponentT>
+        using allocator_template_type = AllocatorTemplateT<ComponentT>;
+
         using component_id_type = typename component_id_generator::value_type;
         using component_set_base_type = basic_entity_set<entity_type, PageSize>;
+
         using component_pool_type = std::vector<std::unique_ptr<component_set_base_type>>;
-        using size_type = typename component_pool_type::size_type;
         using entity_remove_functions_type = std::vector<void(*)(void*, const entity_type&)>;
         using removed_entities_type = std::vector<std::vector<entity_type>>;
+
+        using size_type = typename component_pool_type::size_type;
 
         basic_component_storage() noexcept = default;
         basic_component_storage(const basic_component_storage& cs) = delete;
@@ -57,7 +64,7 @@ namespace mytho::container {
         requires (sizeof...(Ts) > 0)
         std::tuple<const Ts&...> get(const entity_type& e) const noexcept {
             return std::tuple<const Ts&...>(
-                static_cast<basic_component_set<entity_type, Ts, std::allocator<Ts>, PageSize>&>(
+                static_cast<basic_component_set<entity_type, Ts, allocator_template_type<Ts>, PageSize>&>(
                     *_pool[component_id_generator::template gen<Ts>()]
                 ).get(e)...
             );
@@ -134,7 +141,7 @@ namespace mytho::container {
     private:
         template<typename T>
         void _remove_components(const entity_type& e) {
-            using component_set_type = basic_component_set<entity_type, T, std::allocator<T>, PageSize>;
+            using component_set_type = basic_component_set<entity_type, T, allocator_template_type<T>, PageSize>;
 
             auto id = component_id_generator::template gen<T>();
             static_cast<component_set_type&>(*_pool[id]).remove(e);
@@ -164,7 +171,7 @@ namespace mytho::container {
 
         template<typename T>
         void _replace(const entity_type& e, uint64_t tick, T&& t) {
-            using component_set_type = basic_component_set<entity_type, T, std::allocator<T>, PageSize>;
+            using component_set_type = basic_component_set<entity_type, T, allocator_template_type<T>, PageSize>;
 
             auto id = component_id_generator::template gen<T>();
             static_cast<component_set_type&>(*_pool[id]).replace(e, tick, t);
@@ -172,7 +179,7 @@ namespace mytho::container {
 
         template<typename T>
         bool _is_added(const entity_type& e, uint64_t tick) const noexcept {
-            using component_set_type = basic_component_set<entity_type, T, std::allocator<T>, PageSize>;
+            using component_set_type = basic_component_set<entity_type, T, allocator_template_type<T>, PageSize>;
 
             auto id = component_id_generator::template gen<T>();
 
@@ -187,7 +194,7 @@ namespace mytho::container {
 
         template<typename T>
         bool _is_changed(const entity_type& e, uint64_t tick) const noexcept {
-            using component_set_type = basic_component_set<entity_type, T, std::allocator<T>, PageSize>;
+            using component_set_type = basic_component_set<entity_type, T, allocator_template_type<T>, PageSize>;
 
             auto id = component_id_generator::template gen<T>();
 
@@ -216,7 +223,7 @@ namespace mytho::container {
     private:
         template<typename T>
         auto& assure() {
-            using component_set_type = basic_component_set<entity_type, T, std::allocator<T>, PageSize>;
+            using component_set_type = basic_component_set<entity_type, T, allocator_template_type<T>, PageSize>;
             auto id = component_id_generator::template gen<T>();
 
             if (id >= _pool.size()) {

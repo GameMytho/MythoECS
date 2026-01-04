@@ -17,14 +17,17 @@ namespace mytho::container {
     class basic_component_set : public basic_entity_set<EntityT, PageSize> {
     public:
         using entity_type = EntityT;
-        using base_type = basic_entity_set<entity_type, PageSize>;
-        using size_type = typename base_type::size_type;
         using component_type = ComponentT;
         using allocator_type = AllocatorT;
+
+        using base_type = basic_entity_set<entity_type, PageSize>;
         using alloc_traits = std::allocator_traits<allocator_type>;
         using component_data_ptr_type = typename alloc_traits::pointer;
+
         using component_data_ptr_set_type = std::vector<component_data_ptr_type, typename alloc_traits::template rebind_alloc<component_data_ptr_type>>;
         using component_tick_set_type = basic_tick_set;
+
+        using size_type = typename base_type::size_type;
 
         basic_component_set() noexcept = default;
         basic_component_set(const basic_component_set& cs) = delete;
