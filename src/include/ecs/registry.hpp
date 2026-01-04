@@ -239,11 +239,11 @@ namespace mytho::ecs {
             auto id = get_cid_with_minimun_entities(component_contain_list{});
 
             if (id) {
-                auto& entts = *_components[id.value()];
+                const auto& entts = *_components[id.value()];
                 auto size = entts.size();
                 for (auto i = 0; i < size; ++i) {
                     component_bundles.reserve(size);
-                    const auto& e = entts[i];
+                    const auto e = entts[i];
                     if(component_list_contained(e, component_contain_list{})
                         && component_list_not_contained(e, component_not_contain_list{})
                         && component_list_added(e, tick, component_added_list{})
@@ -275,10 +275,10 @@ namespace mytho::ecs {
             auto id = get_cid_with_minimun_entities(component_contain_list{});
 
             if (id) {
-                auto& entts = *_components[id.value()];
+                const auto& entts = *_components[id.value()];
                 auto size = entts.size();
                 for (auto i = 0; i < size; ++i) {
-                    const auto& e = entts[i];
+                    const auto e = entts[i];
                     if(component_list_contained(e, component_contain_list{})
                         && component_list_not_contained(e, component_not_contain_list{})
                         && component_list_added(e, tick, component_added_list{})

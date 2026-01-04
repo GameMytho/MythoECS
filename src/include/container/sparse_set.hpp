@@ -92,10 +92,6 @@ namespace mytho::container {
             _sparsity.clear();
         }
 
-        data_type data(size_type idx) const noexcept {
-            return _density[idx];
-        }
-
     public:
         iterator begin() noexcept { return _density.begin(); }
         const_iterator begin() const noexcept { return _density.begin(); }
