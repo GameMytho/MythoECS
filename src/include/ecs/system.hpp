@@ -421,7 +421,7 @@ namespace mytho::ecs::internal {
             _id_map.clear();
         }
 
-        void run(registry_type& reg, uint64_t tick) {
+        void run(registry_type& reg, uint64_t& tick) {
             auto size = _meta_systems_pool.size();
             for (auto i = 0; i < size; ++i) {
                 auto& systems = _meta_systems_pool[i];
@@ -430,7 +430,7 @@ namespace mytho::ecs::internal {
                 for (auto j = 0; j < in_size; ++j) {
                     auto& system = systems[j];
 
-                    system(reg, tick);
+                    system(reg, tick++);
                 }
             }
         }
