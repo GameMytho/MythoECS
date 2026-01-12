@@ -546,9 +546,8 @@ namespace mytho::ecs {
             _update_schedule.run(*this, _current_tick);
 
             ++_current_tick;
-            _command_queue.apply(*this);
-
             _components.removed_entities_clear();
+            _command_queue.apply(*this);
 
             _internal_schedule.run(*this, _current_tick);
         }
