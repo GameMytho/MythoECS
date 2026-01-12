@@ -44,7 +44,7 @@ namespace mytho::container {
                     (insert_components<Ts>(_map[_length - 1]), ...);
                 }
 
-                return base_type::entity(_length - 1);
+                return base_type::operator[](_length - 1);
             } else {
                 _map.push_back(std::make_unique<component_id_set_type>());
                 if constexpr (sizeof...(Ts) > 0) {
@@ -67,7 +67,7 @@ namespace mytho::container {
             base_type::version_next(e);
 
             if (idx != (_length - 1)) {
-                base_type::swap(e, base_type::entity(_length - 1));
+                base_type::swap(e, base_type::operator[](_length - 1));
                 _map[idx]->clear();
                 std::swap(_map[idx], _map[_length - 1]);
             }
@@ -126,6 +126,8 @@ namespace mytho::container {
         size_type size() const noexcept { return _length; }
 
         bool empty() const noexcept { return _length == 0; }
+
+        const entity_type operator[](size_type idx) const { return base_type::operator[](idx); }
 
     private:
         template<typename T>

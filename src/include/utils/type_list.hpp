@@ -15,7 +15,9 @@ namespace mytho::utils::internal {
 
 namespace mytho::utils {
     template<typename... Ts>
-    struct type_list {};
+    struct type_list {
+        inline static constexpr size_t size = sizeof...(Ts);
+    };
 
     template<typename L>
     inline constexpr bool is_type_list_v = internal::is_template_v<L, type_list>;

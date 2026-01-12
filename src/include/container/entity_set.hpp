@@ -72,10 +72,6 @@ namespace mytho::container {
             return idx < _versions.size() && _versions[idx] == e.version();
         }
 
-        const entity_type entity(size_type idx) const noexcept {
-            return entity_type(base_type::operator[](idx), _versions[idx]);
-        }
-
         void clear() noexcept {
             base_type::clear();
             _versions.clear();

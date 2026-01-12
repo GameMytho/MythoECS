@@ -144,7 +144,7 @@ namespace ceo {
     }
 
     void entity_despawn(Commands cmds) {
-        auto results = cmds.registry().query<Entity, With<Name>>();
+        auto results = cmds.registry().query<Entity>();
         auto size = results.size();
 
         if (size < 1) return;

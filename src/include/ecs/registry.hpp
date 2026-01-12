@@ -66,6 +66,7 @@ namespace mytho::ecs {
 
         using size_type = typename entity_storage_type::size_type;
         using system_type = typename schedule_type::system_type;
+        using entity_set_type = typename entity_storage_type::base_type;
 
         template<typename... Ts>
         using querier_type = mytho::ecs::basic_querier<self_type, Ts...>;
@@ -233,24 +234,39 @@ namespace mytho::ecs {
             using component_not_contain_list = typename querier::component_not_contain_list;
             using component_added_list = typename querier::component_added_list;
             using component_changed_list = typename querier::component_changed_list;
+            using entts_type = std::conditional_t<component_contain_list::size == 0, entity_storage_type, entity_set_type>;
 
             component_bundle_container_type component_bundles;
 
-            auto id = get_cid_with_minimun_entities(component_contain_list{});
+            entts_type* entts_ptr = nullptr;
+            if constexpr (component_contain_list::size == 0) {
+                entts_ptr = &_entities;
+            } else {
+                auto id = get_cid_with_minimun_entities(component_contain_list{});
+                if (!id) {
+                    return { std::move(component_bundles) };
+                }
 
-            if (id) {
-                const auto& entts = *_components[id.value()];
-                auto size = entts.size();
-                for (auto i = 0; i < size; ++i) {
-                    component_bundles.reserve(size);
-                    const auto e = entts[i];
-                    if(component_list_contained(e, component_contain_list{})
-                        && component_list_not_contained(e, component_not_contain_list{})
-                        && component_list_added(e, tick, component_added_list{})
-                        && component_list_changed(e, tick, component_changed_list{})
-                    ) {
-                        component_bundles.emplace_back(_query(e, component_prototype_list{}));
+                entts_ptr = _components[id.value()];
+            }
+
+            const auto& entts = *entts_ptr;
+            auto size = entts.size();
+            component_bundles.reserve(size);
+            for (auto i = 0; i < size; ++i) {
+                const auto e = entts[i];
+
+                if constexpr (component_contain_list::size != 0) {
+                    if(!component_list_contained(e, component_contain_list{})) {
+                        continue;
                     }
+                }
+
+                if(component_list_not_contained(e, component_not_contain_list{})
+                    && component_list_added(e, tick, component_added_list{})
+                    && component_list_changed(e, tick, component_changed_list{})
+                ) {
+                    component_bundles.emplace_back(_query(e, component_prototype_list{}));
                 }
             }
 
@@ -266,32 +282,43 @@ namespace mytho::ecs {
         template<mytho::utils::QueryValueType... Ts>
         requires (sizeof...(Ts) > 0)
         size_type count(uint64_t tick) noexcept {
-            using query_types = internal::query_types<Ts...>;
-            using component_contain_list = internal::type_list_cat_t<
-                                                internal::type_list_filter_t<typename query_types::require_prototype_list, entity_type>,
-                                                typename query_types::with_prototype_list,
-                                                typename query_types::added_prototype_list,
-                                                typename query_types::changed_prototype_list
-                                            >;
-            using component_not_contain_list = typename query_types::without_prototype_list;
-            using component_added_list = typename query_types::added_prototype_list;
-            using component_changed_list = typename query_types::changed_prototype_list;
+            using querier = querier_type<Ts...>;
+            using component_contain_list = typename querier::component_contain_list;
+            using component_not_contain_list = typename querier::component_not_contain_list;
+            using component_added_list = typename querier::component_added_list;
+            using component_changed_list = typename querier::component_changed_list;
+            using entts_type = std::conditional_t<component_contain_list::size == 0, entity_storage_type, entity_set_type>;
 
             size_type count = 0;
-            auto id = get_cid_with_minimun_entities(component_contain_list{});
 
-            if (id) {
-                const auto& entts = *_components[id.value()];
-                auto size = entts.size();
-                for (auto i = 0; i < size; ++i) {
-                    const auto e = entts[i];
-                    if(component_list_contained(e, component_contain_list{})
-                        && component_list_not_contained(e, component_not_contain_list{})
-                        && component_list_added(e, tick, component_added_list{})
-                        && component_list_changed(e, tick, component_changed_list{})
-                    ) {
-                        ++count;
+            entts_type* entts_ptr = nullptr;
+            if constexpr (component_contain_list::size == 0) {
+                entts_ptr = &_entities;
+            } else {
+                auto id = get_cid_with_minimun_entities(component_contain_list{});
+                if (!id) {
+                    return count;
+                }
+
+                entts_ptr = _components[id.value()];
+            }
+
+            const auto& entts = *entts_ptr;
+            auto size = entts.size();
+            for (auto i = 0; i < size; ++i) {
+                const auto e = entts[i];
+
+                if constexpr (component_contain_list::size != 0) {
+                    if(!component_list_contained(e, component_contain_list{})) {
+                        continue;
                     }
+                }
+
+                if(component_list_not_contained(e, component_not_contain_list{})
+                    && component_list_added(e, tick, component_added_list{})
+                    && component_list_changed(e, tick, component_changed_list{})
+                ) {
+                    ++count;
                 }
             }
 
