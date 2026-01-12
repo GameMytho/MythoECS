@@ -259,6 +259,12 @@ namespace mytho::ecs {
 
         template<mytho::utils::QueryValueType... Ts>
         requires (sizeof...(Ts) > 0)
+        size_type count() noexcept {
+            return count<Ts...>(_current_tick);
+        }
+
+        template<mytho::utils::QueryValueType... Ts>
+        requires (sizeof...(Ts) > 0)
         size_type count(uint64_t tick) noexcept {
             using query_types = internal::query_types<Ts...>;
             using component_contain_list = internal::type_list_cat_t<

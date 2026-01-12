@@ -1,69 +1,253 @@
 #include <gtest/gtest.h>
-#include "ecs/ecs.hpp"
+#include <ecs/ecs.hpp>
+#include <random>
+#include <iostream>
 
-struct Position {
-    float x;
-    float y;
-};
+using namespace mecs;
 
-struct Vectory {
-    float x;
-    float y;
-};
+/*-------------------------------------------------------------------- Test For Component Opertions API ------------------------------------------------------------------------------------*/
 
-struct Direction {
-    float x;
-    float y;
-};
+namespace cco {
+    struct Position {
+        float x;
+        float y;
+        float z;
+    };
 
-void startup(commands cmds, querier<entity, Position, Vectory, Direction> q) {
-    cmds.spawn(Position{1.0f, 2.0f}, Vectory{3.0f, 4.0f}, Direction{5.0f, 6.0f});
+    struct Velocity {
+        float x;
+        float y;
+        float z;
+    };
 
-    EXPECT_EQ(q.size(), 0);
-}
+    struct Direction {
+        float x;
+        float y;
+        float z;
+    };
 
-void update(commands cmds, querier<entity, Position, Vectory, Direction> q) {
-    cmds.spawn(Position{10.0f, 20.0f}, Vectory{30.0f, 40.0f}, Direction{50.0f, 60.0f});
+    struct Name {
+        std::string value;
+    };
 
-    EXPECT_EQ(q.size(), 1);
+    void entity_spawn(Commands cmds) {
+        cmds.spawn(
+            Position{0.25f, 0.28f, 0.35f}
+        );
+    }
 
-    for (auto [e, pos, vec, dir] : q) {
-        EXPECT_EQ(e->id(), 0);
-        EXPECT_EQ(e->version(), 0);
-        EXPECT_EQ(pos->x, 1.0f);
-        EXPECT_EQ(pos->y, 2.0f);
-        EXPECT_EQ(vec->x, 3.0f);
-        EXPECT_EQ(vec->y, 4.0f);
-        EXPECT_EQ(dir->x, 5.0f);
-        EXPECT_EQ(dir->y, 6.0f);
+    void position_change(Commands cmds) {
+        auto q = cmds.registry().query<Entity, Position, Without<Velocity, Direction>>();
+        for (auto& [e, pos] : q) {
+            EXPECT_TRUE(cmds.components_added<Position>());
+            EXPECT_TRUE(cmds.components_changed<Position>());
 
-        cmds.replace(*e, Position{100.0f, 200.0f});
+            EXPECT_EQ(pos->x, 0.25f);
+            EXPECT_EQ(pos->y, 0.28f);
+            EXPECT_EQ(pos->z, 0.35f);
+
+            cmds.replace(*e, Position{2.5f, 2.8f, 3.0f});
+            cmds.insert(*e, Velocity{0.2f, 0.3f, 0.4f});
+            cmds.insert(*e, Name{std::string("entity") + std::to_string(e->id())});
+        }
+    }
+
+    void velocity_change(Commands cmds) {
+        auto q = cmds.registry().query<Entity, Position, Velocity, Name, Without<Direction>>();
+        for (auto& [e, pos, vel, name] : q) {
+            EXPECT_TRUE(cmds.components_added<Position>());
+            EXPECT_TRUE(cmds.components_changed<Position>());
+            EXPECT_TRUE(cmds.components_added<Velocity>());
+            EXPECT_TRUE(cmds.components_changed<Velocity>());
+            EXPECT_TRUE(cmds.components_added<Name>());
+            EXPECT_TRUE(cmds.components_changed<Name>());
+
+            EXPECT_EQ(pos->x, 2.5f);
+            EXPECT_EQ(pos->y, 2.8f);
+            EXPECT_EQ(pos->z, 3.0f);
+
+            EXPECT_EQ(vel->x, 0.2f);
+            EXPECT_EQ(vel->y, 0.3f);
+            EXPECT_EQ(vel->z, 0.4f);
+
+            EXPECT_EQ(name->value, std::string("entity") + std::to_string(e->id()));
+
+            cmds.replace(*e, Velocity{2.f, 3.f, 4.f});
+            cmds.insert(*e, Direction{0.f, 0.f, 1.f});
+            cmds.remove<Name>(*e);
+        }
+    }
+
+    void final_check(Commands cmds) {
+        auto q1 = cmds.registry().query<Entity, Position, Velocity, Direction>();
+        for (auto& [e, pos, vel, dir] : q1) {
+            EXPECT_TRUE(cmds.components_added<Position>());
+            EXPECT_TRUE(cmds.components_changed<Position>());
+            EXPECT_TRUE(cmds.components_added<Velocity>());
+            EXPECT_TRUE(cmds.components_changed<Velocity>());
+            EXPECT_TRUE(cmds.components_added<Direction>());
+            EXPECT_TRUE(cmds.components_changed<Direction>());
+            EXPECT_TRUE(cmds.components_removed<Name>());
+
+            EXPECT_EQ(pos->x, 2.5f);
+            EXPECT_EQ(pos->y, 2.8f);
+            EXPECT_EQ(pos->z, 3.0f);
+
+            EXPECT_EQ(vel->x, 2.f);
+            EXPECT_EQ(vel->y, 3.f);
+            EXPECT_EQ(vel->z, 4.f);
+
+            EXPECT_EQ(dir->x, 0.f);
+            EXPECT_EQ(dir->y, 0.f);
+            EXPECT_EQ(dir->z, 1.f);
+        }
+
+        auto q2 = cmds.registry().query<Entity, With<Direction, Name>>();
+        EXPECT_EQ(0, q2.size());
     }
 }
 
-void update_added(querier<Position, Vectory, Direction, added<Position>> q) {
-    EXPECT_EQ(q.size(), 1);
+TEST(CommandsTest, ComponentOperation) {
+    Registry reg;
 
-    for (auto [pos, vec, dir] : q) {
-        EXPECT_EQ(pos->x, 1.0f);
-        EXPECT_EQ(pos->y, 2.0f);
-        EXPECT_EQ(vec->x, 3.0f);
-        EXPECT_EQ(vec->y, 4.0f);
-        EXPECT_EQ(dir->x, 5.0f);
-        EXPECT_EQ(dir->y, 6.0f);
-    }
-}
-
-TEST(CommandsTest, CommandsQueueTest) {
-    registry reg;
-
-    reg.add_startup_system(startup);
-    reg.add_update_system(system(update).before(update_added));
-    reg.add_update_system(update_added);
-
-    reg.ready();
+    reg.add_update_system(cco::entity_spawn)
+       .add_update_system(system(cco::position_change).after(cco::entity_spawn))
+       .add_update_system(system(cco::velocity_change).after(cco::position_change))
+       .add_update_system(system(cco::final_check).after(cco::velocity_change))
+       .ready();
 
     reg.startup();
 
-    reg.update();
+    do {
+        reg.update();
+    } while(reg.count<Entity, With<cco::Position>>() < 100);
+}
+
+/*-------------------------------------------------------------------- Test For Entity Opertions API ------------------------------------------------------------------------------------*/
+
+namespace ceo {
+    struct Name {
+        std::string value;
+    };
+
+    void entity_spawn(Commands cmds) {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dis(2, 10);
+
+        auto count = dis(gen);
+        for (auto i = 0; i < count; ++i) {
+            cmds.spawn(
+                Name{"entity" + i}
+            );
+        }
+    }
+
+    void entity_despawn(Commands cmds) {
+        auto results = cmds.registry().query<Entity, With<Name>>();
+        auto size = results.size();
+
+        if (size < 1) return;
+
+        if (size < 100) {
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::uniform_int_distribution<> dis(0, size - 1);
+            auto index = dis(gen);
+            auto& [e] = *(results.begin() + index);
+            EXPECT_EQ(cmds.registry().alive(*e), true);
+            cmds.despawn(*e);
+        } else {
+            for (auto& [e] : results) {
+                EXPECT_EQ(cmds.registry().alive(*e), true);
+                cmds.despawn(*e);
+            }
+        }
+    }
+}
+
+TEST(CommandsTest, EntityOperation) {
+    Registry reg;
+
+    reg.add_update_system(ceo::entity_spawn)
+       .add_update_system(system(ceo::entity_despawn).after(ceo::entity_spawn))
+       .ready();
+
+    reg.startup();
+
+    do {
+        reg.update();
+    } while(reg.count<Entity, With<ceo::Name>>() > 5);
+}
+
+/*-------------------------------------------------------------------- Test For Resource Opertions API ------------------------------------------------------------------------------------*/
+
+namespace cro {
+    struct Time {
+        float last;
+    };
+
+    struct Frame {
+        unsigned int value;
+    };
+
+    void time_init(Commands cmds) {
+        if (cmds.resources_exist<Time>()) return;
+
+        cmds.init_resource<Time>(0.f);
+    }
+
+    void frame_init(Commands cmds) {
+        if (cmds.resources_exist<Frame>()) return;
+
+        cmds.init_resource<Frame>(0u);
+    }
+
+    void time_update(Commands cmds) {
+        if (!cmds.resources_exist<Time>()) return;
+
+        EXPECT_TRUE(cmds.resources_added<Time>());
+        EXPECT_TRUE(cmds.resources_changed<Time>());
+
+        auto [time] = cmds.registry().resources_mut<Time>();
+
+        time->last += 0.1f;
+    }
+
+    void frame_update(Commands cmds) {
+        if (!cmds.resources_exist<Frame>()) return;
+
+        auto [frame] = cmds.registry().resources_mut<Frame>();
+
+        if (frame->value == 0) {
+            EXPECT_TRUE(cmds.resources_added<Frame>());
+        }
+
+        EXPECT_TRUE(cmds.resources_changed<Frame>());
+
+        ++frame->value;
+    }
+
+    void time_deinit(Commands cmds) {
+        if (!cmds.resources_exist<Time>()) return;
+
+        cmds.remove_resource<Time>();
+    }
+}
+
+TEST(CommandsTest, ResourceOperation) {
+    Registry reg;
+
+    reg.add_update_system(cro::time_init)
+       .add_update_system(cro::frame_init)
+       .add_update_system(system(cro::time_update).after(cro::time_init))
+       .add_update_system(system(cro::frame_update).after(cro::frame_init))
+       .add_update_system(system(cro::time_deinit).after(cro::time_update))
+       .ready();
+
+    reg.startup();
+
+    for (auto i = 0; i < 100; ++i) {
+        reg.update();
+    }
 }
