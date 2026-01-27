@@ -315,38 +315,36 @@ namespace mytho::ecs::internal {
     };
 
     template<typename RegistryT>
-    class basic_system_stage final {
+    class basic_system_graph final {
     public:
         using registry_type = RegistryT;
-        using self_type = basic_system_stage<registry_type>;
+        using self_type = basic_system_graph<registry_type>;
+
         using meta_system_type = basic_meta_system<registry_type>;
         using system_type = basic_system<registry_type>;
-
-        using meta_systems_type = std::vector<meta_system_type>;
         using befores_type = typename system_type::befores_type;
         using afters_type = typename system_type::afters_type;
 
-        using meta_systems_pool_type = std::vector<meta_systems_type>;
+        using meta_systems_type = std::vector<meta_system_type>;
         using befores_pool_type = std::vector<befores_type>;
         using afters_pool_type = std::vector<afters_type>;
-
         using size_type = typename meta_systems_type::size_type;
         using id_map_type = std::unordered_map<std::uintptr_t, size_type>;
 
-        basic_system_stage() noexcept = default;
-        basic_system_stage(basic_system_stage& ss) noexcept = delete;
+        using meta_systems_pool_type = std::vector<meta_systems_type>;
 
-        basic_system_stage(basic_system_stage&& ss) noexcept
+        basic_system_graph() noexcept = default;
+        basic_system_graph(basic_system_graph& ss) noexcept = delete;
+
+        basic_system_graph(basic_system_graph&& ss) noexcept
             : _meta_systems(std::move(ss).meta_systems()), _befores_pool(std::move(ss).befores_pool()),
-            _afters_pool(std::move(ss).afters_pool()), _id_map(std::move(ss).id_map()),
-            _meta_systems_pool(std::move(ss).meta_systems_pool()) {}
+            _afters_pool(std::move(ss).afters_pool()), _id_map(std::move(ss).id_map()) {}
 
-        basic_system_stage& operator=(basic_system_stage&& ss) noexcept {
+        basic_system_graph& operator=(basic_system_graph&& ss) noexcept {
             _meta_systems = std::move(ss).meta_systems();
             _befores_pool = std::move(ss).befores_pool();
             _afters_pool = std::move(ss).afters_pool();
             _id_map = std::move(ss).id_map();
-            _meta_systems_pool = std::move(ss).meta_systems_pool();
 
             return *this;
         }
@@ -382,14 +380,14 @@ namespace mytho::ecs::internal {
         }
 
     public:
-        void ready() {
-            _meta_systems_pool.clear();
+        auto sort() {
+            meta_systems_pool_type pool;
 
             auto size = _meta_systems.size();
-            if (size < 1) return;
+            if (size < 1) return pool;
 
             if (size == 1) {
-                _meta_systems_pool.push_back(std::move(_meta_systems));
+                pool.push_back(std::move(_meta_systems));
             } else {
                 mytho::container::basic_sparse_set<size_type, 64> ids;
                 for (auto i = 0; i < size; i++) {
@@ -398,13 +396,13 @@ namespace mytho::ecs::internal {
 
                 auto graph = build(ids);
                 size = graph.size();
-                _meta_systems_pool.resize(size);
+                pool.resize(size);
 
                 for (auto i = 0; i < size; ++i) {
                     auto& vec = graph[i];
                     auto in_size = vec.size();
 
-                    auto& systems = _meta_systems_pool[i];
+                    auto& systems = pool[i];
                     systems.reserve(in_size);
 
                     for (auto j = 0; j < in_size; ++j) {
@@ -415,24 +413,7 @@ namespace mytho::ecs::internal {
                 }
             }
 
-            _meta_systems.clear();
-            _befores_pool.clear();
-            _afters_pool.clear();
-            _id_map.clear();
-        }
-
-        void run(registry_type& reg, uint64_t& tick) {
-            auto size = _meta_systems_pool.size();
-            for (auto i = 0; i < size; ++i) {
-                auto& systems = _meta_systems_pool[i];
-                auto in_size = systems.size();
-
-                for (auto j = 0; j < in_size; ++j) {
-                    auto& system = systems[j];
-
-                    system(reg, tick++);
-                }
-            }
+            return pool;
         }
 
     public:
@@ -444,8 +425,6 @@ namespace mytho::ecs::internal {
 
         auto id_map() && noexcept { return std::move(_id_map); }
 
-        auto meta_systems_pool() && noexcept { return std::move(_meta_systems_pool); }
-
         auto size() const noexcept { return _meta_systems.size(); }
 
         void clear() noexcept {
@@ -453,7 +432,6 @@ namespace mytho::ecs::internal {
             _befores_pool.clear();
             _afters_pool.clear();
             _id_map.clear();
-            _meta_systems_pool.clear();
         }
 
     private:
@@ -461,8 +439,6 @@ namespace mytho::ecs::internal {
         befores_pool_type _befores_pool;
         afters_pool_type _afters_pool;
         id_map_type _id_map;
-
-        meta_systems_pool_type _meta_systems_pool;
 
     private:
         auto build(auto& ids) {

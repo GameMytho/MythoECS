@@ -213,9 +213,9 @@ namespace mytho::ecs {
     class basic_commands final {
     public:
         using registry_type = RegistryT;
+        using self_type = basic_commands<registry_type>;
         using entity_type = typename registry_type::entity_type;
 
-    public:
         basic_commands(registry_type& reg, uint64_t tick) : _reg(reg), _tick(tick) {}
 
     public:
@@ -295,6 +295,13 @@ namespace mytho::ecs {
         requires (sizeof...(Ts) > 0)
         bool resources_exist() const noexcept {
             return _reg.template resources_exist<Ts...>();
+        }
+
+    public:
+        self_type& apply() {
+            _reg.command_queue().apply(_reg);
+
+            return *this;
         }
 
     public:
