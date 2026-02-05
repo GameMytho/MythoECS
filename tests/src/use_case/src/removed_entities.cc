@@ -39,21 +39,23 @@ namespace rebo {
         EXPECT_EQ(cmds.registry().entities().size(), q1.size());
         EXPECT_EQ((cmds.registry().entities().size() + 1) / 2, q2.size());
     }
+
+    void stop(Commands cmds) {
+        auto count = cmds.registry().count<Entity, With<rebo::Position>>();
+        if (count < 100) {
+            cmds.registry().stop();
+        }
+    }
 }
 
 TEST(RemovedEntitiesTest, BasicOperation) {
     Registry reg;
 
-    reg.add_startup_system(rebo::entity_spawn)
-       .add_update_system(rebo::entity_spawn)
-       .add_update_system(system(rebo::velocity_remove).after(rebo::entity_spawn))
-       .add_update_system(system(rebo::velocity_restore).after(rebo::velocity_remove))
-       .add_update_system(system(rebo::entity_check).after(rebo::velocity_restore))
-       .ready();
-
-    reg.startup();
-
-    while(reg.count<Entity, With<rebo::Position>>() < 100) {
-        reg.update();
-    }
+    reg.add_system<StartupSchedules::Startup>(rebo::entity_spawn)
+       .add_system(rebo::entity_spawn)
+       .add_system(system(rebo::velocity_remove).after(rebo::entity_spawn))
+       .add_system(system(rebo::velocity_restore).after(rebo::velocity_remove))
+       .add_system(system(rebo::entity_check).after(rebo::velocity_restore))
+       .add_system(system(rebo::stop).after(rebo::entity_check))
+       .run();
 }

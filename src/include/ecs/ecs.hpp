@@ -45,6 +45,10 @@ namespace mecs {
     template<typename T>
     using RemovedEntities = mytho::ecs::basic_removed_entities<Registry, T>;
 
+    using StartupSchedules = mytho::ecs::startup_schedules;
+
+    using MainSchedules = mytho::ecs::main_schedules;
+
     template<mytho::utils::FunctionType Func>
     auto system(Func&& func) {
         return Registry::system(std::forward<Func>(func));

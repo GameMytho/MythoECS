@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include <ecs/ecs.hpp>
 #include <random>
-#include <iostream>
 
 using namespace mecs;
 
@@ -105,22 +104,24 @@ namespace cco {
         auto q2 = cmds.registry().query<Entity, With<Direction, Name>>();
         EXPECT_EQ(0, q2.size());
     }
+
+    void stop(Commands cmds) {
+        auto count = cmds.registry().count<Entity, With<cco::Position>>();
+        if (count < 100) {
+            cmds.registry().stop();
+        }
+    }
 }
 
 TEST(CommandsTest, ComponentOperation) {
     Registry reg;
 
-    reg.add_update_system(cco::entity_spawn)
-       .add_update_system(system(cco::position_change).after(cco::entity_spawn))
-       .add_update_system(system(cco::velocity_change).after(cco::position_change))
-       .add_update_system(system(cco::final_check).after(cco::velocity_change))
-       .ready();
-
-    reg.startup();
-
-    do {
-        reg.update();
-    } while(reg.count<Entity, With<cco::Position>>() < 100);
+    reg.add_system(cco::entity_spawn)
+       .add_system(system(cco::position_change).after(cco::entity_spawn))
+       .add_system(system(cco::velocity_change).after(cco::position_change))
+       .add_system(system(cco::final_check).after(cco::velocity_change))
+       .add_system(system(cco::stop).after(cco::final_check))
+       .run();
 }
 
 /*-------------------------------------------------------------------- Test For Entity Opertions API ------------------------------------------------------------------------------------*/
@@ -133,7 +134,7 @@ namespace ceo {
     void entity_spawn(Commands cmds) {
         std::random_device rd;
         std::mt19937 gen(rd());
-        std::uniform_int_distribution<> dis(2, 10);
+        std::uniform_int_distribution<> dis(0, 6);
 
         auto count = dis(gen);
         for (auto i = 0; i < count; ++i) {
@@ -164,20 +165,22 @@ namespace ceo {
             }
         }
     }
+
+    void stop(Commands cmds) {
+        auto count = cmds.registry().count<Entity, With<ceo::Name>>();
+        if (count > 5) {
+            cmds.registry().stop();
+        }
+    }
 }
 
 TEST(CommandsTest, EntityOperation) {
     Registry reg;
 
-    reg.add_update_system(ceo::entity_spawn)
-       .add_update_system(system(ceo::entity_despawn).after(ceo::entity_spawn))
-       .ready();
-
-    reg.startup();
-
-    do {
-        reg.update();
-    } while(reg.count<Entity, With<ceo::Name>>() > 5);
+    reg.add_system(ceo::entity_spawn)
+       .add_system(system(ceo::entity_despawn).after(ceo::entity_spawn))
+       .add_system(system(ceo::stop).after(ceo::entity_despawn))
+       .run();
 }
 
 /*-------------------------------------------------------------------- Test For Resource Opertions API ------------------------------------------------------------------------------------*/
@@ -233,21 +236,26 @@ namespace cro {
 
         cmds.remove_resource<Time>();
     }
+
+    void stop(Commands cmds) {
+        if (!cmds.resources_exist<Frame>()) return;
+
+        auto [frame] = cmds.registry().resources<Frame>();
+
+        if (frame->value > 100) {
+            cmds.registry().stop();
+        }
+    }
 }
 
 TEST(CommandsTest, ResourceOperation) {
     Registry reg;
 
-    reg.add_update_system(cro::time_init)
-       .add_update_system(cro::frame_init)
-       .add_update_system(system(cro::time_update).after(cro::time_init))
-       .add_update_system(system(cro::frame_update).after(cro::frame_init))
-       .add_update_system(system(cro::time_deinit).after(cro::time_update))
-       .ready();
-
-    reg.startup();
-
-    for (auto i = 0; i < 100; ++i) {
-        reg.update();
-    }
+    reg.add_system(cro::time_init)
+       .add_system(cro::frame_init)
+       .add_system(system(cro::time_update).after(cro::time_init))
+       .add_system(system(cro::frame_update).after(cro::frame_init))
+       .add_system(system(cro::time_deinit).after(cro::time_update))
+       .add_system(system(cro::stop).after(cro::frame_update))
+       .run();
 }

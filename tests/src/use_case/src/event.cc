@@ -9,6 +9,10 @@ namespace ebo {
         float value;
     };
 
+    struct AppExit {
+        bool exit;
+    };
+
     void damage_event_send(EventWriter<Damage> ew) {
         std::random_device rd;
         std::mt19937 gen(rd());
@@ -29,11 +33,26 @@ namespace ebo {
         }
     }
 
-    void damage_event_receive(EventReader<Damage> er) {
+    void damage_event_receive(EventReader<Damage> er, EventWriter<AppExit> ew) {
         const auto& events = er.read();
 
         for (const auto& event : events) {
             EXPECT_EQ(event.value, 0.5f);
+        }
+
+        if (events.size() > 9) {
+            ew.write(AppExit { true });
+        }
+    }
+
+    void stop(Commands cmds, EventReader<AppExit> er) {
+        const auto& events = er.read();
+
+        for (const auto& event : events) {
+            EXPECT_EQ(event.exit, true);
+            if (event.exit) {
+                cmds.registry().stop();
+            }
         }
     }
 }
@@ -42,14 +61,10 @@ TEST(EventTest, BasicOperation) {
     Registry reg;
 
     reg.init_event<ebo::Damage>()
-       .add_update_system(ebo::damage_event_send)
-       .add_update_system(system(ebo::damage_event_adjust).after(ebo::damage_event_send))
-       .add_update_system(system(ebo::damage_event_receive).after(ebo::damage_event_adjust))
-       .ready();
-
-    reg.startup();
-
-    for (auto i = 0; i < 100; ++i) {
-        reg.update();
-    }
+       .init_event<ebo::AppExit>()
+       .add_system(ebo::damage_event_send)
+       .add_system(system(ebo::damage_event_adjust).after(ebo::damage_event_send))
+       .add_system(system(ebo::damage_event_receive).after(ebo::damage_event_adjust))
+       .add_system(system(ebo::stop).after(ebo::damage_event_receive))
+       .run();
 }

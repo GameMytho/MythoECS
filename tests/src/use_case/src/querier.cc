@@ -78,21 +78,23 @@ namespace qbo {
             EXPECT_EQ(pos->z, 3.3f);
         }
     }
+
+    void stop(Commands cmds) {
+        auto count = cmds.registry().count<Entity, With<qbo::Position>>();
+        if (count < 100) {
+            cmds.registry().stop();
+        }
+    }
 }
 
 TEST(QuerierTest, BasicOperation) {
     Registry reg;
 
-    reg.add_update_system(qbo::entity_spawn)
-       .add_update_system(system(qbo::position_change).after(qbo::entity_spawn))
-       .add_update_system(system(qbo::velocity_attach).after(qbo::position_change))
-       .add_update_system(system(qbo::position_and_velocity_change).after(qbo::velocity_attach))
-       .add_update_system(system(qbo::final_check).after(qbo::position_and_velocity_change))
-       .ready();
-
-    reg.startup();
-
-    do {
-        reg.update();
-    } while(reg.count<Entity, With<qbo::Position>>() < 100);
+    reg.add_system(qbo::entity_spawn)
+       .add_system(system(qbo::position_change).after(qbo::entity_spawn))
+       .add_system(system(qbo::velocity_attach).after(qbo::position_change))
+       .add_system(system(qbo::position_and_velocity_change).after(qbo::velocity_attach))
+       .add_system(system(qbo::final_check).after(qbo::position_and_velocity_change))
+       .add_system(system(qbo::stop).after(qbo::final_check))
+       .run();
 }

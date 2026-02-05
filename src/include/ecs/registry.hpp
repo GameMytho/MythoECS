@@ -28,7 +28,7 @@ namespace mytho::ecs {
         PostStartup
     };
 
-    enum class core_schedules {
+    enum class main_schedules {
         First,
         PreUpdate,
         Update,
@@ -46,7 +46,8 @@ namespace mytho::ecs {
     class basic_registry final {
     private:
         enum class internal_schedules {
-            Update
+            Startup,
+            Main
         };
 
     public:
@@ -76,9 +77,6 @@ namespace mytho::ecs {
         template<typename... Ts>
         using querier_type = mytho::ecs::basic_querier<self_type, Ts...>;
 
-        // template<typename T>
-        // using resource_cache = mytho::ecs::internal::basic_resource_cache<T>;
-
         template<typename... Ts>
         using resources_type = mytho::ecs::basic_resources<Ts...>;
 
@@ -89,25 +87,23 @@ namespace mytho::ecs {
         using events_type = basic_events<T>;
 
         basic_registry() {
-            _startup_schedules.template add_schedule<startup_schedules::PreStartup>()
-                              .template add_schedule<startup_schedules::Startup>()
-                              .template add_schedule<startup_schedules::PostStartup>()
-                              .template add_schedule<internal_schedules::Update>()
-                              .template set_default_schedule<startup_schedules::Startup>();
+            _schedules.template add_startup_schedule<startup_schedules::PreStartup>()
+                      .template add_startup_schedule<startup_schedules::Startup>()
+                      .template add_startup_schedule<startup_schedules::PostStartup>()
+                      .template add_startup_schedule<internal_schedules::Startup>()
+                      .template add_update_schedule<main_schedules::First>()
+                      .template add_update_schedule<main_schedules::PreUpdate>()
+                      .template add_update_schedule<main_schedules::Update>()
+                      .template add_update_schedule<main_schedules::PostUpdate>()
+                      .template add_update_schedule<main_schedules::Last>()
+                      .template add_update_schedule<internal_schedules::Main>()
+                      .template set_default_schedule<main_schedules::Update>();
 
-            _startup_schedules.add_system<internal_schedules::Update>(+[](commands_type cmds){
+            _schedules.add_system<internal_schedules::Startup>(+[](commands_type cmds){
                 cmds.apply();
             });
 
-            _update_schedules.template add_schedule<core_schedules::First>()
-                             .template add_schedule<core_schedules::PreUpdate>()
-                             .template add_schedule<core_schedules::Update>()
-                             .template add_schedule<core_schedules::PostUpdate>()
-                             .template add_schedule<core_schedules::Last>()
-                             .template add_schedule<internal_schedules::Update>()
-                             .template set_default_schedule<core_schedules::Update>();
-
-            _update_schedules.add_system<internal_schedules::Update>(+[](commands_type cmds){
+            _schedules.add_system<internal_schedules::Main>(+[](commands_type cmds){
                 cmds.registry().removed_entities_clear();
                 cmds.apply();
             });
@@ -419,7 +415,7 @@ namespace mytho::ecs {
 
             _resources.template init<events_type<T>>(_current_tick);
 
-            _update_schedules.add_system<internal_schedules::Update>(+[](resources_mut_type<events_type<T>> rm){
+            _schedules.add_system<internal_schedules::Main>(+[](resources_mut_type<events_type<T>> rm){
                 auto& [events] = rm;
 
                 events->swap();
@@ -452,70 +448,49 @@ namespace mytho::ecs {
     public: // schedule operations
         template<auto ScheduleE>
         self_type& add_startup_schedule() {
-            _startup_schedules.template add_schedule<ScheduleE>();
-
-            return *this;
-        }
-
-        template<auto ScheduleE, auto BeforeScheduleE>
-        self_type& add_startup_schedule_before() {
-            _startup_schedules.template add_schedule_before<ScheduleE, BeforeScheduleE>();
-
-            return *this;
-        }
-
-        template<auto ScheduleE, auto AfterScheduleE>
-        self_type& add_startup_schedule_after() {
-            _startup_schedules.template add_schedule_after<ScheduleE, AfterScheduleE>();
-
-            return *this;
-        }
-
-        template<auto ScheduleE, auto InsertScheduleE>
-        self_type& insert_startup_schedule() {
-            _startup_schedules.template insert_schedule<ScheduleE, InsertScheduleE>();
-
-            return *this;
-        }
-
-        template<auto ScheduleE>
-        self_type& set_startup_default_schedule() noexcept {
-            _startup_schedules.template set_default_schedule<ScheduleE>();
+            _schedules.template add_startup_schedule<ScheduleE>();
 
             return *this;
         }
 
         template<auto ScheduleE>
         self_type& add_update_schedule() {
-            _update_schedules.template add_schedule<ScheduleE>();
-
-            return *this;
-        }
-
-        template<auto ScheduleE, auto BeforeScheduleE>
-        self_type& add_update_schedule_before() {
-            _update_schedules.template add_schedule_before<ScheduleE, BeforeScheduleE>();
-
-            return *this;
-        }
-
-        template<auto ScheduleE, auto AfterScheduleE>
-        self_type& add_update_schedule_after() {
-            _update_schedules.template add_schedule_after<ScheduleE, AfterScheduleE>();
-
-            return *this;
-        }
-
-        template<auto ScheduleE, auto InsertScheduleE>
-        self_type& insert_update_schedule() {
-            _update_schedules.template insert_schedule<ScheduleE, InsertScheduleE>();
+            _schedules.template add_update_schedule<ScheduleE>();
 
             return *this;
         }
 
         template<auto ScheduleE>
-        self_type& set_update_default_schedule() noexcept {
-            _update_schedules.template set_default_schedule<ScheduleE>();
+        self_type& add_schedule() {
+            _schedules.template add_schedule<ScheduleE>();
+
+            return *this;
+        }
+
+        template<auto ScheduleE, auto BeforeScheduleE>
+        self_type& add_schedule_before() {
+            _schedules.template add_schedule_before<ScheduleE, BeforeScheduleE>();
+
+            return *this;
+        }
+
+        template<auto ScheduleE, auto AfterScheduleE>
+        self_type& add_schedule_after() {
+            _schedules.template add_schedule_after<ScheduleE, AfterScheduleE>();
+
+            return *this;
+        }
+
+        template<auto ScheduleE, auto InsertScheduleE>
+        self_type& insert_schedule() {
+            _schedules.template insert_schedule<ScheduleE, InsertScheduleE>();
+
+            return *this;
+        }
+
+        template<auto ScheduleE>
+        self_type& set_default_schedule() noexcept {
+            _schedules.template set_default_schedule<ScheduleE>();
 
             return *this;
         }
@@ -527,70 +502,44 @@ namespace mytho::ecs {
         }
 
         template<mytho::utils::FunctionType Func>
-        self_type& add_startup_system(Func&& func) {
-            _startup_schedules.add_system(std::forward<Func>(func));
+        self_type& add_system(Func&& func) {
+            _schedules.add_system(std::forward<Func>(func));
 
             return *this;
         }
 
         template<auto ScheduleE, mytho::utils::FunctionType Func>
-        self_type& add_startup_system(Func&& func) {
-            _startup_schedules.template add_system<ScheduleE>(std::forward<Func>(func));
+        self_type& add_system(Func&& func) {
+            _schedules.template add_system<ScheduleE>(std::forward<Func>(func));
 
             return *this;
         }
 
-        self_type& add_startup_system(system_type& system) {
-            _startup_schedules.add_system(system);
-
-            return *this;
-        }
-
-        template<auto ScheduleE>
-        self_type& add_startup_system(system_type& system) {
-            _startup_schedules.template add_system<ScheduleE>(system);
-
-            return *this;
-        }
-
-        template<mytho::utils::FunctionType Func>
-        self_type& add_update_system(Func&& func) {
-            _update_schedules.add_system(std::forward<Func>(func));
-
-            return *this;
-        }
-
-        template<auto ScheduleE, mytho::utils::FunctionType Func>
-        self_type& add_update_system(Func&& func) {
-            _update_schedules.template add_system<ScheduleE>(std::forward<Func>(func));
-            return *this;
-        }
-
-        self_type& add_update_system(system_type& system) {
-            _update_schedules.add_system(system);
+        self_type& add_system(system_type& system) {
+            _schedules.add_system(system);
 
             return *this;
         }
 
         template<auto ScheduleE>
-        self_type& add_update_system(system_type& system) {
-            _update_schedules.template add_system<ScheduleE>(system);
+        self_type& add_system(system_type& system) {
+            _schedules.template add_system<ScheduleE>(system);
 
             return *this;
         }
 
     public: // core operations
-        void ready() {
-            _startup_schedules.ready();
-            _update_schedules.ready();
+        void run() {
+            _schedules.run(*this, _current_tick);
         }
 
-        void startup() {
-            _startup_schedules.run(*this, _current_tick);
+        void stop() {
+            _schedules.stop();
         }
 
-        void update() {
-            _update_schedules.run(*this, _current_tick);
+        template<auto ScheduleE>
+        void run_schedule() {
+            _schedules.run_schedule<ScheduleE>(*this, _current_tick);
         }
 
     public: // command operations
@@ -614,8 +563,7 @@ namespace mytho::ecs {
 
         // tick start from 1, and 0 is reserved for init
         uint64_t _current_tick = 1;
-        schedules_type _startup_schedules;
-        schedules_type _update_schedules;
+        schedules_type _schedules;
 
     private:
         template<typename T, typename... Rs>
