@@ -134,6 +134,18 @@ namespace mytho::ecs::internal {
             return *this;
         }
 
+        template<typename ScheduleT>
+        self_type& add_schedule() {
+            auto id = schedule_id_generator::template gen<ScheduleT>();
+
+            ASSURE(_index(id) == schedule_index_null, "new schedule already exists!");
+
+            _schedules.emplace_back(schedule_type(id, system_schedule_type()));
+            _graphs.emplace_back(system_graph_type());
+
+            return *this;
+        }
+
         template<auto ScheduleE, auto BeforeScheduleE>
         self_type& add_schedule_before() {
             auto id = schedule_id_generator::template gen<ScheduleE>();
@@ -238,6 +250,18 @@ namespace mytho::ecs::internal {
             return *this;
         }
 
+        template<typename ScheduleT, mytho::utils::FunctionType Func>
+        self_type& add_system(Func&& func) {
+            auto id = schedule_id_generator::template gen<ScheduleT>();
+            auto idx = _index(id);
+
+            ASSURE(idx != schedule_index_null, "schedule not exist!");
+
+            _graphs[idx].add(std::forward<Func>(func));
+
+            return *this;
+        }
+
         self_type& add_system(system_type& system) {
             ASSURE(_default_index < _schedules.size(), "no available default schedule!");
 
@@ -249,6 +273,18 @@ namespace mytho::ecs::internal {
         template<auto ScheduleE>
         self_type& add_system(system_type& system) {
             auto id = schedule_id_generator::template gen<ScheduleE>();
+            auto idx = _index(id);
+
+            ASSURE(idx != schedule_index_null, "schedule not exist!");
+
+            _graphs[idx].add(system);
+
+            return *this;
+        }
+
+        template<typename ScheduleT>
+        self_type& add_system(system_type& system) {
+            auto id = schedule_id_generator::template gen<ScheduleT>();
             auto idx = _index(id);
 
             ASSURE(idx != schedule_index_null, "schedule not exist!");
@@ -283,6 +319,16 @@ namespace mytho::ecs::internal {
         template<auto ScheduleE>
         void run_schedule(registry_type& reg, uint64_t& tick) {
             auto id = schedule_id_generator::template gen<ScheduleE>();
+            auto idx = _index(id);
+
+            ASSURE(idx != schedule_index_null, "new schedule already exists!");
+
+            _schedules[idx]._schedule.run(reg, tick);
+        }
+
+        template<typename ScheduleT>
+        void run_schedule(registry_type& reg, uint64_t& tick) {
+            auto id = schedule_id_generator::template gen<ScheduleT>();
             auto idx = _index(id);
 
             ASSURE(idx != schedule_index_null, "new schedule already exists!");

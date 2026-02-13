@@ -15,7 +15,7 @@
 #include "utils/type_list.hpp"
 #include "container/sparse_set.hpp"
 #include "ecs/commands.hpp"
-#include "ecs/event.hpp"
+#include "ecs/core/event.hpp"
 
 namespace mytho::utils {
     namespace internal {
@@ -53,11 +53,6 @@ namespace mytho::utils {
 
     template<typename T>
     using system_traits_t = typename internal::system_traits<T>::type;
-
-    template<typename F>
-    concept FunctionType = requires(F f) {
-        {+f} -> std::same_as<decltype(+f)>;
-    };
 }
 
 namespace mytho::ecs::internal {

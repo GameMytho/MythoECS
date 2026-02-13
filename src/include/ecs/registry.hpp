@@ -8,10 +8,12 @@
 #include <cstddef>
 
 #include "utils/idgen.hpp"
+#include "utils/mmem.hpp"
 #include "container/entity_storage.hpp"
 #include "container/component_storage.hpp"
 #include "container/resource_storage.hpp"
 #include "ecs/schedule.hpp"
+#include "ecs/core/state.hpp"
 
 namespace mytho::ecs {
     namespace internal {
@@ -47,6 +49,7 @@ namespace mytho::ecs {
     private:
         enum class internal_schedules {
             Startup,
+            StateSwitch,
             Main
         };
 
@@ -85,6 +88,18 @@ namespace mytho::ecs {
 
         template<typename T>
         using events_type = basic_events<T>;
+
+        template<typename T>
+        using state_type = basic_state<T>;
+
+        template<typename T>
+        using next_state_type = basic_next_state<T>;
+
+        template<auto E>
+        using on_enter_type = on_enter<E>;
+
+        template<auto E>
+        using on_exit_type = on_exit<E>;
 
         basic_registry() {
             _schedules.template add_startup_schedule<startup_schedules::PreStartup>()
@@ -445,6 +460,52 @@ namespace mytho::ecs {
             return _resources.template get<events_type<T>>().read();
         }
 
+    public: // state operations
+        template<mytho::utils::PureStateType T>
+        self_type& init_state(T state) {
+            ASSURE(!_resources.template exist<state_type<T>>(), "state type already exists");
+
+            _resources.template init<state_type<T>>(_current_tick, state);
+            _resources.template init<next_state_type<T>>(_current_tick);
+
+            mytho::utils::enum_foreach<T, 0, 128>([&]<auto V>(){
+                _schedules.template add_schedule<on_enter_type<V>>()
+                         .template add_schedule<on_exit_type<V>>();
+            });
+
+            _schedules.template add_schedule_before<internal_schedules::StateSwitch, main_schedules::Update>()
+                      .template add_system<internal_schedules::StateSwitch>(
+                        +[](commands_type cmds, resources_mut_type<state_type<T>, next_state_type<T>> rsm){
+                            auto [state, next_state] = rsm;
+                            if (!next_state->get()) {
+                                return;
+                            }
+
+                            T s = state->get();
+                            T ns = next_state->get().value();
+                            if (s == ns) {
+                                return;
+                            }
+
+                            // run state on_exit
+                            mytho::utils::enum_switch<T, 0, 128>([&cmds]<auto V>(){
+                                cmds.registry().template run_schedule<on_exit_type<V>>();
+                            }, s);
+
+                            // run next_state on_enter
+                            mytho::utils::enum_switch<T, 0, 128>([&cmds]<auto V>(){
+                                cmds.registry().template run_schedule<on_enter_type<V>>();
+                            }, ns);
+
+                            // update state/next_state
+                            state->set(ns);
+                            next_state->reset();
+                        }
+                      );
+
+            return *this;
+        }
+
     public: // schedule operations
         template<auto ScheduleE>
         self_type& add_startup_schedule() {
@@ -508,6 +569,13 @@ namespace mytho::ecs {
             return *this;
         }
 
+        template<typename ScheduleT, mytho::utils::FunctionType Func>
+        self_type& add_system(Func&& func) {
+            _schedules.template add_system<ScheduleT>(std::forward<Func>(func));
+
+            return *this;
+        }
+
         template<auto ScheduleE, mytho::utils::FunctionType Func>
         self_type& add_system(Func&& func) {
             _schedules.template add_system<ScheduleE>(std::forward<Func>(func));
@@ -528,6 +596,13 @@ namespace mytho::ecs {
             return *this;
         }
 
+        template<typename ScheduleT>
+        self_type& add_system(system_type& system) {
+            _schedules.template add_system<ScheduleT>(system);
+
+            return *this;
+        }
+
     public: // core operations
         void run() {
             _schedules.run(*this, _current_tick);
@@ -539,7 +614,12 @@ namespace mytho::ecs {
 
         template<auto ScheduleE>
         void run_schedule() {
-            _schedules.run_schedule<ScheduleE>(*this, _current_tick);
+            _schedules.template run_schedule<ScheduleE>(*this, _current_tick);
+        }
+
+        template<typename ScheduleT>
+        void run_schedule() {
+            _schedules.template run_schedule<ScheduleT>(*this, _current_tick);
         }
 
     public: // command operations

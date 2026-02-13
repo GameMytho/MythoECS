@@ -20,18 +20,18 @@ namespace mecs {
     template<typename T>
     using DataWrapper = mytho::utils::internal::data_wrapper<T>;
 
-    template<typename... Ts>
-    using Res = mytho::ecs::basic_resources<Ts...>;
-
-    template<typename... Ts>
-    using ResMut = mytho::ecs::basic_resources_mut<Ts...>;
-
     using Entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
     using Registry = mytho::ecs::basic_registry<Entity, uint16_t, uint16_t, uint8_t, 256>;
-    using Commands = mytho::ecs::basic_commands<Registry>;
+    using Commands = typename Registry::commands_type;
 
     template<typename... Ts>
-    using Querier = mytho::ecs::basic_querier<Registry, Ts...>;
+    using Querier = typename Registry::querier_type<Ts...>;
+
+    template<typename... Ts>
+    using Res = typename Registry::resources_type<Ts...>;
+
+    template<typename... Ts>
+    using ResMut = typename Registry::resources_mut_type<Ts...>;
 
     template<typename T>
     using EventWriter = mytho::ecs::basic_event_writer<T>;
@@ -48,6 +48,18 @@ namespace mecs {
     using StartupSchedules = mytho::ecs::startup_schedules;
 
     using MainSchedules = mytho::ecs::main_schedules;
+
+    template<typename T>
+    using State = mytho::ecs::basic_state<T>;
+
+    template<typename T>
+    using NextState = mytho::ecs::basic_next_state<T>;
+
+    template<auto E>
+    using OnEnter = mytho::ecs::on_enter<E>;
+
+    template<auto E>
+    using OnExit = mytho::ecs::on_exit<E>;
 
     template<mytho::utils::FunctionType Func>
     auto system(Func&& func) {

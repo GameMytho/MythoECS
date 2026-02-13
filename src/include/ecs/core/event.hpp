@@ -1,5 +1,6 @@
 #pragma once
 
+#include "utils/concept.hpp"
 #include "utils/type_list.hpp"
 
 namespace mytho::utils {
@@ -8,10 +9,10 @@ namespace mytho::utils {
 }
 
 namespace mytho::ecs {
-    template<mytho::utils::PureEventType T>
+    template<mytho::utils::PureEventType EventT>
     class basic_events final {
     public:
-        using event_type = T;
+        using event_type = EventT;
         using events_type = std::vector<event_type>;
 
     public:
@@ -37,10 +38,10 @@ namespace mytho::ecs {
         events_type _write_events;
     };
 
-    template<mytho::utils::PureEventType T>
+    template<mytho::utils::PureEventType EventT>
     class basic_event_writer final {
     public:
-        using event_type = T;
+        using event_type = EventT;
         using events_type = typename basic_events<event_type>::events_type;
 
         basic_event_writer(events_type& events) noexcept : _events(events) {}
@@ -55,10 +56,10 @@ namespace mytho::ecs {
         events_type& _events;
     };
 
-    template<mytho::utils::PureEventType T>
+    template<mytho::utils::PureEventType EventT>
     class basic_event_mutator final {
     public:
-        using event_type = T;
+        using event_type = EventT;
         using events_type = typename basic_events<event_type>::events_type;
 
         basic_event_mutator(events_type& events) noexcept : _events(events) {}
@@ -72,10 +73,10 @@ namespace mytho::ecs {
         events_type& _events;
     };
 
-    template<mytho::utils::PureEventType T>
+    template<mytho::utils::PureEventType EventT>
     class basic_event_reader final {
     public:
-        using event_type = T;
+        using event_type = EventT;
         using events_type = typename basic_events<event_type>::events_type;
 
         basic_event_reader(const events_type& events) noexcept : _events(events) {}
