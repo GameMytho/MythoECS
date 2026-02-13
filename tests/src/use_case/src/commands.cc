@@ -105,10 +105,10 @@ namespace cco {
         EXPECT_EQ(0, q2.size());
     }
 
-    void stop(Commands cmds) {
+    void exit(Commands cmds) {
         auto count = cmds.registry().count<Entity, With<cco::Position>>();
         if (count < 100) {
-            cmds.registry().stop();
+            cmds.registry().exit();
         }
     }
 }
@@ -120,7 +120,7 @@ TEST(CommandsTest, ComponentOperation) {
        .add_system(system(cco::position_change).after(cco::entity_spawn))
        .add_system(system(cco::velocity_change).after(cco::position_change))
        .add_system(system(cco::final_check).after(cco::velocity_change))
-       .add_system(system(cco::stop).after(cco::final_check))
+       .add_system(system(cco::exit).after(cco::final_check))
        .run();
 }
 
@@ -139,7 +139,8 @@ namespace ceo {
         auto count = dis(gen);
         for (auto i = 0; i < count; ++i) {
             cmds.spawn(
-                Name{"entity" + i}
+                // todo: fix coredump bug caused by sso, need to optimize the imple of command queue
+                Name{std::string("entity123123123123123") + std::to_string(0)}
             );
         }
     }
@@ -166,10 +167,10 @@ namespace ceo {
         }
     }
 
-    void stop(Commands cmds) {
-        auto count = cmds.registry().count<Entity, With<ceo::Name>>();
+    void exit(Commands cmds) {
+        auto count = cmds.registry().count<Entity, With<Name>>();
         if (count > 5) {
-            cmds.registry().stop();
+            cmds.registry().exit();
         }
     }
 }
@@ -179,7 +180,7 @@ TEST(CommandsTest, EntityOperation) {
 
     reg.add_system(ceo::entity_spawn)
        .add_system(system(ceo::entity_despawn).after(ceo::entity_spawn))
-       .add_system(system(ceo::stop).after(ceo::entity_despawn))
+       .add_system(system(ceo::exit).after(ceo::entity_despawn))
        .run();
 }
 
@@ -237,13 +238,13 @@ namespace cro {
         cmds.remove_resource<Time>();
     }
 
-    void stop(Commands cmds) {
+    void exit(Commands cmds) {
         if (!cmds.resources_exist<Frame>()) return;
 
         auto [frame] = cmds.registry().resources<Frame>();
 
         if (frame->value > 100) {
-            cmds.registry().stop();
+            cmds.registry().exit();
         }
     }
 }
@@ -256,6 +257,6 @@ TEST(CommandsTest, ResourceOperation) {
        .add_system(system(cro::time_update).after(cro::time_init))
        .add_system(system(cro::frame_update).after(cro::frame_init))
        .add_system(system(cro::time_deinit).after(cro::time_update))
-       .add_system(system(cro::stop).after(cro::frame_update))
+       .add_system(system(cro::exit).after(cro::frame_update))
        .run();
 }

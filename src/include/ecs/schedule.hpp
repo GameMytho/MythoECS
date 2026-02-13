@@ -276,7 +276,7 @@ namespace mytho::ecs::internal {
             }
         }
 
-        void stop() {
+        void exit() {
             _running = false;
         }
 

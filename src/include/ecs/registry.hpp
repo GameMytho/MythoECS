@@ -99,11 +99,11 @@ namespace mytho::ecs {
                       .template add_update_schedule<internal_schedules::Main>()
                       .template set_default_schedule<main_schedules::Update>();
 
-            _schedules.add_system<internal_schedules::Startup>(+[](commands_type cmds){
+            _schedules.template add_system<internal_schedules::Startup>(+[](commands_type cmds){
                 cmds.apply();
             });
 
-            _schedules.add_system<internal_schedules::Main>(+[](commands_type cmds){
+            _schedules.template add_system<internal_schedules::Main>(+[](commands_type cmds){
                 cmds.registry().removed_entities_clear();
                 cmds.apply();
             });
@@ -415,7 +415,7 @@ namespace mytho::ecs {
 
             _resources.template init<events_type<T>>(_current_tick);
 
-            _schedules.add_system<internal_schedules::Main>(+[](resources_mut_type<events_type<T>> rm){
+            _schedules.template add_system<internal_schedules::Main>(+[](resources_mut_type<events_type<T>> rm){
                 auto& [events] = rm;
 
                 events->swap();
@@ -533,8 +533,8 @@ namespace mytho::ecs {
             _schedules.run(*this, _current_tick);
         }
 
-        void stop() {
-            _schedules.stop();
+        void exit() {
+            _schedules.exit();
         }
 
         template<auto ScheduleE>

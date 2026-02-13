@@ -30,8 +30,8 @@ namespace mytho::ecs {
 
                 _executors.push_back([](registry_type& reg, void* ptr) {
                     auto* data = static_cast<tuple_type*>(ptr);
-                    std::apply([&reg](auto&&... ts) {
-                        reg.spawn(std::move(ts)...);
+                    std::apply([&reg](auto&&... args) {
+                        reg.spawn(std::move(args)...);
                     }, std::move(*data));
                 });
 

@@ -7,13 +7,13 @@ To build MythoECS, we need to check the following tools.
 
 ### Windows 10/11
 
-- Visual Studio 2022 (or more recent)
+- MSVC v143 (VS2022) or more recent
 - Cmake 3.27 (or more recent)
 - Git 2.1 (or more recent)
 
-### Ubuntu 20.04
+### Ubuntu 22.04
 
-- Compiler Support C++20 (gcc 9.4/clang 10.0 or more recent)
+- Compiler Support C++20 (gcc 11.4.0/clang 13.0.1 or more recent)
 - Cmake 3.27 (or more recent)
 - Git 2.1 (or more recent)
 

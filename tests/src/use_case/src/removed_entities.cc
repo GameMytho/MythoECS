@@ -40,10 +40,10 @@ namespace rebo {
         EXPECT_EQ((cmds.registry().entities().size() + 1) / 2, q2.size());
     }
 
-    void stop(Commands cmds) {
+    void exit(Commands cmds) {
         auto count = cmds.registry().count<Entity, With<rebo::Position>>();
         if (count < 100) {
-            cmds.registry().stop();
+            cmds.registry().exit();
         }
     }
 }
@@ -56,6 +56,6 @@ TEST(RemovedEntitiesTest, BasicOperation) {
        .add_system(system(rebo::velocity_remove).after(rebo::entity_spawn))
        .add_system(system(rebo::velocity_restore).after(rebo::velocity_remove))
        .add_system(system(rebo::entity_check).after(rebo::velocity_restore))
-       .add_system(system(rebo::stop).after(rebo::entity_check))
+       .add_system(system(rebo::exit).after(rebo::entity_check))
        .run();
 }

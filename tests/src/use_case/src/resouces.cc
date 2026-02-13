@@ -46,11 +46,11 @@ namespace rbo {
         keyboard->key = 5;
     }
 
-    void stop(Commands cmds, Res<Time, KeyBoard> r) {
+    void exit(Commands cmds, Res<Time, KeyBoard> r) {
         auto [time, keyboard] = r;
 
         if (time->seconds > 91 && keyboard->key > 91) {
-            cmds.registry().stop();
+            cmds.registry().exit();
         }
     }
 }
@@ -61,7 +61,7 @@ TEST(ResourcesTest, BasicOperation) {
     reg.init_resource<rbo::Time>(10u)
        .init_resource<rbo::KeyBoard>(5u)
        .add_system(rbo::time_and_keyboard_change)
-       .add_system(system(rbo::stop).after(rbo::time_and_keyboard_change))
-       .add_system(system(rbo::time_and_keyboard_restore).after(rbo::stop))
+       .add_system(system(rbo::exit).after(rbo::time_and_keyboard_change))
+       .add_system(system(rbo::time_and_keyboard_restore).after(rbo::exit))
        .run();
 }

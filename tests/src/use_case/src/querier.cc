@@ -79,10 +79,10 @@ namespace qbo {
         }
     }
 
-    void stop(Commands cmds) {
+    void exit(Commands cmds) {
         auto count = cmds.registry().count<Entity, With<qbo::Position>>();
         if (count < 100) {
-            cmds.registry().stop();
+            cmds.registry().exit();
         }
     }
 }
@@ -95,6 +95,6 @@ TEST(QuerierTest, BasicOperation) {
        .add_system(system(qbo::velocity_attach).after(qbo::position_change))
        .add_system(system(qbo::position_and_velocity_change).after(qbo::velocity_attach))
        .add_system(system(qbo::final_check).after(qbo::position_and_velocity_change))
-       .add_system(system(qbo::stop).after(qbo::final_check))
+       .add_system(system(qbo::exit).after(qbo::final_check))
        .run();
 }

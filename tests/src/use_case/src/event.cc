@@ -45,13 +45,13 @@ namespace ebo {
         }
     }
 
-    void stop(Commands cmds, EventReader<AppExit> er) {
+    void exit(Commands cmds, EventReader<AppExit> er) {
         const auto& events = er.read();
 
         for (const auto& event : events) {
             EXPECT_EQ(event.exit, true);
             if (event.exit) {
-                cmds.registry().stop();
+                cmds.registry().exit();
             }
         }
     }
@@ -65,6 +65,6 @@ TEST(EventTest, BasicOperation) {
        .add_system(ebo::damage_event_send)
        .add_system(system(ebo::damage_event_adjust).after(ebo::damage_event_send))
        .add_system(system(ebo::damage_event_receive).after(ebo::damage_event_adjust))
-       .add_system(system(ebo::stop).after(ebo::damage_event_receive))
+       .add_system(system(ebo::exit).after(ebo::damage_event_receive))
        .run();
 }
