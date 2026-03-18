@@ -95,6 +95,9 @@ namespace mytho::ecs {
         template<typename T>
         using next_state_type = basic_next_state<T>;
 
+        template<typename T>
+        using state_helper_type = basic_state_helper<T>;
+
         template<auto E>
         using on_enter_type = on_enter<E>;
 
@@ -477,12 +480,13 @@ namespace mytho::ecs {
                       .template add_system<internal_schedules::StateSwitch>(
                         +[](commands_type cmds, resources_mut_type<state_type<T>, next_state_type<T>> rsm){
                             auto [state, next_state] = rsm;
-                            if (!next_state->get()) {
+                            auto result = state_helper_type<T>::get_next_state(*next_state);
+                            if (!result) {
                                 return;
                             }
 
                             T s = state->get();
-                            T ns = next_state->get().value();
+                            T ns = result.value();
                             if (s == ns) {
                                 return;
                             }
@@ -498,8 +502,8 @@ namespace mytho::ecs {
                             }, ns);
 
                             // update state/next_state
-                            state->set(ns);
-                            next_state->reset();
+                            state_helper_type<T>::set_state(*state, ns);
+                            state_helper_type<T>::reset_next_state(*next_state);
                         }
                       );
 

@@ -12,6 +12,8 @@ namespace mytho::utils {
 }
 
 namespace mytho::ecs {
+    template<mytho::utils::PureStateType StateT> class basic_state_helper;
+
     template<mytho::utils::PureStateType StateT>
     class basic_state final {
     public:
@@ -22,11 +24,13 @@ namespace mytho::ecs {
     public:
         const value_type get() const noexcept { return _value; }
 
-    //protected:
+    protected:
         void set(value_type value) noexcept { _value = value; }
 
     private:
         value_type _value;
+
+        friend class basic_state_helper<value_type>;
     };
 
     template<mytho::utils::PureStateType StateT>
@@ -40,13 +44,34 @@ namespace mytho::ecs {
     public:
         void set(state_type state) noexcept { _value = state; }
 
-    //protected:
+    protected:
         const value_type get() const noexcept { return _value; }
 
         void reset() noexcept { _value = std::nullopt; }
 
     private:
         value_type _value;
+
+        friend class basic_state_helper<state_type>;
+    };
+
+    template<mytho::utils::PureStateType StateT>
+    class basic_state_helper final {
+    public:
+        using state_value_type = StateT;
+
+    public:
+        inline static void set_state(basic_state<state_value_type>& state, state_value_type value) {
+            state.set(value);
+        }
+
+        inline static auto get_next_state(const basic_next_state<state_value_type>& next_state) noexcept {
+            return next_state.get();
+        }
+
+        inline static void reset_next_state(basic_next_state<state_value_type>& next_state) noexcept {
+            next_state.reset();
+        }
     };
 
     template<auto StateE>
