@@ -18,7 +18,7 @@ namespace mytho::container {
         using density_type = std::vector<data_type>;
         using size_type = typename density_type::size_type;
         using page_data_type = typename density_type::size_type;
-        struct alignas(64) page_type : public std::array<page_data_type, PageSize> {};
+        using page_type = std::array<page_data_type, PageSize>;
         using sparsity_type = std::vector<page_type>;
         using iterator = typename density_type::iterator;
         using const_iterator = typename density_type::const_iterator;
