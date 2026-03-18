@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <array>
 #include <tuple>
 #include <functional>
 #include <utility>
@@ -20,8 +21,7 @@ namespace mytho::ecs {
             using entity_type = typename registry_type::entity_type;
             using executors_type = std::vector<void(*)(registry_type&, void*)>;
             using destroyers_type = std::vector<void(*)(void*)>;
-            using buffers_type = std::vector<uint8_t>;
-            using offsets_type = std::vector<size_t>;
+            using buffers_type = std::vector<std::vector<uint8_t>>;
 
         public:
             template<mytho::utils::PureComponentType... Ts>
@@ -43,13 +43,10 @@ namespace mytho::ecs {
                     });
                 }
 
-                size_t cur_buffer_size = _buffers.size();
-                size_t cur_aligned_size = (cur_buffer_size + alignof(tuple_type) - 1) & ~(alignof(tuple_type) - 1);
-
-                _buffers.resize(cur_aligned_size + sizeof(tuple_type));
-                _offsets.push_back(cur_aligned_size);
-
-                new (_buffers.data() + cur_aligned_size) tuple_type(std::forward<Ts>(ts)...);
+                _buffers.emplace_back();
+                auto& buffer = _buffers.back();
+                buffer.resize(sizeof(tuple_type));
+                new (buffer.data()) tuple_type(std::forward<Ts>(ts)...);
             }
 
             void despawn(const entity_type& e) {
@@ -59,13 +56,10 @@ namespace mytho::ecs {
 
                 _destroyers.push_back(nullptr);
 
-                size_t cur_buffer_size = _buffers.size();
-                size_t cur_aligned_size = (cur_buffer_size + alignof(entity_type) - 1) & ~(alignof(entity_type) - 1);
-
-                _buffers.resize(cur_aligned_size + sizeof(entity_type));
-                _offsets.push_back(cur_aligned_size);
-
-                new (_buffers.data() + cur_aligned_size) entity_type(e);
+                _buffers.emplace_back();
+                auto& buffer = _buffers.back();
+                buffer.resize(sizeof(entity_type));
+                new (buffer.data()) entity_type(e);
             }
 
             template<mytho::utils::PureComponentType... Ts>
@@ -87,13 +81,10 @@ namespace mytho::ecs {
                     });
                 }
 
-                size_t cur_buffer_size = _buffers.size();
-                size_t cur_aligned_size = (cur_buffer_size + alignof(tuple_type) - 1) & ~(alignof(tuple_type) - 1);
-
-                _buffers.resize(cur_aligned_size + sizeof(tuple_type));
-                _offsets.push_back(cur_aligned_size);
-
-                new (_buffers.data() + cur_aligned_size) tuple_type(e, std::forward<Ts>(ts)...);
+                _buffers.emplace_back();
+                auto& buffer = _buffers.back();
+                buffer.resize(sizeof(tuple_type));
+                new (buffer.data()) tuple_type(e, std::forward<Ts>(ts)...);
             }
 
             template<mytho::utils::PureComponentType... Ts>
@@ -104,13 +95,10 @@ namespace mytho::ecs {
 
                 _destroyers.push_back(nullptr);
 
-                size_t cur_buffer_size = _buffers.size();
-                size_t cur_aligned_size = (cur_buffer_size + alignof(entity_type) - 1) & ~(alignof(entity_type) - 1);
-
-                _buffers.resize(cur_aligned_size + sizeof(entity_type));
-                _offsets.push_back(cur_aligned_size);
-
-                new (_buffers.data() + cur_aligned_size) entity_type(e);
+                _buffers.emplace_back();
+                auto& buffer = _buffers.back();
+                buffer.resize(sizeof(entity_type));
+                new (buffer.data()) entity_type(e);
             }
 
             template<mytho::utils::PureComponentType... Ts>
@@ -132,13 +120,10 @@ namespace mytho::ecs {
                     });
                 }
 
-                size_t cur_buffer_size = _buffers.size();
-                size_t cur_aligned_size = (cur_buffer_size + alignof(tuple_type) - 1) & ~(alignof(tuple_type) - 1);
-
-                _buffers.resize(cur_aligned_size + sizeof(tuple_type));
-                _offsets.push_back(cur_aligned_size);
-
-                new (_buffers.data() + cur_aligned_size) tuple_type(e, std::forward<Ts>(ts)...);
+                _buffers.emplace_back();
+                auto& buffer = _buffers.back();
+                buffer.resize(sizeof(tuple_type));
+                new (buffer.data()) tuple_type(e, std::forward<Ts>(ts)...);
             }
 
             template<typename T, typename... Rs>
@@ -160,13 +145,10 @@ namespace mytho::ecs {
                     });
                 }
 
-                size_t cur_buffer_size = _buffers.size();
-                size_t cur_aligned_size = (cur_buffer_size + alignof(tuple_type) - 1) & ~(alignof(tuple_type) - 1);
-
-                _buffers.resize(cur_aligned_size + sizeof(tuple_type));
-                _offsets.push_back(cur_aligned_size);
-
-                new (_buffers.data() + cur_aligned_size) tuple_type(std::forward<Rs>(rs)...);
+                _buffers.emplace_back();
+                auto& buffer = _buffers.back();
+                buffer.resize(sizeof(tuple_type));
+                new (buffer.data()) tuple_type(std::forward<Rs>(rs)...);
             }
 
             template<typename T>
@@ -177,17 +159,17 @@ namespace mytho::ecs {
 
                 _destroyers.push_back(nullptr);
 
-                _offsets.push_back(0);
+                _buffers.emplace_back();
             }
 
         public:
             void apply(registry_type& reg) {
                 auto size = _executors.size();
                 for (size_t i = 0; i < size; i++) {
-                    _executors[i](reg, _buffers.data() + _offsets[i]);
+                    _executors[i](reg, _buffers[i].data());
 
                     if (_destroyers[i]) {
-                        _destroyers[i](_buffers.data() + _offsets[i]);
+                        _destroyers[i](_buffers[i].data());
                     }
                 }
 
@@ -198,14 +180,12 @@ namespace mytho::ecs {
                 _executors.clear();
                 _destroyers.clear();
                 _buffers.clear();
-                _offsets.clear();
             }
 
         private:
-            executors_type _executors;
-            destroyers_type _destroyers;
-            buffers_type _buffers;
-            offsets_type _offsets;
+            executors_type _executors{};
+            destroyers_type _destroyers{};
+            buffers_type _buffers{};
         };
     }
 

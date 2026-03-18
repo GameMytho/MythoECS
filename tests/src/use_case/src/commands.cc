@@ -139,8 +139,7 @@ namespace ceo {
         auto count = dis(gen);
         for (auto i = 0; i < count; ++i) {
             cmds.spawn(
-                // todo: fix coredump bug caused by sso, need to optimize the imple of command queue
-                Name{std::string("entity123123123123123") + std::to_string(0)}
+                Name{std::string("entity") + std::to_string(i)}
             );
         }
     }
