@@ -152,13 +152,22 @@ namespace mytho::ecs::internal {
             return [](std::uintptr_t addr, registry_type& reg, uint64_t tick) -> return_type {
                 using types = mytho::utils::system_traits_t<mytho::utils::function_traits_t<Fp>>;
 
-                return function_invoke(std::bit_cast<Fp>(addr), reg, tick, types{});
+                if constexpr (std::is_same_v<types, mytho::utils::type_list<registry_type&, uint64_t>>) {
+                    return function_invoke(std::bit_cast<Fp>(addr), reg, tick);
+                } else {
+                    return function_invoke(std::bit_cast<Fp>(addr), reg, tick, types{});
+                }
             };
         }
 
-        template<typename Func, typename... Ts>
-        static return_type function_invoke(Func&& func, registry_type& reg, uint64_t tick, mytho::utils::type_list<Ts...>) {
-            return std::invoke(std::forward<Func>(func), constructor<registry_type, Ts>{}(reg, tick)...);
+        template<typename Func, typename T, typename... Rs>
+        static return_type function_invoke(Func&& func, registry_type& reg, uint64_t tick, mytho::utils::type_list<T, Rs...>) {
+            return std::invoke(std::forward<Func>(func), constructor<registry_type, T>{}(reg, tick), constructor<registry_type, Rs>{}(reg, tick)...);
+        }
+
+        template<typename Func>
+        static return_type function_invoke(Func&& func, registry_type& reg, uint64_t tick) {
+            return std::invoke(std::forward<Func>(func), reg, tick);
         }
     };
 
@@ -206,6 +215,36 @@ namespace mytho::ecs::internal {
             std::invoke(std::forward<Func>(func), constructor<registry_type, Ts>{}(reg, tick)...);
         }
     };
+
+    template<typename RegistryT, auto... Funcs>
+    constexpr auto all_of() {
+        using registry_type = RegistryT;
+        using condition_type = basic_function<registry_type, bool>;
+
+        return [](registry_type& reg, uint64_t tick) {
+            return (condition_type{Funcs}(reg, tick) && ...);
+        };
+    }
+
+    template<typename RegistryT, auto... Funcs>
+    constexpr auto any_of() {
+        using registry_type = RegistryT;
+        using condition_type = basic_function<registry_type, bool>;
+
+        return [](registry_type& reg, uint64_t tick) {
+            return (condition_type{Funcs}(reg, tick) || ...);
+        };
+    }
+
+    template<typename RegistryT, auto Func>
+    constexpr auto not_of() {
+        using registry_type = RegistryT;
+        using condition_type = basic_function<registry_type, bool>;
+
+        return [](registry_type& reg, uint64_t tick) {
+            return !condition_type{Func}(reg, tick);
+        };
+    }
 }
 
 namespace mytho::ecs::internal {
@@ -217,29 +256,34 @@ namespace mytho::ecs::internal {
         using tick_type = uint64_t;
         using function_type = basic_function<registry_type, void>;
         using runif_type = basic_function<registry_type, bool>;
+        using runifs_type = std::vector<runif_type>;
 
     public:
         basic_meta_system() noexcept = default;
 
         template<mytho::utils::FunctionType Func>
         basic_meta_system(Func&& func) noexcept
-            : _function(std::forward<Func>(func)), _runif(), _last_run_tick(0) {}
+            : _function(std::forward<Func>(func)), _runifs(), _last_run_tick(0) {}
 
-        basic_meta_system(function_type&& func, runif_type&& runif, tick_type tick = 0) noexcept
-            : _function(func), _runif(runif), _last_run_tick(tick) {}
+        basic_meta_system(function_type&& func, runifs_type&& runifs, tick_type tick = 0) noexcept
+            : _function(func), _runifs(std::move(runifs)), _last_run_tick(tick) {}
 
     public:
         void operator()(registry_type& reg, uint64_t tick) {
-            if (!_runif.address() || _runif(reg, _last_run_tick)) {
-                _function(reg, _last_run_tick);
-                _last_run_tick = tick;
+            for (auto& runif : _runifs) {
+                if (runif.address() && !runif(reg, _last_run_tick)) {
+                    return;
+                }
             }
+
+            _function(reg, _last_run_tick);
+            _last_run_tick = tick;
         }
 
     private:
-        tick_type _last_run_tick;
-        function_type _function;
-        runif_type _runif;
+        tick_type _last_run_tick = 0;
+        function_type _function{};
+        runifs_type _runifs{};
     };
 
     template<typename RegistryT>
@@ -249,6 +293,7 @@ namespace mytho::ecs::internal {
         using self_type = basic_system<registry_type>;
         using function_type = basic_function<registry_type, void>;
         using runif_type = basic_function<registry_type, bool>;
+        using runifs_type = std::vector<runif_type>;
         using befores_type = std::vector<std::uintptr_t>;
         using afters_type = std::vector<std::uintptr_t>;
 
@@ -280,7 +325,7 @@ namespace mytho::ecs::internal {
 
         template<mytho::utils::FunctionType Func>
         self_type& runif(Func&& func) noexcept {
-            _runif = std::forward<Func>(func);
+            _runifs.emplace_back(std::forward<Func>(func));
 
             return *this;
         }
@@ -290,8 +335,8 @@ namespace mytho::ecs::internal {
             return _function;
         }
 
-        auto runif() noexcept {
-            return _runif;
+        auto runifs() && noexcept {
+            return std::move(_runifs);
         }
 
         auto befores() && noexcept {
@@ -304,7 +349,7 @@ namespace mytho::ecs::internal {
 
     private:
         function_type _function;
-        runif_type _runif;
+        runifs_type _runifs;
         befores_type _befores;
         afters_type _afters;
     };
@@ -367,7 +412,7 @@ namespace mytho::ecs::internal {
                 return;
             }
 
-            _meta_systems.emplace_back(std::move(system).function(), std::move(system).runif());
+            _meta_systems.emplace_back(std::move(system).function(), std::move(system).runifs());
             _befores_pool.push_back(std::move(system).befores());
             _afters_pool.push_back(std::move(system).afters());
 

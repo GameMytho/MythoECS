@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include <ecs/ecs.hpp>
 #include <random>
-#include <iostream>
 
 using namespace mecs;
 

@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 #include <ecs/ecs.hpp>
-#include <iostream>
 
 using namespace mecs;
 
