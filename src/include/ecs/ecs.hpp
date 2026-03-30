@@ -110,4 +110,11 @@ namespace mecs {
     bool resources_changed(Commands cmds) {
         return cmds.template resources_changed<T, Rs...>();
     }
+
+    template<auto E>
+    bool in_state(Res<State<std::decay_t<decltype(E)>>> r) {
+        auto& [state] = r;
+
+        return state->get() == E;
+    }
 }
