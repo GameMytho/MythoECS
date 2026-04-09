@@ -1,7 +1,6 @@
 #pragma once
 
-#include "utils/assert.hpp"
-#include "utils/concept.hpp"
+#include "core/concept.hpp"
 
 #include <cassert>
 #include <utility>
@@ -12,7 +11,7 @@
 
 // mini-magic_enum impletation, waiting for c++26 reflection
 
-namespace mytho::utils {
+namespace mytho::core {
     namespace internal {
         template<auto E>
         consteval bool v() {

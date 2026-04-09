@@ -1,7 +1,7 @@
 #pragma once
 #include <type_traits>
 
-namespace mytho::utils {
+namespace mytho::core {
     template<typename T>
     concept UnsignedIntegralType = std::is_integral_v<T> && std::is_unsigned_v<T>;
 

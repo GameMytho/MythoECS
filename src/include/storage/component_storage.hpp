@@ -5,12 +5,11 @@
 #include <utility>
 #include <cstdint>
 
-#include "container/component_set.hpp"
-#include "utils/idgen.hpp"
+#include "storage/component_set.hpp"
 
-namespace mytho::container {
+namespace mytho::storage {
     template<
-        mytho::utils::EntityType EntityT,
+        typename EntityT,
         typename ComponentIdGenerator,
         template<typename> typename AllocatorTemplateT,
         size_t PageSize = 256
@@ -43,13 +42,13 @@ namespace mytho::container {
 
     public:
         // must ensure the entity does not have any specific components
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::core::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         void add(const entity_type& e, uint64_t tick, Ts&&... ts) {
             (assure<Ts>().add(e, tick, std::forward<Ts>(ts)), ...);
         }
 
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::core::PureValueType... Ts>
         void remove(const entity_type& e) {
             if constexpr (sizeof...(Ts) > 0) {
                 // must ensure the entity has all specific components
@@ -60,7 +59,7 @@ namespace mytho::container {
         }
 
         // must ensure the entity has all specific components
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::core::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         std::tuple<const Ts&...> get(const entity_type& e) const noexcept {
             return std::tuple<const Ts&...>(
@@ -71,25 +70,25 @@ namespace mytho::container {
         }
 
         // must ensure the entity has all specific components
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::core::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         void replace(const entity_type& e, uint64_t tick, Ts&&... ts) {
             (_replace(e, tick, std::forward<Ts>(ts)), ...);
         }
 
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::core::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         bool is_added(const entity_type& e, uint64_t tick) const noexcept {
             return (_is_added<Ts>(e, tick) && ...);
         }
 
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::core::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         bool is_changed(const entity_type& e, uint64_t tick) const noexcept {
             return (_is_changed<Ts>(e, tick) && ...);
         }
 
-        template<mytho::utils::PureValueType T>
+        template<mytho::core::PureValueType T>
         auto& removed_entities() {
             auto id = component_id_generator::template gen<T>();
 
@@ -100,13 +99,13 @@ namespace mytho::container {
             return _entities[id];
         }
 
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::core::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         bool contain(const entity_type& e) const noexcept {
             return (_contain<Ts>(e) && ...);
         }
 
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::core::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         bool not_contain(const entity_type& e) const noexcept {
             return (!_contain<Ts>(e) && ...);

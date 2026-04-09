@@ -8,7 +8,6 @@
 #include <cstdint>
 #include <cstddef>
 
-#include "utils/concept.hpp"
 #include "ecs/querier.hpp"
 #include "ecs/resources.hpp"
 
@@ -24,7 +23,7 @@ namespace mytho::ecs {
             using buffers_type = std::vector<std::vector<uint8_t>>;
 
         public:
-            template<mytho::utils::PureComponentType... Ts>
+            template<PureComponentType... Ts>
             void spawn(Ts&&... ts) {
                 using tuple_type = std::tuple<Ts...>;
 
@@ -62,7 +61,7 @@ namespace mytho::ecs {
                 new (buffer.data()) entity_type(e);
             }
 
-            template<mytho::utils::PureComponentType... Ts>
+            template<PureComponentType... Ts>
             void insert(const entity_type& e, Ts&&... ts) {
                 using tuple_type = std::tuple<entity_type, Ts...>;
 
@@ -87,7 +86,7 @@ namespace mytho::ecs {
                 new (buffer.data()) tuple_type(e, std::forward<Ts>(ts)...);
             }
 
-            template<mytho::utils::PureComponentType... Ts>
+            template<PureComponentType... Ts>
             void remove(const entity_type& e) {
                 _executors.push_back([](registry_type& reg, void* ptr) {
                     reg.template remove<Ts...>(*static_cast<entity_type*>(ptr));
@@ -101,7 +100,7 @@ namespace mytho::ecs {
                 new (buffer.data()) entity_type(e);
             }
 
-            template<mytho::utils::PureComponentType... Ts>
+            template<PureComponentType... Ts>
             void replace(const entity_type& e, Ts&&... ts) {
                 using tuple_type = std::tuple<entity_type, Ts...>;
 
@@ -200,7 +199,7 @@ namespace mytho::ecs {
 
     public:
         // entity
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         void spawn(Ts&&... ts) {
             _reg.command_queue().spawn(std::forward<Ts>(ts)...);
         }
@@ -211,37 +210,37 @@ namespace mytho::ecs {
 
     public:
         // component
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void insert(const entity_type& e, Ts&&... ts) {
             _reg.command_queue().insert(e, std::forward<Ts>(ts)...);
         }
 
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void remove(const entity_type& e) {
             _reg.command_queue().template remove<Ts...>(e);
         }
 
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void replace(const entity_type& e, Ts&&... ts) {
             _reg.command_queue().replace(e, std::forward<Ts>(ts)...);
         }
 
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         bool components_added() noexcept {
             return _reg.template components_added<Ts...>(_tick);
         }
 
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         bool components_changed() noexcept {
             return _reg.template components_changed<Ts...>(_tick);
         }
 
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         bool components_removed() noexcept {
             return _reg.template components_removed<Ts...>();
@@ -259,19 +258,19 @@ namespace mytho::ecs {
             _reg.command_queue().template remove_resource<T>();
         }
 
-        template<mytho::utils::PureResourceType... Ts>
+        template<PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         bool resources_added() const noexcept {
             return _reg.template resources_added<Ts...>(_tick);
         }
 
-        template<mytho::utils::PureResourceType... Ts>
+        template<PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         bool resources_changed() const noexcept {
             return _reg.template resources_changed<Ts...>(_tick);
         }
 
-        template<mytho::utils::PureResourceType... Ts>
+        template<PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         bool resources_exist() const noexcept {
             return _reg.template resources_exist<Ts...>();
@@ -293,9 +292,7 @@ namespace mytho::ecs {
         registry_type& _reg;
         uint64_t _tick;
     };
-}
 
-namespace mytho::utils {
     template<typename T>
-    inline constexpr bool is_commands_v = internal::is_template_v<T, mytho::ecs::basic_commands>;
+    inline constexpr bool is_commands_v = mytho::core::is_template_v<T, basic_commands>;
 }

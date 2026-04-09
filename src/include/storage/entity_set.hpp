@@ -4,11 +4,10 @@
 #include <cstddef>
 #include <iterator>
 
-#include "ecs/entity.hpp"
-#include "container/sparse_set.hpp"
+#include "storage/sparse_set.hpp"
 
-namespace mytho::container {
-    template<mytho::utils::EntityType EntityT, size_t PageSize = 256>
+namespace mytho::storage {
+    template<typename EntityT, size_t PageSize = 256>
     class basic_entity_set : public basic_sparse_set<typename EntityT::id_type, PageSize> {
     public:
         using entity_type = EntityT;

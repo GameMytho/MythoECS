@@ -2,7 +2,7 @@
 #include <vector>
 #include <cstdint>
 
-namespace mytho::container {
+namespace mytho::storage {
     class basic_tick_set final {
     public:
         using added_ticks_type = std::vector<uint64_t>;

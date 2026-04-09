@@ -2,47 +2,68 @@
 #include <vector>
 #include <cstdint>
 
-#include "utils/type_list.hpp"
+#include "core/type_list.hpp"
 #include "ecs/entity.hpp"
 
-namespace mytho::ecs {
-    template<mytho::utils::PureValueType... Ts>
-    struct mut {};
+namespace mytho::ecs::internal {
+    template<typename... Ts>
+    using type_list = mytho::core::type_list<Ts...>;
 
-    template<mytho::utils::PureValueType... Ts>
-    struct with {};
+    template<typename... Ls>
+    using type_list_cat_t = mytho::core::type_list_cat_t<Ls...>;
 
-    template<mytho::utils::PureValueType... Ts>
-    struct without {};
+    template<typename L, template<typename...> typename... Fs>
+    using type_list_filter_template_t = mytho::core::type_list_filter_template_t<L, Fs...>;
 
-    template<mytho::utils::PureValueType... Ts>
-    struct added {};
+    template<typename L, template<typename...> typename E>
+    using type_list_extract_template_t = mytho::core::type_list_extract_template_t<L, E>;
 
-    template<mytho::utils::PureValueType... Ts>
-    struct changed {};
+    template<typename L, typename... Fs>
+    using type_list_filter_t = mytho::core::type_list_filter_t<L, Fs...>;
+
+    template<typename L>
+    using list_to_tuple_t = mytho::core::list_to_tuple_t<L>;
+
+    template<typename T, template<typename...> typename R>
+    using rm_template_t = mytho::core::rm_template_t<T, R>;
 }
 
-namespace mytho::utils {
-    template<typename T>
-    inline constexpr bool is_mut_v = internal::is_template_v<T, mytho::ecs::mut>;
+namespace mytho::ecs {
+    template<mytho::core::PureValueType... Ts>
+    struct mut {};
+
+    template<mytho::core::PureValueType... Ts>
+    struct with {};
+
+    template<mytho::core::PureValueType... Ts>
+    struct without {};
+
+    template<mytho::core::PureValueType... Ts>
+    struct added {};
+
+    template<mytho::core::PureValueType... Ts>
+    struct changed {};
 
     template<typename T>
-    inline constexpr bool is_with_v = internal::is_template_v<T, mytho::ecs::with>;
+    inline constexpr bool is_mut_v = mytho::core::is_template_v<T, mut>;
 
     template<typename T>
-    inline constexpr bool is_without_v = internal::is_template_v<T, mytho::ecs::without>;
+    inline constexpr bool is_with_v = mytho::core::is_template_v<T, with>;
 
     template<typename T>
-    inline constexpr bool is_added_v = internal::is_template_v<T, mytho::ecs::added>;
+    inline constexpr bool is_without_v = mytho::core::is_template_v<T, without>;
 
     template<typename T>
-    inline constexpr bool is_changed_v = internal::is_template_v<T, mytho::ecs::changed>;
+    inline constexpr bool is_added_v = mytho::core::is_template_v<T, added>;
 
     template<typename T>
-    concept QueryValueType = PureValueType<T>;
+    inline constexpr bool is_changed_v = mytho::core::is_template_v<T, changed>;
 
     template<typename T>
-    concept PureComponentType = PureValueType<T> && !is_mut_v<T> && !is_with_v<T> && !is_without_v<T> && !is_added_v<T> && !is_changed_v<T>;
+    concept QueryValueType = mytho::core::PureValueType<T>;
+
+    template<typename T>
+    concept PureComponentType = mytho::core::PureValueType<T> && !is_mut_v<T> && !is_with_v<T> && !is_without_v<T> && !is_added_v<T> && !is_changed_v<T>;
 
     namespace internal {
         template<typename T>
@@ -51,12 +72,12 @@ namespace mytho::utils {
         };
 
         template<typename T, typename U>
-        struct rm_mut<mytho::ecs::basic_entity<T, U>> {
-            using type = type_list<const data_wrapper<mytho::ecs::basic_entity<T, U>>>;
+        struct rm_mut<basic_entity<T, U>> {
+            using type = type_list<const data_wrapper<basic_entity<T, U>>>;
         };
 
         template<typename... Ts>
-        struct rm_mut<mytho::ecs::mut<Ts...>> {
+        struct rm_mut<mut<Ts...>> {
             using type = type_list<data_wrapper<Ts>...>;
         };
     }
@@ -65,13 +86,13 @@ namespace mytho::utils {
     using rm_mut_t = typename internal::rm_mut<T>::type;
 
     template<typename T>
-    using rm_with_t = internal::rm_template_t<T, mytho::ecs::with>;
+    using rm_with_t = internal::rm_template_t<T, with>;
 
     template<typename T>
-    using rm_without_t = internal::rm_template_t<T, mytho::ecs::without>;
+    using rm_without_t = internal::rm_template_t<T, without>;
 
     template<typename T>
-    using rm_changed_t = internal::rm_template_t<T, mytho::ecs::changed>;
+    using rm_changed_t = internal::rm_template_t<T, changed>;
 
     namespace internal {
         template<typename... Ts>
@@ -103,52 +124,26 @@ namespace mytho::utils {
 
     template<typename L, template<typename...> typename R>
     using prototype_list_convert_t = typename internal::prototype_list_convert<L, R>::type;
-}
 
-namespace mytho::ecs {
     namespace internal {
-        template<typename... Ts>
-        using type_list = mytho::utils::type_list<Ts...>;
-
-        template<typename... Ls>
-        using type_list_cat_t = mytho::utils::type_list_cat_t<Ls...>;
-
-        template<typename L, template<typename...> typename... Fs>
-        using type_list_filter_template_t = mytho::utils::type_list_filter_template_t<L, Fs...>;
-
-        template<typename L, template<typename...> typename E>
-        using type_list_extract_template_t = mytho::utils::type_list_extract_template_t<L, E>;
-
-        template<typename L, typename... Fs>
-        using type_list_filter_t = mytho::utils::type_list_filter_t<L, Fs...>;
-
-        template<typename L>
-        using list_to_tuple_t = mytho::utils::list_to_tuple_t<L>;
-
-        template<typename L>
-        using datatype_list_convert_t = mytho::utils::datatype_list_convert_t<L>;
-
-        template<typename L, template<typename...> typename R>
-        using prototype_list_convert_t = mytho::utils::prototype_list_convert_t<L, R>;
-
-        template<mytho::utils::QueryValueType... Ts>
+        template<QueryValueType... Ts>
         struct query_types {
-            using query_list = internal::type_list<Ts...>;
-            using require_list = internal::type_list_filter_template_t<query_list, with, without, added, changed>;
-            using require_prototype_list = internal::prototype_list_convert_t<require_list, mut>;
-            using require_datatype_list = internal::datatype_list_convert_t<require_list>;
-            using with_list = internal::type_list_extract_template_t<query_list, with>;
-            using with_prototype_list = internal::prototype_list_convert_t<with_list, with>;
-            using without_list = internal::type_list_extract_template_t<query_list, without>;
-            using without_prototype_list = internal::prototype_list_convert_t<without_list, without>;
-            using added_list = internal::type_list_extract_template_t<query_list, added>;
-            using added_prototype_list = internal::prototype_list_convert_t<added_list, added>;
-            using changed_list = internal::type_list_extract_template_t<query_list, changed>;
-            using changed_prototype_list = internal::prototype_list_convert_t<changed_list, changed>;
+            using query_list = type_list<Ts...>;
+            using require_list = type_list_filter_template_t<query_list, with, without, added, changed>;
+            using require_prototype_list = prototype_list_convert_t<require_list, mut>;
+            using require_datatype_list = datatype_list_convert_t<require_list>;
+            using with_list = type_list_extract_template_t<query_list, with>;
+            using with_prototype_list = prototype_list_convert_t<with_list, with>;
+            using without_list = type_list_extract_template_t<query_list, without>;
+            using without_prototype_list = prototype_list_convert_t<without_list, without>;
+            using added_list = type_list_extract_template_t<query_list, added>;
+            using added_prototype_list = prototype_list_convert_t<added_list, added>;
+            using changed_list = type_list_extract_template_t<query_list, changed>;
+            using changed_prototype_list = prototype_list_convert_t<changed_list, changed>;
         };
     }
 
-    template<typename RegistryT, mytho::utils::QueryValueType... Ts>
+    template<typename RegistryT, QueryValueType... Ts>
     requires (sizeof...(Ts) > 0)
     class basic_querier final {
     public:
@@ -181,7 +176,7 @@ namespace mytho::ecs {
         component_bundle_container_type _component_bundles;
     };
 
-    template<typename RegistryT, mytho::utils::PureComponentType T>
+    template<typename RegistryT, PureComponentType T>
     class basic_removed_entities final {
     public:
         using registry_type = RegistryT;
@@ -206,12 +201,10 @@ namespace mytho::ecs {
     private:
         entities_type& _entities;
     };
-}
-
-namespace mytho::utils {
-    template<typename T>
-    inline constexpr bool is_querier_v = internal::is_template_v<T, mytho::ecs::basic_querier>;
 
     template<typename T>
-    inline constexpr bool is_removed_entities_v = internal::is_template_v<T, mytho::ecs::basic_removed_entities>;
+    inline constexpr bool is_querier_v = mytho::core::is_template_v<T, basic_querier>;
+
+    template<typename T>
+    inline constexpr bool is_removed_entities_v = mytho::core::is_template_v<T, basic_removed_entities>;
 }

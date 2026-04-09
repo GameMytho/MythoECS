@@ -4,12 +4,12 @@
 #include <utility>
 #include <vector>
 
-#include "container/entity_set.hpp"
-#include "container/tick_set.hpp"
+#include "storage/entity_set.hpp"
+#include "storage/tick_set.hpp"
 
-namespace mytho::container {
+namespace mytho::storage {
     template<
-        mytho::utils::EntityType EntityT,
+        typename EntityT,
         typename ComponentT,
         typename AllocatorT,
         size_t PageSize = 256

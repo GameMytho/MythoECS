@@ -1,11 +1,9 @@
 #pragma once
 
-#include "utils/idgen.hpp"
-#include "utils/concept.hpp"
-#include "utils/assert.hpp"
-#include "container/tick_set.hpp"
+#include "core/concept.hpp"
+#include "storage/tick_set.hpp"
 
-namespace mytho::container {
+namespace mytho::storage {
     template<
         typename ResourceIdGenerator,
         template<typename> typename AllocatorT = std::allocator
@@ -29,7 +27,7 @@ namespace mytho::container {
         ~basic_resource_storage() { clear(); }
 
     public:
-        template<mytho::utils::PureValueType T, typename... Rs>
+        template<mytho::core::PureValueType T, typename... Rs>
         void init(uint64_t tick, Rs&&... rs) {
             using alloc_traits = std::allocator_traits<AllocatorT<T>>;
 
@@ -65,7 +63,7 @@ namespace mytho::container {
             };
         }
 
-        template<mytho::utils::PureValueType T>
+        template<mytho::core::PureValueType T>
         void deinit() noexcept {
             auto id = resource_id_generator::template gen<T>();
             if (id >= _pool.size()) return;
@@ -81,7 +79,7 @@ namespace mytho::container {
 
     public:
         // must ensure resource exists
-        template<mytho::utils::PureValueType T>
+        template<mytho::core::PureValueType T>
         const T& get() const noexcept {
             auto id = resource_id_generator::template gen<T>();
 
@@ -89,7 +87,7 @@ namespace mytho::container {
         }
 
         // must ensure resource exists
-        template<mytho::utils::PureValueType T>
+        template<mytho::core::PureValueType T>
         T& get() noexcept {
             auto id = resource_id_generator::template gen<T>();
 
@@ -97,7 +95,7 @@ namespace mytho::container {
         }
 
         // must ensure resource exists
-        template<mytho::utils::PureValueType T>
+        template<mytho::core::PureValueType T>
         uint64_t& get_changed_tick_ref() noexcept {
             auto id = resource_id_generator::template gen<T>();
 
@@ -105,7 +103,7 @@ namespace mytho::container {
         }
 
         // must ensure resource exists
-        template<mytho::utils::PureValueType T>
+        template<mytho::core::PureValueType T>
         bool is_added(uint64_t tick) const noexcept {
             auto id = resource_id_generator::template gen<T>();
 
@@ -113,14 +111,14 @@ namespace mytho::container {
         }
 
         // must ensure resource exists
-        template<mytho::utils::PureValueType T>
+        template<mytho::core::PureValueType T>
         bool is_changed(uint64_t tick) const noexcept {
             auto id = resource_id_generator::template gen<T>();
 
             return id < _pool.size() && _pool[id] && _ticks.get_changed_tick(id) >= tick;
         }
 
-        template<mytho::utils::PureValueType T>
+        template<mytho::core::PureValueType T>
         bool exist() const noexcept {
             auto id = resource_id_generator::template gen<T>();
 

@@ -11,13 +11,14 @@
 #include <unordered_set>
 #include <unordered_map>
 
-#include "utils/assert.hpp"
-#include "utils/type_list.hpp"
-#include "container/sparse_set.hpp"
+#include "core/assert.hpp"
+#include "core/type_list.hpp"
+#include "storage/sparse_set.hpp"
 #include "ecs/commands.hpp"
 #include "ecs/core/event.hpp"
 
-namespace mytho::utils {
+namespace mytho::ecs {
+    // function traits
     namespace internal {
         template<typename T>
         struct function_traits;
@@ -36,6 +37,7 @@ namespace mytho::utils {
     template<typename T>
     using function_traits_t = typename internal::function_traits<T>::type;
 
+    // system traits
     namespace internal {
         template<typename T>
         struct system_traits;
@@ -53,9 +55,7 @@ namespace mytho::utils {
 
     template<typename T>
     using system_traits_t = typename internal::system_traits<T>::type;
-}
 
-namespace mytho::ecs::internal {
     // argument constructors
     template<typename RegistryT, typename ArgumentT>
     struct constructor;
@@ -125,7 +125,7 @@ namespace mytho::ecs::internal {
 
         basic_function() noexcept : _function_wrapper(nullptr), _address(0) {}
 
-        template<mytho::utils::FunctionType Func>
+        template<mytho::core::FunctionType Func>
         basic_function(Func&& func) noexcept {
             using Fp = decltype(+std::declval<Func>());
 
@@ -150,9 +150,9 @@ namespace mytho::ecs::internal {
         template<typename Fp>
         auto function_wrapper_construct() noexcept {
             return [](std::uintptr_t addr, registry_type& reg, uint64_t tick) -> return_type {
-                using types = mytho::utils::system_traits_t<mytho::utils::function_traits_t<Fp>>;
+                using types = system_traits_t<function_traits_t<Fp>>;
 
-                if constexpr (std::is_same_v<types, mytho::utils::type_list<registry_type&, uint64_t>>) {
+                if constexpr (std::is_same_v<types, mytho::core::type_list<registry_type&, uint64_t>>) {
                     return function_invoke(std::bit_cast<Fp>(addr), reg, tick);
                 } else {
                     return function_invoke(std::bit_cast<Fp>(addr), reg, tick, types{});
@@ -161,7 +161,7 @@ namespace mytho::ecs::internal {
         }
 
         template<typename Func, typename T, typename... Rs>
-        static return_type function_invoke(Func&& func, registry_type& reg, uint64_t tick, mytho::utils::type_list<T, Rs...>) {
+        static return_type function_invoke(Func&& func, registry_type& reg, uint64_t tick, mytho::core::type_list<T, Rs...>) {
             return std::invoke(std::forward<Func>(func), constructor<registry_type, T>{}(reg, tick), constructor<registry_type, Rs>{}(reg, tick)...);
         }
 
@@ -179,7 +179,7 @@ namespace mytho::ecs::internal {
 
         basic_function() noexcept : _function_wrapper(nullptr), _address(0) {}
 
-        template<mytho::utils::FunctionType Func>
+        template<mytho::core::FunctionType Func>
         basic_function(Func&& func) noexcept {
             using Fp = decltype(+std::declval<Func>());
 
@@ -204,14 +204,14 @@ namespace mytho::ecs::internal {
         template<typename Fp>
         auto function_wrapper_construct() noexcept {
             return [](std::uintptr_t addr, registry_type& reg, uint64_t tick) {
-                using types = mytho::utils::system_traits_t<mytho::utils::function_traits_t<Fp>>;
+                using types = system_traits_t<function_traits_t<Fp>>;
 
                 function_invoke(std::bit_cast<Fp>(addr), reg, tick, types{});
             };
         }
 
         template<typename Func, typename... Ts>
-        static void function_invoke(Func&& func, registry_type& reg, uint64_t tick, mytho::utils::type_list<Ts...>) {
+        static void function_invoke(Func&& func, registry_type& reg, uint64_t tick, mytho::core::type_list<Ts...>) {
             std::invoke(std::forward<Func>(func), constructor<registry_type, Ts>{}(reg, tick)...);
         }
     };
@@ -261,7 +261,7 @@ namespace mytho::ecs::internal {
     public:
         basic_meta_system() noexcept = default;
 
-        template<mytho::utils::FunctionType Func>
+        template<mytho::core::FunctionType Func>
         basic_meta_system(Func&& func) noexcept
             : _function(std::forward<Func>(func)), _runifs(), _last_run_tick(0) {}
 
@@ -299,11 +299,11 @@ namespace mytho::ecs::internal {
 
         basic_system() noexcept = default;
 
-        template<mytho::utils::FunctionType Func>
+        template<mytho::core::FunctionType Func>
         basic_system(Func&& func) noexcept : _function(std::forward<Func>(func)) {}
 
     public:
-        template<mytho::utils::FunctionType Func>
+        template<mytho::core::FunctionType Func>
         self_type& after(Func&& func) {
             using Fp = decltype(+std::declval<Func>());
 
@@ -313,7 +313,7 @@ namespace mytho::ecs::internal {
             return *this;
         }
 
-        template<mytho::utils::FunctionType Func>
+        template<mytho::core::FunctionType Func>
         self_type& before(Func&& func) {
             using Fp = decltype(+std::declval<Func>());
 
@@ -323,7 +323,7 @@ namespace mytho::ecs::internal {
             return *this;
         }
 
-        template<mytho::utils::FunctionType Func>
+        template<mytho::core::FunctionType Func>
         self_type& runif(Func&& func) noexcept {
             _runifs.emplace_back(std::forward<Func>(func));
 
@@ -390,7 +390,7 @@ namespace mytho::ecs::internal {
         }
 
     public:
-        template<mytho::utils::FunctionType Func>
+        template<mytho::core::FunctionType Func>
         void add(Func&& func) {
             using Fp = decltype(+std::declval<Func>());
 
@@ -429,7 +429,7 @@ namespace mytho::ecs::internal {
             if (size == 1) {
                 pool.push_back(std::move(_meta_systems));
             } else {
-                mytho::container::basic_sparse_set<size_type, 64> ids;
+                mytho::storage::basic_sparse_set<size_type, 64> ids;
                 for (auto i = 0; i < size; i++) {
                     ids.add(i);
                 }

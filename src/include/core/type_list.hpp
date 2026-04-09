@@ -2,25 +2,27 @@
 #include <type_traits>
 #include <tuple>
 
-namespace mytho::utils::internal {
-    template<typename T, template<typename...> typename R>
-    struct is_template_t : std::false_type {};
+namespace mytho::core {
+    namespace internal {
+        template<typename T, template<typename...> typename R>
+        struct is_template_t : std::false_type {};
 
-    template<template<typename...> typename R, typename... Ts>
-    struct is_template_t<R<Ts...>, R> : std::true_type {};
+        template<template<typename...> typename R, typename... Ts>
+        struct is_template_t<R<Ts...>, R> : std::true_type {};
+    }
 
     template<typename T, template<typename...> typename R>
-    inline constexpr bool is_template_v = is_template_t<T, R>::value;
+    inline constexpr bool is_template_v = internal::is_template_t<T, R>::value;
 }
 
-namespace mytho::utils {
+namespace mytho::core {
     template<typename... Ts>
     struct type_list {
         inline static constexpr size_t size = sizeof...(Ts);
     };
 
     template<typename L>
-    inline constexpr bool is_type_list_v = internal::is_template_v<L, type_list>;
+    inline constexpr bool is_type_list_v = is_template_v<L, type_list>;
 
     namespace internal {
         template<typename... Ls>
@@ -125,17 +127,19 @@ namespace mytho::utils {
     using list_to_tuple_t = typename internal::list_to_tuple<L>::type;
 }
 
-namespace mytho::utils::internal {
-    template<typename T, template<typename...> typename R>
-    struct rm_template {
-        using type = type_list<T>;
-    };
+namespace mytho::core {
+    namespace internal {
+        template<typename T, template<typename...> typename R>
+        struct rm_template {
+            using type = type_list<T>;
+        };
 
-    template<template<typename...> typename R, typename... Ts>
-    struct rm_template<R<Ts...>, R> {
-        using type = type_list<Ts...>;
-    };
+        template<template<typename...> typename R, typename... Ts>
+        struct rm_template<R<Ts...>, R> {
+            using type = type_list<Ts...>;
+        };
+    }
 
     template<typename T, template<typename...> typename R>
-    using rm_template_t = typename rm_template<T, R>::type;
+    using rm_template_t = typename internal::rm_template<T, R>::type;
 }

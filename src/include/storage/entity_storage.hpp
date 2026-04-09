@@ -3,12 +3,11 @@
 #include <utility>
 #include <vector>
 
-#include "container/entity_set.hpp"
-#include "utils/idgen.hpp"
+#include "storage/entity_set.hpp"
 
-namespace mytho::container {
+namespace mytho::storage {
     template<
-        mytho::utils::EntityType EntityT,
+        typename EntityT,
         typename ComponentIdGenerator,
         size_t PageSize = 256
     >
@@ -33,7 +32,7 @@ namespace mytho::container {
         ~basic_entity_storage() noexcept = default;
 
     public:
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::core::PureValueType... Ts>
         entity_type emplace() {
             ++_length;
 
@@ -76,7 +75,7 @@ namespace mytho::container {
         }
 
         // must ensure entity exist
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::core::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         void add(const entity_type& e) {
             auto idx = base_type::index(e);
@@ -84,7 +83,7 @@ namespace mytho::container {
         }
 
         // must ensure entity exist
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::core::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         void remove(const entity_type& e) noexcept {
             auto idx = base_type::index(e);
@@ -92,7 +91,7 @@ namespace mytho::container {
         }
 
         // must ensure entity exist
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::core::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         bool has(const entity_type& e) const noexcept {
             auto idx = base_type::index(e);
@@ -100,7 +99,7 @@ namespace mytho::container {
         }
 
         // must ensure entity exist
-        template<mytho::utils::PureValueType... Ts>
+        template<mytho::core::PureValueType... Ts>
         requires (sizeof...(Ts) > 0)
         bool not_has(const entity_type& e) const noexcept {
             auto idx = base_type::index(e);

@@ -1,10 +1,10 @@
 #pragma once
 #include <type_traits>
 
-#include "utils/concept.hpp"
+#include "core/concept.hpp"
 
 namespace mytho::ecs {
-    template<mytho::utils::UnsignedIntegralType EntityIdentityT, mytho::utils::UnsignedIntegralType EntityVersionT>
+    template<mytho::core::UnsignedIntegralType EntityIdentityT, mytho::core::UnsignedIntegralType EntityVersionT>
     class basic_entity final {
     public:
         using id_type = EntityIdentityT;
@@ -30,15 +30,13 @@ namespace mytho::ecs {
         id_type _id;
         version_type _ver;
     };
-}
 
-namespace mytho::utils {
     namespace internal {
         template<typename T>
         struct is_entity_t : std::false_type {};
 
         template<typename T, typename U>
-        struct is_entity_t<mytho::ecs::basic_entity<T, U>> : std::true_type {};
+        struct is_entity_t<basic_entity<T, U>> : std::true_type {};
     }
 
     template<typename T>
@@ -46,39 +44,39 @@ namespace mytho::utils {
 
     template<typename T>
     concept EntityType = is_entity_v<T>;
-}
 
-namespace mytho::utils::internal {
-    template<typename T>
-    class data_wrapper {
-    public:
-        using data_type = T;
+    namespace internal {
+        template<typename T>
+        class data_wrapper {
+        public:
+            using data_type = T;
 
-        data_wrapper(T* data, uint64_t& data_tick, uint64_t tick) : _data(data), _data_tick(data_tick), _tick(tick) {}
+            data_wrapper(T* data, uint64_t& data_tick, uint64_t tick) : _data(data), _data_tick(data_tick), _tick(tick) {}
 
-        const T* operator->() const noexcept { return _data; }
-        const T& operator*() const noexcept { return *_data; }
+            const T* operator->() const noexcept { return _data; }
+            const T& operator*() const noexcept { return *_data; }
 
-        T* operator->() noexcept { _data_tick = _tick; return _data; }
-        T& operator*() noexcept { _data_tick = _tick; return *_data; }
+            T* operator->() noexcept { _data_tick = _tick; return _data; }
+            T& operator*() noexcept { _data_tick = _tick; return *_data; }
 
-    private:
-        T* _data = nullptr;
-        uint64_t& _data_tick;
-        uint64_t _tick = 0;
-    };
+        private:
+            T* _data = nullptr;
+            uint64_t& _data_tick;
+            uint64_t _tick = 0;
+        };
 
-    template<typename T, typename U>
-    class data_wrapper<mytho::ecs::basic_entity<T, U>> {
-    public:
-        using data_type = mytho::ecs::basic_entity<T, U>;
+        template<typename T, typename U>
+        class data_wrapper<basic_entity<T, U>> {
+        public:
+            using data_type = basic_entity<T, U>;
 
-        data_wrapper(data_type data) : _data(data) {}
+            data_wrapper(data_type data) : _data(data) {}
 
-        const data_type* operator->() const noexcept { return &_data; }
-        const data_type& operator*() const noexcept { return _data; }
+            const data_type* operator->() const noexcept { return &_data; }
+            const data_type& operator*() const noexcept { return _data; }
 
-    private:
-        data_type _data;
-    };
+        private:
+            data_type _data;
+        };
+    }
 }

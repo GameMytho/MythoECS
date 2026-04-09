@@ -229,7 +229,7 @@ namespace mytho::ecs::internal {
         }
 
     public:
-        template<mytho::utils::FunctionType Func>
+        template<mytho::core::FunctionType Func>
         self_type& add_system(Func&& func) {
             ASSURE(_default_index < _schedules.size(), "no available default schedule!");
 
@@ -238,7 +238,7 @@ namespace mytho::ecs::internal {
             return *this;
         }
 
-        template<auto ScheduleE, mytho::utils::FunctionType Func>
+        template<auto ScheduleE, mytho::core::FunctionType Func>
         self_type& add_system(Func&& func) {
             auto id = schedule_id_generator::template gen<ScheduleE>();
             auto idx = _index(id);
@@ -250,7 +250,7 @@ namespace mytho::ecs::internal {
             return *this;
         }
 
-        template<typename ScheduleT, mytho::utils::FunctionType Func>
+        template<typename ScheduleT, mytho::core::FunctionType Func>
         self_type& add_system(Func&& func) {
             auto id = schedule_id_generator::template gen<ScheduleT>();
             auto idx = _index(id);

@@ -1,20 +1,19 @@
 #pragma once
 
-#include "utils/concept.hpp"
+#include "core/concept.hpp"
 #include "ecs/resources.hpp"
 
 #include <optional>
 
-namespace mytho::utils {
+namespace mytho::ecs {
     // require the state type is scoped enumeration and its underlying type must is uint8_t.
     template<typename T>
-    concept PureStateType = PureEnumClassType<T> && std::is_same_v<std::underlying_type_t<T>, uint8_t>;
-}
+    concept PureStateType = mytho::core::PureEnumClassType<T> && std::is_same_v<std::underlying_type_t<T>, uint8_t>;
 
-namespace mytho::ecs {
-    template<mytho::utils::PureStateType StateT> class basic_state_helper;
+    // friend class pre-definition
+    template<PureStateType StateT> class basic_state_helper;
 
-    template<mytho::utils::PureStateType StateT>
+    template<PureStateType StateT>
     class basic_state final {
     public:
         using value_type = StateT;
@@ -33,7 +32,7 @@ namespace mytho::ecs {
         friend class basic_state_helper<value_type>;
     };
 
-    template<mytho::utils::PureStateType StateT>
+    template<PureStateType StateT>
     class basic_next_state final {
     public:
         using state_type = StateT;
@@ -55,7 +54,7 @@ namespace mytho::ecs {
         friend class basic_state_helper<state_type>;
     };
 
-    template<mytho::utils::PureStateType StateT>
+    template<PureStateType StateT>
     class basic_state_helper final {
     public:
         using state_value_type = StateT;

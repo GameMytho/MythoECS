@@ -18,7 +18,7 @@ namespace mecs {
     using Changed = mytho::ecs::changed<Ts...>;
 
     template<typename T>
-    using DataWrapper = mytho::utils::internal::data_wrapper<T>;
+    using DataWrapper = mytho::ecs::internal::data_wrapper<T>;
 
     using Entity = mytho::ecs::basic_entity<uint32_t, uint8_t>;
     using Registry = mytho::ecs::basic_registry<Entity, uint16_t, uint16_t, uint8_t, 256>;
@@ -61,52 +61,52 @@ namespace mecs {
     template<auto E>
     using OnExit = mytho::ecs::on_exit<E>;
 
-    template<mytho::utils::FunctionType Func>
+    template<mytho::core::FunctionType Func>
     auto system(Func&& func) {
         return Registry::system(std::forward<Func>(func));
     }
 
     template<auto... Funcs>
     constexpr auto all_of() {
-        return mytho::ecs::internal::all_of<Registry, Funcs...>();
+        return mytho::ecs::all_of<Registry, Funcs...>();
     }
 
     template<auto... Funcs>
     constexpr auto any_of() {
-        return mytho::ecs::internal::any_of<Registry, Funcs...>();
+        return mytho::ecs::any_of<Registry, Funcs...>();
     }
 
     template<auto Funcs>
     constexpr auto not_of() {
-        return mytho::ecs::internal::not_of<Registry, Funcs>();
+        return mytho::ecs::not_of<Registry, Funcs>();
     }
 
-    template<mytho::utils::PureComponentType T, mytho::utils::PureComponentType... Rs>
+    template<mytho::ecs::PureComponentType T, mytho::ecs::PureComponentType... Rs>
     bool components_added(Commands cmds) {
         return cmds.template components_added<T, Rs...>();
     }
 
-    template<mytho::utils::PureComponentType T, mytho::utils::PureComponentType... Rs>
+    template<mytho::ecs::PureComponentType T, mytho::ecs::PureComponentType... Rs>
     bool components_changed(Commands cmds) {
         return cmds.template components_changed<T, Rs...>();
     }
 
-    template<mytho::utils::PureComponentType T, mytho::utils::PureComponentType... Rs>
+    template<mytho::ecs::PureComponentType T, mytho::ecs::PureComponentType... Rs>
     bool components_removed(Commands cmds) {
         return cmds.template components_removed<T, Rs...>();
     }
 
-    template<mytho::utils::PureResourceType T, mytho::utils::PureResourceType... Rs>
+    template<mytho::ecs::PureResourceType T, mytho::ecs::PureResourceType... Rs>
     bool resources_exist(Commands cmds) {
         return cmds.template resources_exist<T, Rs...>();
     }
 
-    template<mytho::utils::PureResourceType T, mytho::utils::PureResourceType... Rs>
+    template<mytho::ecs::PureResourceType T, mytho::ecs::PureResourceType... Rs>
     bool resources_added(Commands cmds) {
         return cmds.template resources_added<T, Rs...>();
     }
 
-    template<mytho::utils::PureResourceType T, mytho::utils::PureResourceType... Rs>
+    template<mytho::ecs::PureResourceType T, mytho::ecs::PureResourceType... Rs>
     bool resources_changed(Commands cmds) {
         return cmds.template resources_changed<T, Rs...>();
     }

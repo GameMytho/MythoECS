@@ -7,11 +7,11 @@
 #include <vector>
 #include <cstddef>
 
-#include "utils/idgen.hpp"
-#include "utils/mmem.hpp"
-#include "container/entity_storage.hpp"
-#include "container/component_storage.hpp"
-#include "container/resource_storage.hpp"
+#include "core/idgen.hpp"
+#include "core/mmem.hpp"
+#include "storage/entity_storage.hpp"
+#include "storage/component_storage.hpp"
+#include "storage/resource_storage.hpp"
 #include "ecs/schedule.hpp"
 #include "ecs/core/state.hpp"
 
@@ -39,10 +39,10 @@ namespace mytho::ecs {
     };
 
     template<
-        mytho::utils::EntityType EntityT,
-        mytho::utils::UnsignedIntegralType ComponentIdT = uint16_t,
-        mytho::utils::UnsignedIntegralType ResourceIdT = uint16_t,
-        mytho::utils::UnsignedIntegralType ScheduleIdT = uint8_t,
+        EntityType EntityT,
+        mytho::core::UnsignedIntegralType ComponentIdT = uint16_t,
+        mytho::core::UnsignedIntegralType ResourceIdT = uint16_t,
+        mytho::core::UnsignedIntegralType ScheduleIdT = uint8_t,
         size_t PageSize = 256
     >
     class basic_registry final {
@@ -58,33 +58,33 @@ namespace mytho::ecs {
         using component_id_type = ComponentIdT;
         using resource_id_type = ResourceIdT;
         using schedule_id_type = ScheduleIdT;
-        using self_type = mytho::ecs::basic_registry<entity_type, component_id_type, resource_id_type, schedule_id_type, PageSize>;
+        using self_type = basic_registry<entity_type, component_id_type, resource_id_type, schedule_id_type, PageSize>;
 
-        using component_id_generator = mytho::utils::basic_id_generator<internal::component_genor, component_id_type>;
-        using resource_id_generator = mytho::utils::basic_id_generator<internal::resource_genor, component_id_type>;
-        using schedule_id_generator = mytho::utils::basic_id_generator<internal::schedule_genor, component_id_type>;
+        using component_id_generator = mytho::core::basic_id_generator<internal::component_genor, component_id_type>;
+        using resource_id_generator = mytho::core::basic_id_generator<internal::resource_genor, component_id_type>;
+        using schedule_id_generator = mytho::core::basic_id_generator<internal::schedule_genor, component_id_type>;
 
-        using entity_storage_type = mytho::container::basic_entity_storage<entity_type, component_id_generator, PageSize>;
-        using component_storage_type = mytho::container::basic_component_storage<entity_type, component_id_generator, std::allocator, PageSize>;
-        using resource_storage_type = mytho::container::basic_resource_storage<resource_id_generator, std::allocator>;
-        using command_queue_type = mytho::ecs::internal::basic_command_queue<self_type>;
-        using schedules_type = mytho::ecs::internal::basic_schedules<self_type>;
+        using entity_storage_type = mytho::storage::basic_entity_storage<entity_type, component_id_generator, PageSize>;
+        using component_storage_type = mytho::storage::basic_component_storage<entity_type, component_id_generator, std::allocator, PageSize>;
+        using resource_storage_type = mytho::storage::basic_resource_storage<resource_id_generator, std::allocator>;
+        using command_queue_type = internal::basic_command_queue<self_type>;
+        using schedules_type = internal::basic_schedules<self_type>;
 
         using size_type = typename entity_storage_type::size_type;
         using system_type = typename schedules_type::system_type;
         using entity_set_type = typename entity_storage_type::base_type;
 
         // system argument types
-        using commands_type = mytho::ecs::basic_commands<self_type>;
+        using commands_type = basic_commands<self_type>;
 
         template<typename... Ts>
-        using querier_type = mytho::ecs::basic_querier<self_type, Ts...>;
+        using querier_type = basic_querier<self_type, Ts...>;
 
         template<typename... Ts>
-        using resources_type = mytho::ecs::basic_resources<Ts...>;
+        using resources_type = basic_resources<Ts...>;
 
         template<typename... Ts>
-        using resources_mut_type = mytho::ecs::basic_resources_mut<Ts...>;
+        using resources_mut_type = basic_resources_mut<Ts...>;
 
         template<typename T>
         using events_type = basic_events<T>;
@@ -128,7 +128,7 @@ namespace mytho::ecs {
         }
 
     public: // entity operations
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         entity_type spawn(Ts&&... ts) {
             auto e = _entities.emplace();
 
@@ -158,7 +158,7 @@ namespace mytho::ecs {
         }
 
     public: // component operations
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void insert(const entity_type& e, Ts&&... ts) {
             if (!alive(e)) {
@@ -169,7 +169,7 @@ namespace mytho::ecs {
             _components.add(e, _current_tick, std::forward<Ts>(ts)...);
         }
 
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void remove(const entity_type& e) {
             if (!contain<Ts...>(e)) {
@@ -180,7 +180,7 @@ namespace mytho::ecs {
             _components.template remove<Ts...>(e);
         }
 
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         std::tuple<const Ts&...> get(const entity_type& e) const noexcept {
             ASSURE(contain<Ts...>(e), "entity does not have some components");
@@ -188,7 +188,7 @@ namespace mytho::ecs {
             return _components.template get<Ts...>(e);
         }
 
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         void replace(const entity_type& e, Ts&&... ts) {
             if (!contain<Ts...>(e)) {
@@ -198,14 +198,14 @@ namespace mytho::ecs {
             _components.replace(e, _current_tick, std::forward<Ts>(ts)...);
         }
 
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         bool contain(const entity_type& e) const noexcept {
             // _entities and _components are synchronized, just check one
             return alive(e) && _entities.template has<Ts...>(e) /* && _components.template contain<Ts...>(e) */;
         }
 
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         bool components_added(uint64_t tick) noexcept {
             auto id = _get_cid_with_minimun_entities<Ts...>();
@@ -222,7 +222,7 @@ namespace mytho::ecs {
             return false;
         }
 
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         bool components_changed(uint64_t tick) noexcept {
             auto id = _get_cid_with_minimun_entities<Ts...>();
@@ -239,24 +239,24 @@ namespace mytho::ecs {
             return false;
         }
 
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         bool components_removed() noexcept {
             return (!_components.template removed_entities<Ts>().empty() && ...);
         }
 
-        template<mytho::utils::PureComponentType T>
+        template<PureComponentType T>
         auto& removed_entities() noexcept {
             return _components.template removed_entities<T>();
         }
 
-        template<mytho::utils::QueryValueType... Ts>
+        template<QueryValueType... Ts>
         requires (sizeof...(Ts) > 0)
         querier_type<Ts...> query() {
             return query<Ts...>(_current_tick);
         }
 
-        template<mytho::utils::QueryValueType... Ts>
+        template<QueryValueType... Ts>
         requires (sizeof...(Ts) > 0)
         querier_type<Ts...> query(uint64_t tick) {
             using querier = querier_type<Ts...>;
@@ -305,13 +305,13 @@ namespace mytho::ecs {
             return { std::move(component_bundles) };
         }
 
-        template<mytho::utils::QueryValueType... Ts>
+        template<QueryValueType... Ts>
         requires (sizeof...(Ts) > 0)
         size_type count() noexcept {
             return count<Ts...>(_current_tick);
         }
 
-        template<mytho::utils::QueryValueType... Ts>
+        template<QueryValueType... Ts>
         requires (sizeof...(Ts) > 0)
         size_type count(uint64_t tick) noexcept {
             using querier = querier_type<Ts...>;
@@ -358,7 +358,7 @@ namespace mytho::ecs {
         }
 
     public: // resource operations
-        template<mytho::utils::PureResourceType T, typename... Rs>
+        template<PureResourceType T, typename... Rs>
         self_type& init_resource(Rs&&... rs) {
             ASSURE(!_resources.template exist<T>() , "resource already exists");
 
@@ -367,7 +367,7 @@ namespace mytho::ecs {
             return *this;
         }
 
-        template<mytho::utils::PureResourceType T>
+        template<PureResourceType T>
         self_type& remove_resource() noexcept {
             ASSURE(_resources.template exist<T>() , "resource not exists");
 
@@ -376,13 +376,13 @@ namespace mytho::ecs {
             return *this;
         }
 
-        template<mytho::utils::PureResourceType... Ts>
+        template<PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         auto resources() noexcept {
             ASSURE(_resources.template exist<Ts>() && ..., "some resources not exist");
 
-            return std::tuple<const mytho::utils::internal::data_wrapper<Ts>...>(
-                mytho::utils::internal::data_wrapper<Ts>(
+            return std::tuple<const internal::data_wrapper<Ts>...>(
+                internal::data_wrapper<Ts>(
                     &_resources.template get<Ts>(),
                     _resources.template get_changed_tick_ref<Ts>(),
                     _current_tick
@@ -390,13 +390,13 @@ namespace mytho::ecs {
             );
         }
 
-        template<mytho::utils::PureResourceType... Ts>
+        template<PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         auto resources_mut() noexcept {
             ASSURE(_resources.template exist<Ts>() && ..., "some resources not exist");
 
-            return std::tuple<mytho::utils::internal::data_wrapper<Ts>...>(
-                mytho::utils::internal::data_wrapper<Ts>(
+            return std::tuple<internal::data_wrapper<Ts>...>(
+                internal::data_wrapper<Ts>(
                     &_resources.template get<Ts>(),
                     _resources.template get_changed_tick_ref<Ts>(),
                     _current_tick
@@ -404,7 +404,7 @@ namespace mytho::ecs {
             );
         }
 
-        template<mytho::utils::PureResourceType... Ts>
+        template<PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         bool resources_added(uint64_t tick) const noexcept {
             ASSURE(_resources.template exist<Ts>() && ..., "some resources not exist");
@@ -412,7 +412,7 @@ namespace mytho::ecs {
             return (_resources.template is_added<Ts>(tick) && ...);
         }
 
-        template<mytho::utils::PureResourceType... Ts>
+        template<PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         bool resources_changed(uint64_t tick) const noexcept {
             ASSURE(_resources.template exist<Ts>() && ..., "some resources not exist");
@@ -420,14 +420,14 @@ namespace mytho::ecs {
             return (_resources.template is_changed<Ts>(tick) && ...);
         }
 
-        template<mytho::utils::PureResourceType... Ts>
+        template<PureResourceType... Ts>
         requires (sizeof...(Ts) > 0)
         bool resources_exist() const noexcept {
             return (_resources.template exist<Ts>() && ...);
         }
 
     public: // event operations
-        template<mytho::utils::PureEventType T>
+        template<PureEventType T>
         self_type& init_event() {
             ASSURE(!_resources.template exist<events_type<T>>(), "event type already exists");
 
@@ -442,21 +442,21 @@ namespace mytho::ecs {
             return *this;
         }
 
-        template<mytho::utils::PureEventType T>
+        template<PureEventType T>
         auto& event_write() noexcept {
             ASSURE(_resources.template exist<events_type<T>>(), "event type not exists");
 
             return _resources.template get<events_type<T>>().write();
         }
 
-        template<mytho::utils::PureEventType T>
+        template<PureEventType T>
         auto& event_mutate() noexcept {
             ASSURE(_resources.template exist<events_type<T>>(), "event type not exists");
 
             return _resources.template get<events_type<T>>().mutate();
         }
 
-        template<mytho::utils::PureEventType T>
+        template<PureEventType T>
         const auto& event_read() const noexcept {
             ASSURE(_resources.template exist<events_type<T>>(), "event type not exists");
 
@@ -464,14 +464,14 @@ namespace mytho::ecs {
         }
 
     public: // state operations
-        template<mytho::utils::PureStateType T>
+        template<PureStateType T>
         self_type& init_state(T state) {
             ASSURE(!_resources.template exist<state_type<T>>(), "state type already exists");
 
             _resources.template init<state_type<T>>(_current_tick, state);
             _resources.template init<next_state_type<T>>(_current_tick);
 
-            mytho::utils::enum_foreach<T, 0, 128>([&]<auto V>(){
+            mytho::core::enum_foreach<T, 0, 128>([&]<auto V>(){
                 _schedules.template add_schedule<on_enter_type<V>>()
                          .template add_schedule<on_exit_type<V>>();
             });
@@ -492,12 +492,12 @@ namespace mytho::ecs {
                             }
 
                             // run state on_exit
-                            mytho::utils::enum_switch<T, 0, 128>([&cmds]<auto V>(){
+                            mytho::core::enum_switch<T, 0, 128>([&cmds]<auto V>(){
                                 cmds.registry().template run_schedule<on_exit_type<V>>();
                             }, s);
 
                             // run next_state on_enter
-                            mytho::utils::enum_switch<T, 0, 128>([&cmds]<auto V>(){
+                            mytho::core::enum_switch<T, 0, 128>([&cmds]<auto V>(){
                                 cmds.registry().template run_schedule<on_enter_type<V>>();
                             }, ns);
 
@@ -561,26 +561,26 @@ namespace mytho::ecs {
         }
 
     public: // system operations
-        template<mytho::utils::FunctionType Func>
+        template<mytho::core::FunctionType Func>
         static system_type system(Func&& func) noexcept {
             return system_type(std::forward<Func>(func));
         }
 
-        template<mytho::utils::FunctionType Func>
+        template<mytho::core::FunctionType Func>
         self_type& add_system(Func&& func) {
             _schedules.add_system(std::forward<Func>(func));
 
             return *this;
         }
 
-        template<typename ScheduleT, mytho::utils::FunctionType Func>
+        template<typename ScheduleT, mytho::core::FunctionType Func>
         self_type& add_system(Func&& func) {
             _schedules.template add_system<ScheduleT>(std::forward<Func>(func));
 
             return *this;
         }
 
-        template<auto ScheduleE, mytho::utils::FunctionType Func>
+        template<auto ScheduleE, mytho::core::FunctionType Func>
         self_type& add_system(Func&& func) {
             _schedules.template add_system<ScheduleE>(std::forward<Func>(func));
 
@@ -695,14 +695,14 @@ namespace mytho::ecs {
             return ok ? std::optional{best} : std::nullopt;
         }
 
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         requires (sizeof...(Ts) > 0)
         bool component_list_contained(const entity_type& e, internal::type_list<Ts...>) const noexcept {
             // _entities and _components are synchronized, just check one
             return _entities.template has<Ts...>(e) /* && _components.template contain<Ts...>(e) */;
         }
 
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         bool component_list_not_contained(const entity_type& e, internal::type_list<Ts...>) const noexcept {
             if constexpr (sizeof...(Ts) > 0) {
                 // _entities and _components are synchronized, just check one
@@ -712,7 +712,7 @@ namespace mytho::ecs {
             }
         }
 
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         bool component_list_added(const entity_type& e, uint64_t tick, internal::type_list<Ts...>) const noexcept {
             if constexpr (sizeof...(Ts) > 0) {
                 return _components.template is_added<Ts...>(e, tick);
@@ -721,7 +721,7 @@ namespace mytho::ecs {
             }
         }
 
-        template<mytho::utils::PureComponentType... Ts>
+        template<PureComponentType... Ts>
         bool component_list_changed(const entity_type& e, uint64_t tick, internal::type_list<Ts...>) const noexcept {
             if constexpr (sizeof...(Ts) > 0) {
                 return _components.template is_changed<Ts...>(e, tick);
@@ -738,14 +738,14 @@ namespace mytho::ecs {
         template<typename T>
         auto _query(const entity_type& e) noexcept {
             using prototype = std::decay_t<T>;
-            using component_set_type = mytho::container::basic_component_set<entity_type, prototype, std::allocator<prototype>, PageSize>;
+            using component_set_type = mytho::storage::basic_component_set<entity_type, prototype, std::allocator<prototype>, PageSize>;
 
             if constexpr (std::is_same_v<prototype, entity_type>) {
-                return std::tuple(mytho::utils::internal::data_wrapper<entity_type>(e));
+                return std::tuple(internal::data_wrapper<entity_type>(e));
             } else {
                 auto id = component_id_generator::template gen<prototype>();
                 return std::tuple(
-                    mytho::utils::internal::data_wrapper<T>(
+                    internal::data_wrapper<T>(
                         &(static_cast<component_set_type&>(*_components[id]).get(e)),
                         static_cast<component_set_type&>(*_components[id]).changed_tick(e),
                         _current_tick

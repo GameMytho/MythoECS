@@ -7,11 +7,11 @@
 #include <utility>
 #include <cstddef>
 
-#include "utils/assert.hpp"
-#include "utils/concept.hpp"
+#include "core/assert.hpp"
+#include "core/concept.hpp"
 
-namespace mytho::container {
-    template<mytho::utils::UnsignedIntegralType T, size_t PageSize = 256>
+namespace mytho::storage {
+    template<mytho::core::UnsignedIntegralType T, size_t PageSize = 256>
     class basic_sparse_set {
     public:
         using data_type = T;

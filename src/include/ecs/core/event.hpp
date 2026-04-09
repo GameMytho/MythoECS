@@ -1,15 +1,13 @@
 #pragma once
 
-#include "utils/concept.hpp"
-#include "utils/type_list.hpp"
-
-namespace mytho::utils {
-    template<typename T>
-    concept PureEventType = PureValueType<T>;
-}
+#include "core/concept.hpp"
+#include "core/type_list.hpp"
 
 namespace mytho::ecs {
-    template<mytho::utils::PureEventType EventT>
+    template<typename T>
+    concept PureEventType = mytho::core::PureValueType<T>;
+
+    template<PureEventType EventT>
     class basic_events final {
     public:
         using event_type = EventT;
@@ -38,7 +36,7 @@ namespace mytho::ecs {
         events_type _write_events;
     };
 
-    template<mytho::utils::PureEventType EventT>
+    template<PureEventType EventT>
     class basic_event_writer final {
     public:
         using event_type = EventT;
@@ -56,7 +54,7 @@ namespace mytho::ecs {
         events_type& _events;
     };
 
-    template<mytho::utils::PureEventType EventT>
+    template<PureEventType EventT>
     class basic_event_mutator final {
     public:
         using event_type = EventT;
@@ -73,7 +71,7 @@ namespace mytho::ecs {
         events_type& _events;
     };
 
-    template<mytho::utils::PureEventType EventT>
+    template<PureEventType EventT>
     class basic_event_reader final {
     public:
         using event_type = EventT;
@@ -89,15 +87,13 @@ namespace mytho::ecs {
     private:
         const events_type& _events;
     };
-}
-
-namespace mytho::utils {
-    template<typename T>
-    inline constexpr bool is_event_writer_v = internal::is_template_v<T, mytho::ecs::basic_event_writer>;
 
     template<typename T>
-    inline constexpr bool is_event_mutator_v = internal::is_template_v<T, mytho::ecs::basic_event_mutator>;
+    inline constexpr bool is_event_writer_v = mytho::core::is_template_v<T, basic_event_writer>;
 
     template<typename T>
-    inline constexpr bool is_event_reader_v = internal::is_template_v<T, mytho::ecs::basic_event_reader>;
+    inline constexpr bool is_event_mutator_v = mytho::core::is_template_v<T, basic_event_mutator>;
+
+    template<typename T>
+    inline constexpr bool is_event_reader_v = mytho::core::is_template_v<T, basic_event_reader>;
 }

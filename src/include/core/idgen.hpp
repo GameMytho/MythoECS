@@ -1,6 +1,6 @@
 #pragma once
 
-namespace mytho::utils {
+namespace mytho::core {
     template<typename GeneratorT, typename IdT>
     struct basic_id_generator {
         using value_type = IdT;
